@@ -1,6 +1,6 @@
 import autograd.numpy as np
 from autograd.scipy.special import expit, logit
-from autograd import grad, primitive, value_and_grad
+from autograd import grad, primitive, value_and_grad, make_jvp
 
 def heaviside(z):
     return z >= 0
@@ -25,11 +25,17 @@ def conditional_noise(logit_theta, samples, noise):
     return samples * (noise * (1 - uprime) + uprime) + (1 - samples) * noise * uprime
 
 def bernoulli_logprob(logit_theta, targets):
-    sym_targets = targets * 2 - 1  # targets must be 0 or 1
-    return -np.logaddexp(0, -logit_theta * sym_targets)
+    # Computes log Bernoulli(targets | theta), targets are 0 or 1.
+    return -np.logaddexp(0, -logit_theta * (targets * 2 - 1))
 
 
 ############### REINFORCE ##################
+
+def reinforce_grad(func_vals, params, noise, f):
+    samples = bernoulli_sample(params, noise)
+    grad_func_vals = grad(f)(params, samples)
+    grad_logprobs = grad(bernoulli_logprob)(params, samples)
+    return grad_func_vals + func_vals * grad_logprobs
 
 @primitive
 def reinforce(params, noise, f):
@@ -38,11 +44,7 @@ def reinforce(params, noise, f):
     return f(params, samples)
 
 def reinforce_vjp(g, func_vals, vs, gvs, params, noise, f):
-    # We implement the gradient using the reinforce estimator.
-    samples = bernoulli_sample(params, noise)
-    grad_func_vals = grad(f)(params, samples)
-    grad_logprobs  = grad(bernoulli_logprob)(params, samples)
-    return g * (grad_func_vals + func_vals * grad_logprobs)
+    return g * reinforce_grad(func_vals, params, noise, f)
 reinforce.defvjp(reinforce_vjp)
 
 
@@ -56,25 +58,47 @@ def concrete(params, temperature, noise, f):
 
 ############### REBAR ######################
 
-@primitive
-def rebar(params, temperature, noise, noise2, f):
-    samples = bernoulli_sample(params, noise)
-    return f(params, samples)
+def rebar_grad(f_vals, model_params, est_params, noise_u, noise_v, f):
+    temperature, eta = est_params
+    samples = bernoulli_sample(model_params, noise_u)
 
-def rebar_vjp(g, f_vals, vs, gvs, params, temperature, noise, noise2, f):
-    samples = bernoulli_sample(params, noise)
-
-    def concrete_cond(params):
+    def concrete_cond(model_params):
         # This closure captures the dependency of the conditional samples on params.
-        cond_noise = conditional_noise(params, samples, noise2)
-        cond_relaxed_samples = relaxed_bernoulli_sample(params, cond_noise, temperature)
-        return f(params, cond_relaxed_samples)
+        cond_noise = conditional_noise(model_params, samples, noise_v)
+        cond_relaxed_samples = relaxed_bernoulli_sample(model_params, cond_noise, temperature)
+        return f(model_params, cond_relaxed_samples)
 
-    grad_func = grad(f)(params, samples)                                # d_f(b) / d_theta
-    grad_logprobs = grad(bernoulli_logprob)(params, samples)            # d_log_p(b) / d_theta
-    grad_concrete = grad(concrete)(params, temperature, noise, f)       # d_f(z) / d_theta
-    f_cond, grad_concrete_cond = value_and_grad(concrete_cond)(params)  # d_f(ztilde) / d_theta
+    grad_func = grad(f)(model_params, samples)                                # d_f(b) / d_theta
+    grad_logprobs = grad(bernoulli_logprob)(model_params, samples)            # d_log_p(b) / d_theta
+    grad_concrete = grad(concrete)(model_params, temperature, noise_u, f)     # d_f(z) / d_theta
+    f_cond, grad_concrete_cond = value_and_grad(concrete_cond)(model_params)  # d_f(ztilde) / d_theta
 
-    return g * ((f_vals - f_cond) * grad_logprobs + grad_concrete - grad_concrete_cond + grad_func)
+    return (f_vals - eta * f_cond) * grad_logprobs \
+        + eta * grad_concrete - eta * grad_concrete_cond + grad_func
 
-rebar.defvjp(rebar_vjp)
+@primitive
+def rebar(model_params, est_params, noise_u, noise_v, f):
+    samples = bernoulli_sample(model_params, noise_u)
+    return f(model_params, samples)
+
+def rebar_vjp(g, f_vals, vs, gvs, model_params, est_params, noise_u, noise_v, f):
+    return g * rebar_grad(f_vals, model_params, est_params, noise_u, noise_v, f)
+rebar.defvjp(rebar_vjp, argnum=0)
+rebar.defvjp_is_zero(argnums=(1,))
+
+
+
+# This is an attempt to implement the single-sample estimator
+# of the gradient of the variance of the gradients from the paper.  It doesn't work yet.
+@primitive
+def rebar_variance(est_params, model_params, noise_u, noise_v, f):
+    rebar_grads = grad(rebar)(model_params, est_params, noise_u, noise_v, f)
+    return np.var(rebar_grads, axis=0)
+
+def rebar_variance_vjp(g, variance, vs, gvs, est_params, model_params, noise_u, noise_v, f):
+    def rebar_est(est_params):
+        f_vals = rebar(model_params, est_params, noise_u, noise_v, f)
+        return rebar_grad(f_vals, model_params, est_params, noise_u, noise_v, f)
+    rebar_hat = np.mean(rebar_est(est_params))
+    return make_jvp(rebar_est)(est_params)(2 * g * rebar_hat)
+rebar_variance.defvjp(rebar_variance_vjp)
