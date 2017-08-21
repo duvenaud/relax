@@ -1,36 +1,33 @@
 import autograd.numpy as np
+import autograd.numpy.random as npr
+
 from autograd.scipy.special import expit, logit
 from autograd import grad, primitive, value_and_grad, make_jvp
 
-import autograd.numpy.random as npr
-import autograd.scipy.stats.norm as norm
-from autograd.util import flatten
+
 
 def heaviside(z):
     return z >= 0
 
-def relaxed_heaviside(z, temperature):
-    # sigma_lambda in REBAR paper.
+def relaxed_heaviside(z, temperature):  # sigma_lambda in REBAR paper.
     return expit(z / temperature)
 
-def logistic_sample(logit_theta, noise_samples):
-    # REBAR's z = g(theta, u)
-    return logit_theta + logit(noise_samples)
+def logistic_sample(logit_theta, noise):  # REBAR's z = g(theta, u)
+    return logit_theta + logit(noise)
 
 def bernoulli_sample(logit_theta, noise):
-    return heaviside(logistic_sample(logit_theta, noise))
-    #return logit(noise) < logit_theta
+    return logit(noise) < logit_theta  # heaviside(logistic_sample(logit_theta, noise))
 
-def relaxed_bernoulli_sample(logit_theta, noise_samples, temperature):
-    return relaxed_heaviside(logistic_sample(logit_theta, noise_samples), temperature)
+def relaxed_bernoulli_sample(logit_theta, noise, temperature):
+    return relaxed_heaviside(logistic_sample(logit_theta, noise), temperature)
 
 def conditional_noise(logit_theta, samples, noise):
-    # The output of this function can be fed into logistic_sample to get g tilde.
+    # Computes p(u|b), where b = H(z), z = logit_theta + logit(noise), p(u) = U(0, 1)
     uprime = expit(-logit_theta)
     return samples * (noise * (1 - uprime) + uprime) + (1 - samples) * noise * uprime
 
 def bernoulli_logprob(logit_theta, targets):
-    # Computes log Bernoulli(targets | theta), targets are 0 or 1.
+    # log Ber(targets | theta), targets are 0 or 1.
     return -np.logaddexp(0, -logit_theta * (targets * 2 - 1))
 
 
@@ -111,8 +108,12 @@ rebar_variance.defvjp(rebar_variance_vjp)
 
 
 ############### SIMPLE REBAR ######################
+# Doesn't use concrete distribution at all, still unbiased
 
 def conditional_noise_uniform(logit_theta, samples, noise):
+    # Computes p(u|b) where b = H(u < theta), p(u) = U(0, 1)
+    # p(z | b = 0) = U(theta, 1)
+    # p(z | b = 1) = U(0, theta)
     theta = expit(logit_theta)
     return (1 - samples) * (noise * (1 - theta) + theta) + samples * noise * theta
 
@@ -123,9 +124,9 @@ def simple_rebar_grad(f_vals, model_params, noise_u, noise_v, f):
         cond_noise = conditional_noise_uniform(model_params, samples, noise_v)
         return f(model_params, cond_noise)
 
-    grad_concrete = grad(f)(model_params, noise_u)
-    f_cond, grad_concrete_cond = value_and_grad(noise_cond)(model_params)
-    return reinforce_grad(f_vals - f_cond, model_params, noise_u, f) + grad_concrete - grad_concrete_cond
+    grad_noise = grad(f)(model_params, noise_u)
+    f_cond, grad_noise_cond = value_and_grad(noise_cond)(model_params)
+    return reinforce_grad(f_vals - f_cond, model_params, noise_u, f) + grad_noise - grad_noise_cond
 
 @primitive
 def simple_mc_simple_rebar(model_params, noise_u, noise_v, f):
@@ -136,3 +137,43 @@ def simple_rebar_vjp(g, f_vals, vs, gvs, model_params, noise_u, noise_v, f):
     return g * simple_rebar_grad(f_vals, model_params, noise_u, noise_v, f)
 simple_mc_simple_rebar.defvjp(simple_rebar_vjp, argnum=0)
 simple_mc_simple_rebar.defvjp_is_zero(argnums=(1,))
+
+
+
+############### GENERALIZED REBAR ######################
+# Uses a neural network for control variate instead of original objective
+# Question: Should f tilde depend on model_params?
+
+def init_nn_params(scale, layer_sizes, rs=npr.RandomState(0)):
+    """Build a list of (weights, biases) tuples, one for each layer."""
+    return [(rs.randn(insize, outsize) * scale,   # weight matrix
+             rs.randn(outsize) * scale)           # bias vector
+            for insize, outsize in zip(layer_sizes[:-1], layer_sizes[1:])]
+
+def nn_predict(params, inputs):
+    for W, b in params:
+        outputs = np.dot(inputs, W) + b
+        inputs = np.tanh(outputs)
+    return outputs
+
+def generalized_rebar_grad(f_vals, model_params, est_params, noise_u, noise_v, f):
+    samples = bernoulli_sample(model_params, noise_u)
+    f_tilde = lambda noise: nn_predict(est_params, noise)
+
+    def noise_cond(model_params):
+        cond_noise = conditional_noise_uniform(model_params, samples, noise_v)
+        return f_tilde(cond_noise)
+
+    grad_concrete = grad(f_tilde)(noise_u)
+    f_cond, grad_concrete_cond = value_and_grad(noise_cond)(model_params)
+    return reinforce_grad(f_vals - f_cond, model_params, noise_u, f) + grad_concrete - grad_concrete_cond
+
+@primitive
+def simple_mc_generalized_rebar(model_params, est_params, noise_u, noise_v, f):
+    samples = bernoulli_sample(model_params, noise_u)
+    return f(model_params, samples)
+
+def generalized_rebar_vjp(g, f_vals, vs, gvs, model_params, est_params, noise_u, noise_v, f):
+    return g * generalized_rebar_grad(f_vals, model_params, est_params, noise_u, noise_v, f)
+simple_mc_generalized_rebar.defvjp(generalized_rebar_vjp, argnum=0)
+simple_mc_generalized_rebar.defvjp_is_zero(argnums=(1,))
