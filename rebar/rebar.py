@@ -63,18 +63,16 @@ def rebar_grad(f_vals, model_params, est_params, noise_u, noise_v, f):
     samples = bernoulli_sample(model_params, noise_u)
 
     def concrete_cond(model_params):
-        # This closure captures the dependency of the conditional samples on params.
+        # Captures the dependency of the conditional samples on model_params.
         cond_noise = conditional_noise(model_params, samples, noise_v)
-        cond_relaxed_samples = relaxed_bernoulli_sample(model_params, cond_noise, temperature)
-        return f(model_params, cond_relaxed_samples)
+        return concrete(model_params, temperature, cond_noise, f)
 
-    grad_func = grad(f)(model_params, samples)                                # d_f(b) / d_theta
-    grad_logprobs = grad(bernoulli_logprob)(model_params, samples)            # d_log_p(b) / d_theta
     grad_concrete = grad(concrete)(model_params, temperature, noise_u, f)     # d_f(z) / d_theta
     f_cond, grad_concrete_cond = value_and_grad(concrete_cond)(model_params)  # d_f(ztilde) / d_theta
 
-    return (f_vals - eta * f_cond) * grad_logprobs \
-        + eta * grad_concrete - eta * grad_concrete_cond + grad_func
+    return reinforce_grad(f_vals - eta * f_cond, model_params, noise_u, f) \
+        + eta * grad_concrete - eta * grad_concrete_cond
+
 
 @primitive
 def rebar(model_params, est_params, noise_u, noise_v, f):
