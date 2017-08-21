@@ -2,6 +2,10 @@ import autograd.numpy as np
 from autograd.scipy.special import expit, logit
 from autograd import grad, primitive, value_and_grad, make_jvp
 
+import autograd.numpy.random as npr
+import autograd.scipy.stats.norm as norm
+from autograd.util import flatten
+
 def heaviside(z):
     return z >= 0
 
@@ -13,8 +17,9 @@ def logistic_sample(logit_theta, noise_samples):
     # REBAR's z = g(theta, u)
     return logit_theta + logit(noise_samples)
 
-def bernoulli_sample(logit_theta, noise_samples):
-    return heaviside(logistic_sample(logit_theta, noise_samples))
+def bernoulli_sample(logit_theta, noise):
+    return heaviside(logistic_sample(logit_theta, noise))
+    #return logit(noise) < logit_theta
 
 def relaxed_bernoulli_sample(logit_theta, noise_samples, temperature):
     return relaxed_heaviside(logistic_sample(logit_theta, noise_samples), temperature)
@@ -64,7 +69,6 @@ def rebar_grad(f_vals, model_params, est_params, noise_u, noise_v, f):
 
 
 ###Set up Simple Monte Carlo functions that have different gradient estimators
-
 @primitive
 def simple_mc_reinforce(params, noise, f):
     # This function simply samples discrete variables and feeds them to f.
@@ -102,3 +106,33 @@ def rebar_variance_vjp(g, variance, vs, gvs, est_params, model_params, noise_u, 
     rebar_hat = np.mean(rebar_est(est_params))
     return make_jvp(rebar_est)(est_params)(2 * g * rebar_hat)
 rebar_variance.defvjp(rebar_variance_vjp)
+
+
+
+
+############### SIMPLE REBAR ######################
+
+def conditional_noise_uniform(logit_theta, samples, noise):
+    theta = expit(logit_theta)
+    return (1 - samples) * (noise * (1 - theta) + theta) + samples * noise * theta
+
+def simple_rebar_grad(f_vals, model_params, noise_u, noise_v, f):
+    samples = bernoulli_sample(model_params, noise_u)
+
+    def noise_cond(model_params):
+        cond_noise = conditional_noise_uniform(model_params, samples, noise_v)
+        return f(model_params, cond_noise)
+
+    grad_concrete = grad(f)(model_params, noise_u)
+    f_cond, grad_concrete_cond = value_and_grad(noise_cond)(model_params)
+    return reinforce_grad(f_vals - f_cond, model_params, noise_u, f) + grad_concrete - grad_concrete_cond
+
+@primitive
+def simple_mc_simple_rebar(model_params, noise_u, noise_v, f):
+    samples = bernoulli_sample(model_params, noise_u)
+    return f(model_params, samples)
+
+def simple_rebar_vjp(g, f_vals, vs, gvs, model_params, noise_u, noise_v, f):
+    return g * simple_rebar_grad(f_vals, model_params, noise_u, noise_v, f)
+simple_mc_simple_rebar.defvjp(simple_rebar_vjp, argnum=0)
+simple_mc_simple_rebar.defvjp_is_zero(argnums=(1,))
