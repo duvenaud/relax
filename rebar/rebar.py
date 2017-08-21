@@ -37,21 +37,10 @@ def reinforce_grad(func_vals, params, noise, f):
     grad_logprobs = grad(bernoulli_logprob)(params, samples)
     return grad_func_vals + func_vals * grad_logprobs
 
-@primitive
-def reinforce(params, noise, f):
-    # This function simply samples discrete variables and feeds them to f.
-    samples = bernoulli_sample(params, noise)
-    return f(params, samples)
-
-def reinforce_vjp(g, func_vals, vs, gvs, params, noise, f):
-    return g * reinforce_grad(func_vals, params, noise, f)
-reinforce.defvjp(reinforce_vjp)
-
 
 ############### CONCRETE ###################
 
-def concrete(params, temperature, noise, f):
-    # Concrete sampling and evaluation is already differentiable.
+def simple_mc_concrete(params, temperature, noise, f):
     relaxed_samples = relaxed_bernoulli_sample(params, noise, temperature)
     return f(params, relaxed_samples)
 
@@ -65,24 +54,37 @@ def rebar_grad(f_vals, model_params, est_params, noise_u, noise_v, f):
     def concrete_cond(model_params):
         # Captures the dependency of the conditional samples on model_params.
         cond_noise = conditional_noise(model_params, samples, noise_v)
-        return concrete(model_params, temperature, cond_noise, f)
+        return simple_mc_concrete(model_params, temperature, cond_noise, f)
 
-    grad_concrete = grad(concrete)(model_params, temperature, noise_u, f)     # d_f(z) / d_theta
+    grad_concrete = grad(simple_mc_concrete)(model_params, temperature, noise_u, f) # d_f(z) / d_theta
     f_cond, grad_concrete_cond = value_and_grad(concrete_cond)(model_params)  # d_f(ztilde) / d_theta
 
     return reinforce_grad(f_vals - eta * f_cond, model_params, noise_u, f) \
         + eta * grad_concrete - eta * grad_concrete_cond
 
 
+###Set up Simple Monte Carlo functions that have different gradient estimators
+
 @primitive
-def rebar(model_params, est_params, noise_u, noise_v, f):
+def simple_mc_reinforce(params, noise, f):
+    # This function simply samples discrete variables and feeds them to f.
+    samples = bernoulli_sample(params, noise)
+    return f(params, samples)
+
+def reinforce_vjp(g, func_vals, vs, gvs, params, noise, f):
+    return g * reinforce_grad(func_vals, params, noise, f)
+simple_mc_reinforce.defvjp(reinforce_vjp)
+
+
+@primitive
+def simple_mc_rebar(model_params, est_params, noise_u, noise_v, f):
     samples = bernoulli_sample(model_params, noise_u)
     return f(model_params, samples)
 
 def rebar_vjp(g, f_vals, vs, gvs, model_params, est_params, noise_u, noise_v, f):
     return g * rebar_grad(f_vals, model_params, est_params, noise_u, noise_v, f)
-rebar.defvjp(rebar_vjp, argnum=0)
-rebar.defvjp_is_zero(argnums=(1,))
+simple_mc_rebar.defvjp(rebar_vjp, argnum=0)
+simple_mc_rebar.defvjp_is_zero(argnums=(1,))
 
 
 
@@ -90,7 +92,7 @@ rebar.defvjp_is_zero(argnums=(1,))
 # of the gradient of the variance of the gradients from the paper.  It doesn't work yet.
 @primitive
 def rebar_variance(est_params, model_params, noise_u, noise_v, f):
-    rebar_grads = grad(rebar)(model_params, est_params, noise_u, noise_v, f)
+    rebar_grads = grad(simple_mc_rebar)(model_params, est_params, noise_u, noise_v, f)
     return np.var(rebar_grads, axis=0)
 
 def rebar_variance_vjp(g, variance, vs, gvs, est_params, model_params, noise_u, noise_v, f):

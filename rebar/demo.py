@@ -9,7 +9,7 @@ from autograd.scipy.special import expit, logit
 from autograd import grad, value_and_grad
 from autograd.optimizers import adam
 
-from rebar import reinforce, concrete, rebar
+from rebar import simple_mc_rebar
 
 if __name__ == '__main__':
 
@@ -27,7 +27,8 @@ if __name__ == '__main__':
         rs = npr.RandomState(t)
         noise_u = rs.rand(num_samples, D)
         noise_v = rs.rand(num_samples, D)
-        objective_vals, grads = value_and_grad(rebar)(params_rep, est_params, noise_u, noise_v, objective)
+        objective_vals, grads = \
+            value_and_grad(simple_mc_rebar)(params_rep, est_params, noise_u, noise_v, objective)
         return np.mean(objective_vals), np.var(grads, axis=0)
 
     def combined_obj(combined_params, t):
