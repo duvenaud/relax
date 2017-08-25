@@ -7,18 +7,11 @@ ion()
 import matplotlib
 
 matplotlib.rc("savefig") #, dpi=300)
-"""
-binary variable b ~ binom(p)
-we have target prob t
 
-(b - t)^2 is the loss
-
-want to compute grad of b, see if we can optimize for p
-
-"""
 
 def safe_log_prob(x, eps=1e-8):
     return tf.log(tf.clip_by_value(x, eps, 1.0))
+
 
 def softplus(x):
     '''
@@ -31,107 +24,6 @@ def softplus(x):
     '''
     m = tf.maximum(tf.zeros_like(x), x)
     return m + tf.log(tf.exp(-m) + tf.exp(x - m))
-#
-# # Setup graph
-# n_samples = 1
-# t = tf.constant(0.45, dtype=tf.float64)    # target
-# log_alpha = tf.Variable(0.0, name='log_alpha', dtype=tf.float64)    # initial value
-# p = tf.nn.sigmoid(log_alpha)
-#
-# u = tf.random_uniform([n_samples], dtype=tf.float64)
-#
-# _x = log_alpha + safe_log_prob(u) - safe_log_prob(1 - u)
-#
-# b = tf.to_double(tf.stop_gradient(_x > 0))
-# loss = tf.square(b - t)
-# losses = {}
-#
-# # Optimal
-# losses['Optimal'] = tf.stop_gradient(tf.square(1 - t) - tf.square(-t)) * p
-#
-# # REINFORCE
-# log_p = (b*(-softplus(-log_alpha)) +
-#                  (1 - b)*(-log_alpha-softplus(-log_alpha)))
-#
-# losses['REINFORCE'] = tf.stop_gradient(loss) * log_p
-#
-# # Gumbel-softmax
-# temperature = 0.5
-# x = _x / temperature
-# b_gumbel = tf.nn.sigmoid(x)
-# losses['Concrete (0.5)'] = tf.square(b_gumbel - t)
-#
-# # REBAR
-# pre_temperature = tf.Variable(np.log(temperature),
-#                             trainable=False,
-#                             collections=['CV', tf.GraphKeys.GLOBAL_VARIABLES],
-#                             name='temperature',
-#                             dtype=tf.float64,)
-#
-# def compute_rebar_components(log_alpha, temperature):
-#     _x = log_alpha + safe_log_prob(u) - safe_log_prob(1 - u)
-#
-#     u_prime = tf.nn.sigmoid(-log_alpha)
-#     v_1 = (u - u_prime) / tf.clip_by_value(1 - u_prime, eps, 1)
-#     v_1 = tf.stop_gradient(v_1)
-#     v_1 = v_1*(1 - u_prime) + u_prime
-#     v_0 = u / tf.clip_by_value(u_prime, eps, 1)
-#     v_0 = tf.stop_gradient(v_0)
-#     v_0 = v_0 * u_prime
-#     v = tf.where(tf.stop_gradient(_x > 0), v_1, v_0)
-#     v = v + tf.stop_gradient(-v + u)
-#
-#     x = _x / temperature + log_alpha
-#     b_rebar = tf.nn.sigmoid(x)
-#     _rebar_loss = tf.square(b_rebar - t)
-#
-#     _x_v = log_alpha + safe_log_prob(v) - safe_log_prob(1 - v)
-#     x_v = _x_v / temperature + log_alpha
-#
-#     b_rebar_v = tf.nn.sigmoid(x_v)
-#     _rebar_loss_v = tf.square(b_rebar_v - t)
-#
-#     log_p = (b*(-softplus(-log_alpha)) +
-#                  (1 - b)*(-log_alpha-softplus(-log_alpha)))
-#
-#     return log_p, _rebar_loss, _rebar_loss_v
-#
-# def compute_rebar(pre_temperature):
-#     tiled_pre_temperature = tf.tile([pre_temperature], [n_samples])
-#     temperature = tf.exp(tiled_pre_temperature)
-#     log_p, _rebar_loss, _rebar_loss_v = compute_rebar_components(log_alpha, temperature)
-#     rebar_loss = (tf.stop_gradient(loss) - tf.stop_gradient(_rebar_loss_v)) * log_p + _rebar_loss - _rebar_loss_v
-#
-#     # Compute the gradient WRT to t of the variance of the gradient WRT parameters
-#     reinf_g = tf.gradients(tf.reduce_mean((tf.stop_gradient(loss) - tf.stop_gradient(_rebar_loss_v)) * log_p),
-#                                                  log_alpha)[0]
-#     reparam_g = tf.gradients(tf.reduce_mean(_rebar_loss - _rebar_loss_v),
-#                                                      log_alpha)[0]
-#     rebar_g = reinf_g + reparam_g
-#     df_dt = tf.gradients(_rebar_loss_v, tiled_pre_temperature)[0]
-#     reinf_g_t = tf.gradients(tf.reduce_mean(-tf.stop_gradient(df_dt) * log_p),
-#                                                      log_alpha)[0]
-#     reparam_g_t = tf.gradients(tf.reduce_mean(
-#             2 * tf.stop_gradient(rebar_g) * reparam_g), pre_temperature)[0]
-#     variance_g = tf.reduce_mean(2 * rebar_g * reinf_g_t) + reparam_g_t
-#
-#     return rebar_g, variance_g
-#
-# losses['REBAR'] = None    # set below
-#
-# ######
-# # Run training
-# fig, ax = plt.subplots(1, 2)
-#
-# def exp_average(values, alpha=0.99):
-#     res = []
-#     cur = 0
-#     alpha_t = alpha
-#     for v in values:
-#         cur = (1 - alpha)*v + alpha*cur
-#         res.append(cur / (1 - alpha_t))
-#         alpha_t *= alpha
-#     return res
 
 
 class REBAROptimizer:
@@ -265,91 +157,8 @@ class REBAROptimizer:
                 ))
 
 if __name__ == "__main__":
-    def loss(b, t=.45):
+    def loss(b, t=.49):
         return tf.square(b - t)
     sess = tf.Session()
     rebar_optimizer = REBAROptimizer(sess, loss)
     rebar_optimizer.train()
-
-
-# def train(train_loss, label, n_steps=5000):
-#     print(label)
-#     # Setup the graph
-#     optimizer = tf.train.GradientDescentOptimizer(learning_rate)
-#     variance_optimizer = tf.train.GradientDescentOptimizer(learning_rate)
-#
-#     # Compute gradient
-#     true_gradient = tf.gradients(losses['Optimal'], log_alpha)[0]
-#
-#     if label != 'REBAR':
-#         estimated_gradient = tf.gradients(tf.reduce_mean(train_loss), log_alpha)[0]
-#         grads_and_vars = [(estimated_gradient, log_alpha)]
-#         train_op = optimizer.apply_gradients(grads_and_vars)
-#     else:
-#         estimated_gradient, variance_g = compute_rebar(pre_temperature)
-#         grads_and_vars = [(estimated_gradient, log_alpha)]
-#         variance_grads_and_vars = [(variance_g, pre_temperature)]
-#
-#         with tf.control_dependencies([estimated_gradient, variance_g]):
-#             train_op = tf.group(optimizer.apply_gradients(grads_and_vars),
-#                                                     variance_optimizer.apply_gradients(variance_grads_and_vars))
-#
-#     # Run training
-#     sess.run(tf.global_variables_initializer())
-#
-#     p_vals = []
-#     loss_vals = []
-#     g_var = []
-#     for _ in xrange(n_steps):
-#         _, loss_val, g_val, true_gradient_val = sess.run(
-#                 [train_op, loss, estimated_gradient, true_gradient])
-#
-#         loss_vals.append(loss_val)
-#
-#         # Estimate variance of gradient estimator
-#         g_var.append(g_val*g_val - true_gradient_val*true_gradient_val)
-#
-#     # Plot/print results
-#     if not 'Concrete' in label:    # Plot variance for unbiased estimators
-#         ax[0].plot(np.log(np.clip(exp_average(g_var), eps, None)), color=color_dict[label])
-#     ax[1].plot(exp_average(loss_vals), color=color_dict[label], label=mapping_dict[label])
-#
-#
-# import matplotlib.cm as cm
-# mapping = [
-#         ('REINFORCE', 'REINFORCE'),
-#         ('SBNSimpleMuProp', 'SimpleMuProp'),
-#         ('SBNMuProp', 'MuProp'),
-#         ('SBNRebar', 'REBAR (0.1)'),
-#         ('REBAR', 'REBAR'),
-#         ('Concrete (0.5)', 'Concrete (0.5)'),
-# ]
-# mapping_dict = dict(mapping)
-# colors = cm.rainbow(np.linspace(0, 1, len(mapping)))
-# color_dict = dict([ (k, color) for ((k, v), color) in zip(mapping, colors) ])
-#
-# learning_rate = 0.1
-#
-#
-# color_dict['Optimal'] = 'b'
-# mapping_dict['Optimal'] = 'Exact gradient'
-# for k, _ in mapping + [('Optimal', 'Optimal')]:
-#     if k not in losses:
-#         continue
-#     print(k, losses[k])
-#     v = losses[k]
-#     train(v, k)
-#
-# fig.set_size_inches(16, 4)
-#
-# ax[0].set_ylim(-10, -2)
-# ax[0].set_xlabel('Steps')
-# ax[0].set_ylabel('log(Var(gradient estimator))')
-# ax[1].set_xlabel('Steps')
-# ax[1].set_ylabel('loss')
-# ax[1].legend(loc='best')
-# ax[0].grid(True)
-# ax[1].grid(True)
-# print("Drawing")
-# plt.draw()
-# plt.pause(100.0)
