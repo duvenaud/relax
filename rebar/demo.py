@@ -28,7 +28,7 @@ if __name__ == '__main__':
         noise_u = rs.rand(num_samples, D)
         noise_v = rs.rand(num_samples, D)
         objective_vals, grads = \
-            value_and_grad(simple_mc_simple_rebar)(params_rep, est_params, noise_u, noise_v, objective)
+            value_and_grad(simple_mc_rebar)(params_rep, est_params, noise_u, noise_v, objective)
         return np.mean(objective_vals), np.var(grads, axis=0)
 
     def combined_obj(combined_params, t):
