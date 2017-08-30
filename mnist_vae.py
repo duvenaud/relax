@@ -20,15 +20,14 @@ def decoder(b):
 
 def Q_func(z):
     h1 = tf.layers.dense(2. * z - 1., 50, tf.nn.relu, name="q_1", use_bias=True)
-    h2 = tf.layers.dense(h1, 50, tf.nn.relu, name="q_2", use_bias=True)
-    out = tf.layers.dense(h2, 1, name="q_out", use_bias=True)
+    out = tf.layers.dense(h1, 1, name="q_out", use_bias=True)
     return out
 
 
 if __name__ == "__main__":
-    TRAIN_DIR = "/tmp/rebar_relaxed"
+    TRAIN_DIR = "/tmp/rebar_relaxed_2"
     reinforce = False
-    relaxed = False
+    relaxed = True
     if os.path.exists(TRAIN_DIR):
         print("Deleting existing train dir")
         import shutil
@@ -61,8 +60,6 @@ if __name__ == "__main__":
 
         with tf.variable_scope("decoder", reuse=evals>0):
             log_alpha_x_batch = decoder(b)
-        #log_alpha_x = to_vec(log_alpha_x_batch)
-        x_v = to_vec(x_binary)
         log_p_x_given_b = bernoulli_loglikelihood(x_binary, log_alpha_x_batch)
         log_p_x_given_b = tf.reduce_mean(tf.reduce_sum(log_p_x_given_b, axis=1))
         # HACKY BS
