@@ -12,6 +12,9 @@ matplotlib.rc("savefig") #, dpi=300)
 def safe_log_prob(x, eps=1e-8):
     return tf.log(tf.clip_by_value(x, eps, 1.0))
 
+def safe_clip(x, eps=1e-8):
+    return tf.clip_by_value(x, eps, 1.0)
+
 
 def gs(x):
     return x.get_shape().as_list()
@@ -34,8 +37,10 @@ def bernoulli_loglikelihood(b, log_alpha):
     return b * (-softplus(-log_alpha)) + (1 - b) * (-log_alpha - softplus(-log_alpha))
 
 
-def bernoulli_loglikelihood_derivitive(b, log_theta, log_1_minus_theta):
-    return b / tf.exp(log_theta) - (1 - b) / tf.exp(log_1_minus_theta)
+def bernoulli_loglikelihood_derivitive(b, log_alpha):
+    assert gs(b) == gs(log_alpha)
+    sna = tf.sigmoid(-log_alpha)
+    return b * sna - (1-b) * (1 - sna)
 
 
 class REBAROptimizer(object):
@@ -145,18 +150,15 @@ class REBAROptimizer(object):
         f_b = tf.expand_dims(self.f_b, 1)
         f_z_tilde = tf.expand_dims(self.f_z_tilde, 1)
         log_p = bernoulli_loglikelihood(self.b, log_alpha)
+        d_log_p_d_log_alpha = bernoulli_loglikelihood_derivitive(self.b, log_alpha)
         # [f(b) - n * f(sig(z_tilde))] * d[log p(b)]/d[log_alpha]
         #                                               FOR SOME REASON IF I REMOVE THE STOP GRADIENT IT LEARNS BETTER
-        l = tf.reduce_mean((tf.stop_gradient(f_b) - tf.stop_gradient(eta * f_z_tilde)) * log_p, axis=0)
-        l_reinforce = tf.reduce_mean(tf.stop_gradient(f_b) * log_p, axis=0)
-        reinforce = tf.gradients(
-            l_reinforce,
-            self.log_alpha
-        )[0]
-        term1 = tf.gradients(
-            l,
-            self.log_alpha
-        )[0]
+        # l = tf.reduce_mean((tf.stop_gradient(f_b) - tf.stop_gradient(eta * f_z_tilde)) * log_p, axis=0)
+        # term1 = tf.gradients(
+        #     l,
+        #     self.log_alpha
+        # )[0]
+        term1 = ((f_b - eta * f_z_tilde) * d_log_p_d_log_alpha)[0]
         # d[f(sigma_theta(z))]/d[log_alpha] - eta * d[f(sigma_theta(z_tilde))]/d[log_alpha]
         term2 = tf.gradients(
             tf.reduce_mean(self.f_z - self.f_z_tilde),
@@ -164,35 +166,46 @@ class REBAROptimizer(object):
         )[0]
         # rebar gradient estimator
         rebar = term1 + self.eta * term2
+        reinforce = (f_b * d_log_p_d_log_alpha)[0]
         # now compute gradients of the variance of this wrt other parameters
         # eta
-        d_term1_d_eta = tf.gradients(
-            tf.reduce_mean(-1. * tf.stop_gradient(f_z_tilde) * log_p, axis=0),
-            self.log_alpha
+        d_rebar_d_eta = tf.gradients(
+            rebar,
+            self.eta
         )[0]
-        d_rebar_d_eta = d_term1_d_eta + term2
-        d_var_d_eta = tf.reduce_mean(
+        d_var_d_eta_OLD = tf.reduce_mean(
             tf.reshape(2. * rebar * d_rebar_d_eta, [self.batch_size, -1]),
             axis=0
         )
+        d_var_d_eta_v = tf.gradients(
+            tf.square(rebar),
+            self.eta
+        )[0]
+        d_var_d_eta = tf.reduce_mean(
+            tf.reshape(d_var_d_eta_v, [self.batch_size, -1]),
+            axis=0
+        )
         # temperature
-        d_f_z_tilde_d_tilded_temperature = tf.gradients(
-            f_z_tilde,
-            self.tiled_log_temperature
-        )[0]
-        d_term1_d_temperature = tf.gradients(
-            tf.reduce_mean(-1. * self.eta * tf.stop_gradient(d_f_z_tilde_d_tilded_temperature) * log_p, axis=0),
-            self.log_alpha
-        )[0]
-        d_term2_d_temperature = self.eta * tf.gradients(
-            tf.reduce_mean(term2),
+        d_rebar_d_temperature = tf.gradients(
+            rebar,
             self.log_temperature
         )[0]
-        d_rebar_d_temperature = d_term1_d_temperature + d_term2_d_temperature
-        d_var_d_temperature = tf.reduce_mean(
+        d_var_d_temperature_OLD = tf.reduce_mean(
             tf.reshape(2. * rebar * d_rebar_d_temperature, [self.batch_size, -1]),
             axis=0
         )
+        d_var_d_temperature_v = tf.gradients(
+            tf.square(rebar),
+            self.log_temperature
+        )[0]
+        d_var_d_temperature = tf.reduce_mean(
+            tf.reshape(d_var_d_temperature_v, [self.batch_size, -1]),
+            axis=0
+        )
+        tf.summary.histogram("temp_var_gradien_oldt", d_var_d_temperature_OLD)
+        tf.summary.histogram("temp_var_gradient_new", d_var_d_temperature)
+        tf.summary.histogram("eta_var_gradient_Old", d_var_d_eta_OLD)
+        tf.summary.histogram("eta_var_gradient_new", d_var_d_eta)
         self.rebar = tf.reshape(rebar, [self.batch_size, -1])
         self.reinforce = tf.reshape(reinforce, [self.batch_size, -1])
         tf.summary.histogram("rebar_gradient", rebar)
