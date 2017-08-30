@@ -7,7 +7,7 @@ def encoder(x):
     if len(gs(x)) > 2:
         p = np.prod(gs(x)[1:])
         x = tf.reshape(x, [-1, p])
-    h1 = tf.layers.dense(x, 200, tf.nn.relu, name="encoder_1")
+    h1 = tf.layers.dense(2. * x - 1., 200, tf.nn.relu, name="encoder_1")
     h2 = tf.layers.dense(h1, 200, tf.nn.relu, name="encoder_2")
     log_alpha = tf.layers.dense(h2, 200, name="encoder_out")
     return log_alpha
@@ -18,10 +18,17 @@ def decoder(b):
     log_alpha = tf.layers.dense(h2, 784, name="decoder_out")
     return log_alpha
 
+def Q_func(z):
+    h1 = tf.layers.dense(2. * z - 1., 50, tf.nn.relu, name="q_1", use_bias=True)
+    h2 = tf.layers.dense(h1, 50, tf.nn.relu, name="q_2", use_bias=True)
+    out = tf.layers.dense(h2, 1, name="q_out", use_bias=True)
+    return out
 
 
 if __name__ == "__main__":
-    TRAIN_DIR = "/tmp/rebar"
+    TRAIN_DIR = "/tmp/rebar_relaxed"
+    reinforce = False
+    relaxed = False
     if os.path.exists(TRAIN_DIR):
         print("Deleting existing train dir")
         import shutil
@@ -30,7 +37,7 @@ if __name__ == "__main__":
     os.makedirs(TRAIN_DIR)
     sess = tf.Session()
     batch_size = 100
-    lr = .001
+    lr = .0001
     dataset = input_data.read_data_sets("MNIST_data/", one_hot=True)
 
     def to_vec(t):
@@ -46,64 +53,70 @@ if __name__ == "__main__":
     log_alpha_v = tf.reshape(log_alpha, [-1])
     evals = 0
     def loss(b):
-        b = b[0]
+        log_q_b_given_x = bernoulli_loglikelihood(b, log_alpha)
+        log_q_b_given_x = tf.reduce_mean(tf.reduce_sum(log_q_b_given_x, axis=1))
 
-        log_q_b_given_x = bernoulli_loglikelihood(b, log_alpha_v)
-        log_q_b_given_x = tf.reduce_mean(tf.reduce_sum(from_vec(log_q_b_given_x), axis=1))
+        log_p_b = bernoulli_loglikelihood(b, tf.zeros_like(log_alpha))
+        log_p_b = tf.reduce_mean(tf.reduce_sum(log_p_b, axis=1))
 
-        log_p_b = bernoulli_loglikelihood(b, tf.zeros_like(log_alpha_v))
-        log_p_b = tf.reduce_mean(tf.reduce_sum(from_vec(log_p_b), axis=1))
-
-        b_batch = from_vec(b)
         with tf.variable_scope("decoder", reuse=evals>0):
-            log_alpha_x_batch = decoder(b_batch)
-        log_alpha_x = to_vec(log_alpha_x_batch)
+            log_alpha_x_batch = decoder(b)
+        #log_alpha_x = to_vec(log_alpha_x_batch)
         x_v = to_vec(x_binary)
-        log_p_x_given_b = bernoulli_loglikelihood(x_v, log_alpha_x)
-        log_p_x_given_b = tf.reduce_mean(tf.reduce_sum(from_vec(log_p_x_given_b), axis=1))
+        log_p_x_given_b = bernoulli_loglikelihood(x_binary, log_alpha_x_batch)
+        log_p_x_given_b = tf.reduce_mean(tf.reduce_sum(log_p_x_given_b, axis=1))
         # HACKY BS
         global evals
         if evals == 0:
             # if first eval make image summary
-            a = tf.exp(log_alpha_x)
+            a = tf.exp(log_alpha_x_batch)
             log_theta_x = a / (1 + a)
             log_theta = tf.reshape(log_theta_x, [batch_size, 28, 28, 1])
             tf.summary.image("x_pred", log_theta)
         evals += 1
         return -tf.expand_dims(log_p_x_given_b + log_p_b - log_q_b_given_x, 0)
-
-    rebar_optimizer = REBAROptimizer(sess, loss, log_alpha=log_alpha_v)
+    if relaxed:
+        rebar_optimizer = RelaxedREBAROptimizer(sess, loss, Q_func, log_alpha=log_alpha, learning_rate=lr)
+    else:
+        rebar_optimizer = REBAROptimizer(sess, loss, log_alpha=log_alpha, learning_rate=lr)
     gen_loss = rebar_optimizer.f_b
-    tf.scalar.histogram("loss", gen_loss)
+    tf.summary.scalar("loss", gen_loss[0])
     gen_opt = tf.train.AdamOptimizer(lr)
     gen_vars = [v for v in tf.trainable_variables() if "decoder" in v.name]
     gen_gradvars = gen_opt.compute_gradients(gen_loss, var_list=gen_vars)
     gen_train_op = gen_opt.apply_gradients(gen_gradvars)
 
-    alpha_grads = rebar_optimizer.rebar
-    alpha_grads_batch = from_vec(alpha_grads)
+    alpha_grads = rebar_optimizer.reinforce if reinforce else rebar_optimizer.rebar
     inf_vars = [v for v in tf.trainable_variables() if "encode" in v.name]
-    inf_grads = tf.gradients(log_alpha, inf_vars, grad_ys=alpha_grads_batch)
+    inf_grads = tf.gradients(log_alpha, inf_vars, grad_ys=alpha_grads)
     inf_gradvars = zip(inf_grads, inf_vars)
     inf_opt = tf.train.AdamOptimizer(lr)
     inf_train_op = inf_opt.apply_gradients(inf_gradvars)
-
-    for g, v in inf_gradvars + gen_gradvars + rebar_optimizer.variance_gradvars:
+    if relaxed:
+        gradvars = inf_gradvars + gen_gradvars + rebar_optimizer.variance_gradvars + rebar_optimizer.Q_gradvars
+    else:
+        gradvars = inf_gradvars + gen_gradvars + rebar_optimizer.variance_gradvars
+    for g, v in gradvars:
+        #if g is not None:
         tf.summary.histogram(v.name, v)
         tf.summary.histogram(v.name+"_grad", g)
 
-    with tf.control_dependencies([gen_train_op, inf_train_op, rebar_optimizer.variance_reduction_op]):
-        train_op = tf.no_op()
+    if reinforce:
+        with tf.control_dependencies([gen_train_op, inf_train_op]):
+            train_op = tf.no_op()
+    else:
+        with tf.control_dependencies([gen_train_op, inf_train_op, rebar_optimizer.variance_reduction_op]):
+            train_op = tf.no_op()
 
     summ_op = tf.summary.merge_all()
     summary_writer = tf.summary.FileWriter(TRAIN_DIR)
     sess.run(tf.global_variables_initializer())
-    for i in range(10000):
+    for i in range(50000):
         batch_xs, _ = dataset.train.next_batch(100)
         if i % 100 == 0:
             loss, _, sum_str = sess.run([gen_loss, train_op, summ_op], feed_dict={x: batch_xs})
             summary_writer.add_summary(sum_str, i)
-            print(loss)
+            print(i, loss[0])
         else:
             loss, _ = sess.run([gen_loss, train_op], feed_dict={x: batch_xs})
 
