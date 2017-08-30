@@ -21,6 +21,7 @@ def decoder(b):
 def Q_func(z):
     h1 = tf.layers.dense(2. * z - 1., 50, tf.nn.relu, name="q_1", use_bias=True)
     out = tf.layers.dense(h1, 1, name="q_out", use_bias=True)
+    tf.summary.histogram(out.name, out)
     return out
 
 

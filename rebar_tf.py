@@ -162,43 +162,15 @@ class REBAROptimizer(object):
         reinforce = (f_b * d_log_p_d_log_alpha)[0]
         # now compute gradients of the variance of this wrt other parameters
         # eta
-        # d_rebar_d_eta = tf.gradients(
-        #     rebar,
-        #     self.eta
-        # )[0]
-        # d_var_d_eta_OLD = tf.reduce_mean(
-        #     tf.reshape(2. * rebar * d_rebar_d_eta, [self.batch_size, -1]),
-        #     axis=0
-        # )
-        d_var_d_eta_v = tf.gradients(
-            tf.square(rebar),
-            self.eta
+        d_var_d_eta = tf.gradients(
+            tf.reduce_sum(tf.square(rebar)) / self.batch_size,
+            self.batch_eta
         )[0]
-        d_var_d_eta = tf.reduce_mean(
-            tf.reshape(d_var_d_eta_v, [self.batch_size, -1]),
-            axis=0
-        )
         # temperature
-        # d_rebar_d_temperature = tf.gradients(
-        #     rebar,
-        #     self.log_temperature
-        # )[0]
-        # d_var_d_temperature_OLD = tf.reduce_mean(
-        #     tf.reshape(2. * rebar * d_rebar_d_temperature, [self.batch_size, -1]),
-        #     axis=0
-        # )
-        d_var_d_temperature_v = tf.gradients(
-            tf.square(rebar),
-            self.log_temperature
+        d_var_d_temperature = tf.gradients(
+            tf.reduce_sum(tf.square(rebar)) / self.batch_size,
+            self.batch_log_temperature
         )[0]
-        d_var_d_temperature = tf.reduce_mean(
-            tf.reshape(d_var_d_temperature_v, [self.batch_size, -1]),
-            axis=0
-        )
-        #tf.summary.histogram("temp_var_gradient_old", d_var_d_temperature_OLD)
-        tf.summary.histogram("temp_var_gradient_new", d_var_d_temperature)
-        #tf.summary.histogram("eta_var_gradient_Old", d_var_d_eta_OLD)
-        tf.summary.histogram("eta_var_gradient_new", d_var_d_eta)
         self._rebar = rebar
         self.rebar = tf.reshape(rebar, [self.batch_size, -1])
         self.reinforce = tf.reshape(reinforce, [self.batch_size, -1])
@@ -260,8 +232,12 @@ class RelaxedREBAROptimizer(REBAROptimizer):
         print(gs(self._rebar), gs(self.rebar))
         self.Q_gradvars = []
         for var in self.Q_vars:
+            # d_var_d_v = tf.gradients(
+            #     tf.reduce_mean(tf.square(self.rebar)),
+            #     var
+            # )[0]
             d_var_d_v = tf.gradients(
-                tf.reduce_mean(tf.square(self.rebar)),
+                tf.reduce_mean(tf.square(self.f_z_tilde - self.f_b) + tf.square(self.f_z - self.f_b)),
                 var
             )[0]
             print(var.name, gs(d_var_d_v))
@@ -270,40 +246,65 @@ class RelaxedREBAROptimizer(REBAROptimizer):
 
 
 if __name__ == "__main__":
+    """
+    Finite differences d_log_p_d_log_alpha test
+    """
+    sess = tf.Session()
+    shape = [100, 100]
+    log_alpha = tf.placeholder(tf.float32, shape)
+    z = tf.random_normal(shape)
+    b = tf.to_float(z > 0)
+    eps = 1e-3
+    log_p_plus = bernoulli_loglikelihood(b, log_alpha + eps)
+    log_p_minus = bernoulli_loglikelihood(b, log_alpha - eps)
+    slopes = (log_p_plus - log_p_minus) / (2 * eps)
+    d_log_p_d_log_alpha = bernoulli_loglikelihood_derivitive(b, log_alpha)
+    for i in range(10):
+        d_num, d_ana = sess.run(
+            [slopes, d_log_p_d_log_alpha],
+            feed_dict={log_alpha: np.random.normal(size=shape)}
+        )
+        diffs = np.abs(d_num - d_ana) < eps
+        assert diffs.all()
+
+
+
+
+
     def loss(b):
         bs, dim = gs(b)
         t = np.expand_dims(np.array(range(dim+2)[1:-1], dtype=np.float32) / (dim+2), 0)
         return tf.reduce_sum(tf.square(b - t), axis=1)
-    sess = tf.Session()
+
     r_opt = REBAROptimizer(sess, loss, dim=10, learning_rate=.1, n_samples=1)
 
-    """
-    Bias and Variance test
-    """
-    r_opt.sess.run(tf.global_variables_initializer())
-    summ_op = tf.summary.merge_all()
-    summary_writer = tf.summary.FileWriter("/tmp/rebar")
-    percent_dims = []
-    rebar_vars = []
-    rebar_means = []
-    reinforce_vars = []
-    reinforce_means = []
-    for iter in xrange(100):
-        rebars = []
-        reinforces = []
-        for i in range(10000):
-            [reb, ref] = sess.run([r_opt.rebar, r_opt.reinforce])
-            rebars.append(reb)
-            reinforces.append(ref)
-        rebar_vars.append(np.var(rebars, axis=0))
-        reinforce_vars.append(np.var(reinforces, axis=0))
-        rebar_means.append(np.mean(rebars, axis=0))
-        reinforce_means.append(np.mean(reinforces, axis=0))
-        print("vars", np.mean(rebar_vars[-1]), np.mean(reinforce_vars[-1]))
-        print("means", rebar_means[-1][3], reinforce_means[-1][3])
-        print()
-        sess.run(r_opt.train_op)
-
+    # """
+    # Bias and Variance test
+    # """
+    # r_opt.sess.run(tf.global_variables_initializer())
+    # summ_op = tf.summary.merge_all()
+    # summary_writer = tf.summary.FileWriter("/tmp/rebar")
+    # percent_dims = []
+    # rebar_vars = []
+    # rebar_means = []
+    # reinforce_vars = []
+    # reinforce_means = []
+    # for iter in xrange(100):
+    #     rebars = []
+    #     reinforces = []
+    #     for i in range(10000):
+    #         [reb, ref] = sess.run([r_opt.rebar, r_opt.reinforce])
+    #         rebars.append(reb)
+    #         reinforces.append(ref)
+    #     rebar_vars.append(np.var(rebars, axis=0))
+    #     reinforce_vars.append(np.var(reinforces, axis=0))
+    #     rebar_means.append(np.mean(rebars, axis=0))
+    #     reinforce_means.append(np.mean(reinforces, axis=0))
+    #     print("vars", np.mean(rebar_vars[-1]), np.mean(reinforce_vars[-1]))
+    #     print("means", rebar_means[-1][3], reinforce_means[-1][3])
+    #     print()
+    #     sess.run(r_opt.train_op)
+    #
 
 
 
