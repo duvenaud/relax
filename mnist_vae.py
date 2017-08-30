@@ -21,14 +21,17 @@ def decoder(b):
 def Q_func(z):
     h1 = tf.layers.dense(2. * z - 1., 50, tf.nn.relu, name="q_1", use_bias=True)
     out = tf.layers.dense(h1, 1, name="q_out", use_bias=True)
-    tf.summary.histogram(out.name, out)
-    return out
+    scale = tf.get_variable(
+        "q_scale", shape=[1], dtype=tf.float32,
+        initializer=tf.constant_initializer(0), trainable=True
+    )
+    return scale[0] * out
 
 
 if __name__ == "__main__":
-    TRAIN_DIR = "/tmp/rebar_relaxed_2"
+    TRAIN_DIR = "./rebar_new_u_and_v"
     reinforce = False
-    relaxed = True
+    relaxed = False
     if os.path.exists(TRAIN_DIR):
         print("Deleting existing train dir")
         import shutil
@@ -95,7 +98,6 @@ if __name__ == "__main__":
     else:
         gradvars = inf_gradvars + gen_gradvars + rebar_optimizer.variance_gradvars
     for g, v in gradvars:
-        #if g is not None:
         tf.summary.histogram(v.name, v)
         tf.summary.histogram(v.name+"_grad", g)
 
@@ -109,7 +111,7 @@ if __name__ == "__main__":
     summ_op = tf.summary.merge_all()
     summary_writer = tf.summary.FileWriter(TRAIN_DIR)
     sess.run(tf.global_variables_initializer())
-    for i in range(50000):
+    for i in range(250000):
         batch_xs, _ = dataset.train.next_batch(100)
         if i % 100 == 0:
             loss, _, sum_str = sess.run([gen_loss, train_op, summ_op], feed_dict={x: batch_xs})
