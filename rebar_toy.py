@@ -78,20 +78,8 @@ def neg_elbo(x, b, log_alpha, pred_x_log_alpha):
 
 
 """ Networks """
-def encoder(x, num_latents):
-    h1 = tf.layers.dense(2. * x - 1., 200, tf.nn.relu, name="encoder_1")
-    h2 = tf.layers.dense(h1, 200, tf.nn.relu, name="encoder_2")
-    log_alpha = tf.layers.dense(h2, num_latents, name="encoder_out")
-    return log_alpha
-
-def decoder(b):
-    h1 = tf.layers.dense(2. * b - 1., 200, tf.nn.relu, name="decoder_1")
-    h2 = tf.layers.dense(h1, 200, tf.nn.relu, name="decoder_2")
-    log_alpha = tf.layers.dense(h2, 784, name="decoder_out")
-    return log_alpha
-
 def Q_func(z):
-    h1 = tf.layers.dense(2. * z - 1., 50, tf.nn.relu, name="q_1", use_bias=True)
+    h1 = tf.layers.dense(2. * z - 1., 10, tf.nn.relu, name="q_1", use_bias=True)
     out = tf.layers.dense(h1, 1, name="q_out", use_bias=True)
     scale = tf.get_variable(
         "q_scale", shape=[1], dtype=tf.float32,
@@ -102,10 +90,11 @@ def Q_func(z):
 def loss_func(b, t):
     return tf.reduce_mean(tf.square(b - t), axis=1)
 
+
 def main():
-    TRAIN_DIR = "./binary_vae"
+    TRAIN_DIR = "./toy_problem"
     use_reinforce = False
-    relaxed = False
+    relaxed = True
     if os.path.exists(TRAIN_DIR):
         print("Deleting existing train dir")
         import shutil
@@ -115,8 +104,9 @@ def main():
     sess = tf.Session()
     iters = 1000
     batch_size = 1
-    num_latents = 10
-    target = np.array([[float(i) / num_latents for i in range(num_latents)]], dtype=np.float32)
+    num_latents = 1
+    #target = np.array([[float(i) / num_latents for i in range(num_latents)]], dtype=np.float32)
+    target = np.array([[.49 for i in range(num_latents)]], dtype=np.float32)
     print("Target is {}".format(target))
     lr = .1
 
@@ -240,25 +230,25 @@ def main():
         summary_writer.add_summary(sum_str, i)
         print(i, loss_value, [t for t in theta_value[0]])
 
-        if i % 100 == 0:
-            # bias test
-            rebars = []
-            reinforces = []
-            for _ in range(10000):
-                rb, re = sess.run([rebar, reinforce])
-                rebars.append(rb)
-                reinforces.append(re)
-            rebars = np.array(rebars)
-            reinforces = np.array(reinforces)
-            re_var = reinforces.var(axis=0)
-            rb_var = rebars.var(axis=0)
-            diffs = np.abs(rebars.mean(axis=0) - reinforces.mean(axis=0))
-            percent_diffs = diffs / rebars.mean(axis=0)
-            print("rebar variance", rb_var.mean())
-            print("reinforce variance", re_var.mean())
-            print(rebars.mean(axis=0)[0])
-            print(reinforces.mean(axis=0)[0])
-            1/0
+        # if i % 100 == 0:
+        #     # bias test
+        #     rebars = []
+        #     reinforces = []
+        #     for _ in range(10000):
+        #         rb, re = sess.run([rebar, reinforce])
+        #         rebars.append(rb)
+        #         reinforces.append(re)
+        #     rebars = np.array(rebars)
+        #     reinforces = np.array(reinforces)
+        #     re_var = reinforces.var(axis=0)
+        #     rb_var = rebars.var(axis=0)
+        #     diffs = np.abs(rebars.mean(axis=0) - reinforces.mean(axis=0))
+        #     sess.run([rebar_var.assign(rb_var), reinforce_var.assign(re_var), est_diffs.assign(diffs)])
+        #     print("rebar variance", rb_var.mean())
+        #     print("reinforce variance", re_var.mean())
+        #     print(rebars.mean(axis=0)[0])
+        #     print(reinforces.mean(axis=0)[0])
+        #     print()
 
 
 
