@@ -101,9 +101,9 @@ def Q_func(z):
 
 
 def main():
-    TRAIN_DIR = "./binary_vae_relaxed"
+    TRAIN_DIR = "./binary_vae"
     use_reinforce = False
-    relaxed = True
+    relaxed = False
     if os.path.exists(TRAIN_DIR):
         print("Deleting existing train dir")
         import shutil
@@ -112,8 +112,9 @@ def main():
     os.makedirs(TRAIN_DIR)
     sess = tf.Session()
     num_epochs = 100
-    batch_size = 100
+    batch_size = 1
     num_latents = 200
+    target = np.array([[float(i) / num_latents for i in range(num_latents)]], dtype=tf.float32)
     lr = .0001
     dataset = input_data.read_data_sets("MNIST_data/", one_hot=True)
     x = tf.placeholder(tf.float32, [batch_size, 784])
@@ -122,8 +123,12 @@ def main():
     x_binary = tf.to_float(x > .5)
 
     # encode data
-    with tf.variable_scope("encoder"):
-        log_alpha = encoder(x_binary, num_latents)
+    log_alpha = tf.Variable(
+        [[0.0 for i in range(num_latents)]],
+        trainable=True,
+        name='log_alpha',
+        dtype=tf.float32
+    )
 
     # reparameterization variables
     u = tf.random_uniform([batch_size, num_latents], dtype=tf.float32)
@@ -271,15 +276,15 @@ def main():
         else:
             loss, _ = sess.run([generative_loss, train_op], feed_dict={x: batch_xs})
 
-        if i % iters_per_epoch == 0:
-            # epoch over, run test data
-            losses = []
-            for _ in range(dataset.test.num_examples // batch_size):
-                batch_xs, _ = dataset.test.next_batch(batch_size)
-                losses.append(sess.run(generative_loss, feed_dict={x: batch_xs}))
-            tl = np.mean(losses)
-            print("Test loss = {}".format(tl))
-            sess.run(test_loss.assign(tl))
+        # if i % iters_per_epoch == 0:
+        #     # epoch over, run test data
+        #     losses = []
+        #     for _ in range(dataset.test.num_examples // batch_size):
+        #         batch_xs, _ = dataset.test.next_batch(batch_size)
+        #         losses.append(sess.run(generative_loss, feed_dict={x: batch_xs}))
+        #     tl = np.mean(losses)
+        #     print("Test loss = {}".format(tl))
+        #     sess.run(test_loss.assign(tl))
         #     # bias test
         #     rebars = []
         #     reinforces = []
