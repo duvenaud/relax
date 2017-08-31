@@ -102,13 +102,13 @@ def main():
         shutil.rmtree(TRAIN_DIR)
     os.makedirs(TRAIN_DIR)
     sess = tf.Session()
-    iters = 1000
+    iters = 5000
     batch_size = 1
     num_latents = 1
     #target = np.array([[float(i) / num_latents for i in range(num_latents)]], dtype=np.float32)
     target = np.array([[.49 for i in range(num_latents)]], dtype=np.float32)
     print("Target is {}".format(target))
-    lr = .1
+    lr = .01
 
     # encode data
     log_alpha = tf.Variable(
@@ -226,9 +226,13 @@ def main():
     sess.run(tf.global_variables_initializer())
 
     for i in range(iters):
-        loss_value, _, sum_str, theta_value = sess.run([loss, train_op, summ_op, theta])
-        summary_writer.add_summary(sum_str, i)
-        print(i, loss_value, [t for t in theta_value[0]])
+        if i % 100 == 0:
+            loss_value, _, sum_str, theta_value = sess.run([loss, train_op, summ_op, theta])
+            summary_writer.add_summary(sum_str, i)
+            print(i, loss_value, [t for t in theta_value[0]])
+        else:
+            _, = sess.run([train_op])
+
 
         # if i % 100 == 0:
         #     # bias test
