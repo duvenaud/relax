@@ -99,6 +99,8 @@ def Q_func(z):
     )
     return scale[0] * out
 
+def loss_func(b, t):
+    return tf.reduce_mean(tf.square(b - t), axis=1)
 
 def main():
     TRAIN_DIR = "./binary_vae"
@@ -111,16 +113,12 @@ def main():
         shutil.rmtree(TRAIN_DIR)
     os.makedirs(TRAIN_DIR)
     sess = tf.Session()
-    num_epochs = 100
+    iters = 1000
     batch_size = 1
-    num_latents = 200
-    target = np.array([[float(i) / num_latents for i in range(num_latents)]], dtype=tf.float32)
-    lr = .0001
-    dataset = input_data.read_data_sets("MNIST_data/", one_hot=True)
-    x = tf.placeholder(tf.float32, [batch_size, 784])
-    x_im = tf.reshape(x, [batch_size, 28, 28, 1])
-    tf.summary.image("x_true", x_im)
-    x_binary = tf.to_float(x > .5)
+    num_latents = 10
+    target = np.array([[float(i) / num_latents for i in range(num_latents)]], dtype=np.float32)
+    print("Target is {}".format(target))
+    lr = .1
 
     # encode data
     log_alpha = tf.Variable(
@@ -129,6 +127,8 @@ def main():
         name='log_alpha',
         dtype=tf.float32
     )
+    a = tf.exp(log_alpha)
+    theta = a / (1 + a)
 
     # reparameterization variables
     u = tf.random_uniform([batch_size, num_latents], dtype=tf.float32)
@@ -157,21 +157,10 @@ def main():
     sig_z = concrete_relaxation(z, batch_temp, log_alpha)
     sig_z_tilde = concrete_relaxation(z_tilde, batch_temp, log_alpha)
 
-    # decoder evaluations
-    with tf.variable_scope("decoder"):
-        dec_b = decoder(b)
-        a = tf.exp(dec_b)
-        dec_log_theta = a / (1 + a)
-        dec_log_theta_im = tf.reshape(dec_log_theta, [batch_size, 28, 28, 1])
-        tf.summary.image("x_pred", dec_log_theta_im)
-    with tf.variable_scope("decoder", reuse=True):
-        dec_z = decoder(sig_z)
-        dec_z_tilde = decoder(sig_z_tilde)
-
     # loss function evaluations
-    f_b = neg_elbo(x_binary, b, log_alpha, dec_b)
-    f_z = neg_elbo(x_binary, sig_z, log_alpha, dec_z)
-    f_z_tilde = neg_elbo(x_binary, sig_z_tilde, log_alpha, dec_z_tilde)
+    f_b = loss_func(b, target)
+    f_z = loss_func(sig_z, target)
+    f_z_tilde = loss_func(sig_z_tilde, target)
     if relaxed:
         print("Relaxed Model")
         with tf.variable_scope("Q_func"):
@@ -186,8 +175,8 @@ def main():
     tf.summary.scalar("fz", tf.reduce_mean(f_z))
     tf.summary.scalar("fzt", tf.reduce_mean(f_z_tilde))
     # loss function for generative model
-    generative_loss = tf.reduce_mean(f_b)
-    tf.summary.scalar("loss", generative_loss)
+    loss = tf.reduce_mean(f_b)
+    tf.summary.scalar("loss", loss)
 
     # rebar construction
     d_f_z_d_log_alpha = tf.gradients(f_z, log_alpha)[0]
@@ -209,18 +198,9 @@ def main():
 
     # optimizers
     inf_opt = tf.train.AdamOptimizer(lr)
-    inf_vars = [v for v in tf.trainable_variables() if "encoder" in v.name]
     # need to scale by batch size cuz tf.gradients sums
     log_alpha_grads = (reinforce if use_reinforce else rebar) / batch_size
-    inf_vars = [v for v in tf.trainable_variables() if "encode" in v.name]
-    inf_grads = tf.gradients(log_alpha, inf_vars, grad_ys=log_alpha_grads)
-    inf_gradvars = zip(inf_grads, inf_vars)
-    inf_train_op = inf_opt.apply_gradients(inf_gradvars)
-
-    gen_opt = tf.train.AdamOptimizer(lr)
-    gen_vars = [v for v in tf.trainable_variables() if "decoder" in v.name]
-    gen_gradvars = gen_opt.compute_gradients(generative_loss, var_list=gen_vars)
-    gen_train_op = gen_opt.apply_gradients(gen_gradvars)
+    inf_train_op = inf_opt.apply_gradients([(log_alpha_grads, log_alpha)])
 
     var_opt = tf.train.AdamOptimizer(lr)
     var_vars = [eta, log_temperature]
@@ -230,16 +210,6 @@ def main():
     var_gradvars = var_opt.compute_gradients(variance_loss, var_list=var_vars)
     var_train_op = var_opt.apply_gradients(var_gradvars)
 
-    print("Inference")
-    for g, v in inf_gradvars:
-        print("    {}".format(v.name))
-        tf.summary.histogram(v.name, v)
-        tf.summary.histogram(v.name + "_grad", g)
-    print("Generative")
-    for g, v in gen_gradvars:
-        print("    {}".format(v.name))
-        tf.summary.histogram(v.name, v)
-        tf.summary.histogram(v.name + "_grad", g)
     print("Variance")
     for g, v in var_gradvars:
         print("    {}".format(v.name))
@@ -247,10 +217,10 @@ def main():
         tf.summary.histogram(v.name + "_grad", g)
 
     if use_reinforce:
-        with tf.control_dependencies([gen_train_op, inf_train_op]):
+        with tf.control_dependencies([inf_train_op]):
             train_op = tf.no_op()
     else:
-        with tf.control_dependencies([gen_train_op, inf_train_op, var_train_op]):
+        with tf.control_dependencies([inf_train_op, var_train_op]):
             train_op = tf.no_op()
 
     test_loss = tf.Variable(600, trainable=False, name="test_loss", dtype=tf.float32)
@@ -265,48 +235,31 @@ def main():
     summary_writer = tf.summary.FileWriter(TRAIN_DIR)
     sess.run(tf.global_variables_initializer())
 
-    iters_per_epoch = dataset.train.num_examples // batch_size
-    iters = iters_per_epoch * num_epochs
     for i in range(iters):
-        batch_xs, _ = dataset.train.next_batch(batch_size)
-        if i % 100 == 0:
-            loss, _, sum_str = sess.run([generative_loss, train_op, summ_op], feed_dict={x: batch_xs})
-            summary_writer.add_summary(sum_str, i)
-            print(i, loss)
-        else:
-            loss, _ = sess.run([generative_loss, train_op], feed_dict={x: batch_xs})
+        loss_value, _, sum_str, theta_value = sess.run([loss, train_op, summ_op, theta])
+        summary_writer.add_summary(sum_str, i)
+        print(i, loss_value, [t for t in theta_value[0]])
 
-        # if i % iters_per_epoch == 0:
-        #     # epoch over, run test data
-        #     losses = []
-        #     for _ in range(dataset.test.num_examples // batch_size):
-        #         batch_xs, _ = dataset.test.next_batch(batch_size)
-        #         losses.append(sess.run(generative_loss, feed_dict={x: batch_xs}))
-        #     tl = np.mean(losses)
-        #     print("Test loss = {}".format(tl))
-        #     sess.run(test_loss.assign(tl))
-        #     # bias test
-        #     rebars = []
-        #     reinforces = []
-        #     for _ in range(100000):
-        #         rb, re = sess.run([rebar, reinforce], feed_dict={x: batch_xs})
-        #         rebars.append(rb)
-        #         reinforces.append(re)
-        #     rebars = np.array(rebars)
-        #     reinforces = np.array(reinforces)
-        #     re_var = reinforces.var(axis=0)
-        #     rb_var = rebars.var(axis=0)
-        #     diffs = np.abs(rebars.mean(axis=0) - reinforces.mean(axis=0))
-        #     percent_diffs = diffs / rebars.mean(axis=0)
-        #     print("rebar variance", rb_var.mean())
-        #     print("reinforce variance", re_var.mean())
-        #     print("diffs", diffs.mean())
-        #     print("percent diffs", percent_diffs.mean())
-        #     print(rebars.mean(axis=0)[0])
-        #     print(reinforces.mean(axis=0)[0])
-        #     sess.run(
-        #         [rebar_var.assign(rb_var), reinforce_var.assign(re_var), est_diffs.assign(diffs)]
-        #     )
+        if i % 100 == 0:
+            # bias test
+            rebars = []
+            reinforces = []
+            for _ in range(10000):
+                rb, re = sess.run([rebar, reinforce])
+                rebars.append(rb)
+                reinforces.append(re)
+            rebars = np.array(rebars)
+            reinforces = np.array(reinforces)
+            re_var = reinforces.var(axis=0)
+            rb_var = rebars.var(axis=0)
+            diffs = np.abs(rebars.mean(axis=0) - reinforces.mean(axis=0))
+            percent_diffs = diffs / rebars.mean(axis=0)
+            print("rebar variance", rb_var.mean())
+            print("reinforce variance", re_var.mean())
+            print(rebars.mean(axis=0)[0])
+            print(reinforces.mean(axis=0)[0])
+            1/0
+
 
 
 

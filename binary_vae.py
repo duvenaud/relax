@@ -101,7 +101,7 @@ def Q_func(z):
 
 
 def main():
-    TRAIN_DIR = "./binary_vae_relaxed"
+    TRAIN_DIR = "./binary_vae_relaxed_small"
     use_reinforce = False
     relaxed = True
     if os.path.exists(TRAIN_DIR):
@@ -113,7 +113,7 @@ def main():
     sess = tf.Session()
     num_epochs = 100
     batch_size = 100
-    num_latents = 200
+    num_latents = 20
     lr = .0001
     dataset = input_data.read_data_sets("MNIST_data/", one_hot=True)
     x = tf.placeholder(tf.float32, [batch_size, 784])
