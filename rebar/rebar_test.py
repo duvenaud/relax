@@ -13,13 +13,13 @@ from rebar import simple_mc_reinforce, simple_mc_concrete,\
 
 if __name__ == '__main__':
     rs = npr.RandomState(0)
-    num_samples = 100000
+    num_samples = 10000
     D = 3
     params = logit(rs.rand(D))
     targets = rs.randn(D)
 
     def objective(params, b):
-        return (b - targets + expit(params))**2
+        return np.sum((b - targets + expit(params))**2, axis=-1, keepdims=True)
 
     def mc(params, estimator=simple_mc_reinforce):
         rs = npr.RandomState(0)
@@ -31,14 +31,15 @@ if __name__ == '__main__':
     print("Gradient estimators:")
     print("Numerical          : {}".format(np.array(nd(mc, params))[0]))
     print("Reinforce          : {}".format(grad(mc)(params, simple_mc_reinforce)))
-    print("Concrete, temp = 0 : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_concrete(p, 0.01, n, o))))
-    print("Concrete, temp = 1 : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_concrete(p, 1.0, n, o))))
-    print("Rebar, temp = 0    : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (0.01, 0.3), n, rs.rand(num_samples, D), o))))
-    print("Rebar, temp = 1    : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (1.0,  0.3), n, rs.rand(num_samples, D), o))))
-    print("Rebar, eta = 0     : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (1.0,  0.0), n, rs.rand(num_samples, D), o))))
+    print("Concrete, temp = 0 : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_concrete(p, np.log(0.001), n, o))))
+    print("Concrete, temp = 1 : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_concrete(p, np.log(1.0), n, o))))
+    print("Rebar, temp = 0    : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (np.log(0.001), np.log(0.3)), n, rs.rand(num_samples, D), o))))
+    print("Rebar, temp = 1    : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (np.log(1.0),  np.log(0.3)), n, rs.rand(num_samples, D), o))))
+    print("Rebar, temp = 10   : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (np.log(10.0), np.log(0.3)), n, rs.rand(num_samples, D), o))))
+    print("Rebar, eta = 0     : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (np.log(1.0),  np.log(0.0)), n, rs.rand(num_samples, D), o))))
     print("Simple Rebar       : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_simple_rebar(p, n, rs.rand(num_samples, D), o))))
     nn_params = init_nn_params(0.1, [D, 5, 1])
-    print("Generalized Rebar  : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_generalized_rebar(p, nn_params, n, rs.rand(num_samples, D), o))))
+    print("Generalized Rebar  : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_generalized_rebar(p, (0, 0, 0, nn_params), n, rs.rand(num_samples, D), o))))
 
     def rebar_var_naive(est_params):
         rs = npr.RandomState(0)

@@ -9,55 +9,43 @@ from autograd.scipy.special import expit, logit
 from autograd import grad, value_and_grad
 from autograd.optimizers import adam
 
-from rebar import simple_mc_rebar
+from rebar import simple_mc_reinforce
 
 if __name__ == '__main__':
 
     D = 100
     rs = npr.RandomState(0)
     num_samples = 50
-    init_params = (np.zeros(D), (1.0, 1.0))
+    init_params = np.zeros(D)
 
     def objective(params, b):
         return np.sum((b - np.linspace(0, 1, D))**2, axis=-1, keepdims=True)
 
-    def mc_objective_and_var(combined_params, t):
-        params, est_params = combined_params
+    def mc_objective_and_var(params, t):
         params_rep = np.tile(params, (num_samples, 1))
         rs = npr.RandomState(t)
         noise_u = rs.rand(num_samples, D)
-        noise_v = rs.rand(num_samples, D)
         objective_vals, grads = \
-            value_and_grad(simple_mc_rebar)(params_rep, est_params, noise_u, noise_v, objective)
+            value_and_grad(simple_mc_reinforce)(params_rep, noise_u, objective)
         return np.mean(objective_vals), np.var(grads, axis=0)
 
-    def combined_obj(combined_params, t):
-        # Combines objective value and variance of gradients.
-        # However, model_params shouldn't affect variance (in expectation),
-        # and est_params shouldn't affect objective (in expectation).
-        obj_value, grad_variances = mc_objective_and_var(combined_params, t)
-        return obj_value + grad_variances
+    def combined_obj(params, t):
+        obj_value, grad_variances = mc_objective_and_var(params, t)
+        return obj_value
 
     # Set up figure.
     fig = plt.figure(figsize=(8, 8), facecolor='white')
-    ax1 = fig.add_subplot(511, frameon=False)
-    ax2 = fig.add_subplot(512, frameon=False)
-    ax3 = fig.add_subplot(513, frameon=False)
-    ax4 = fig.add_subplot(514, frameon=False)
-    ax5 = fig.add_subplot(515, frameon=False)
+    ax1 = fig.add_subplot(311, frameon=False)
+    ax2 = fig.add_subplot(312, frameon=False)
+    ax3 = fig.add_subplot(313, frameon=False)
     plt.ion()
     plt.show(block=False)
 
     temperatures = []
-    etas = []
-    def callback(combined_params, t, gradient):
-        params, est_params = combined_params
+    def callback(params, t, gradient):
         grad_params = gradient[:D]
-        log_temperature, log_eta = est_params
-        temperatures.append(np.exp(log_temperature))
-        etas.append(np.exp(log_eta))
         if t % 10 == 0:
-            objective_val, grad_vars = mc_objective_and_var(combined_params, t)
+            objective_val, grad_vars = mc_objective_and_var(params, t)
             print("Iteration {} objective {}".format(t, objective_val))
             ax1.cla()
             ax1.plot(expit(params), 'r')
@@ -70,13 +58,6 @@ if __name__ == '__main__':
             ax3.plot(grad_vars, 'b')
             ax3.set_ylabel('gradient variance')
             ax3.set_xlabel('parameter index')
-            ax4.cla()
-            ax4.plot(temperatures, 'b')
-            ax4.set_ylabel('temperature')
-            ax5.cla()
-            ax5.plot(etas, 'b')
-            ax5.set_ylabel('eta')
-            ax5.set_xlabel('iteration')
 
             plt.draw()
             plt.pause(1.0/30.0)
