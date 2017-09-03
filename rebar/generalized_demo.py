@@ -28,7 +28,7 @@ if __name__ == '__main__':
     D = 100
     num_hidden_units = 5
     rs = npr.RandomState(0)
-    num_samples = 50
+    num_samples = 1
     init_est_params = (1.0, 1.0, -1.0, init_nn_params(0.1, [D, num_hidden_units, 1]))
     init_model_params = np.zeros(D)
     init_combined_params = (init_model_params, init_est_params)
