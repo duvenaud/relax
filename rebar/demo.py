@@ -6,16 +6,16 @@ import autograd.numpy as np
 import autograd.numpy.random as npr
 from autograd.scipy.special import expit, logit
 
-from autograd import grad, value_and_grad
+from autograd import grad
 from autograd.optimizers import adam
 
-from rebar import simple_mc_rebar, simple_mc_simple_rebar
+from rebar import simple_mc_rebar_grads_var
 
 if __name__ == '__main__':
 
     D = 100
     rs = npr.RandomState(0)
-    num_samples = 50
+    num_samples = 1
     init_params = (np.zeros(D), (1.0, 1.0))
 
     def objective(params, b):
@@ -27,16 +27,16 @@ if __name__ == '__main__':
         rs = npr.RandomState(t)
         noise_u = rs.rand(num_samples, D)
         noise_v = rs.rand(num_samples, D)
-        objective_vals, grads = \
-            value_and_grad(simple_mc_rebar)(params_rep, est_params, noise_u, noise_v, objective)
-        return np.mean(objective_vals), np.var(grads, axis=0)
+        objective_vals, grads, gradvar = \
+            simple_mc_rebar_grads_var(params_rep, est_params, noise_u, noise_v, objective)
+        return np.mean(objective_vals), gradvar
 
     def combined_obj(combined_params, t):
         # Combines objective value and variance of gradients.
         # However, model_params shouldn't affect variance (in expectation),
         # and est_params shouldn't affect objective (in expectation).
         obj_value, grad_variances = mc_objective_and_var(combined_params, t)
-        return obj_value + grad_variances
+        return obj_value + np.mean(grad_variances)
 
     # Set up figure.
     fig = plt.figure(figsize=(8, 8), facecolor='white')
@@ -63,9 +63,9 @@ if __name__ == '__main__':
             ax1.plot(expit(params), 'r')
             ax1.set_ylabel('parameter values')
             ax1.set_ylim([0, 1])
-            # ax2.cla()
-            # ax2.plot(grad_params, 'g')
-            # ax2.set_ylabel('average gradient')
+            ax2.cla()
+            ax2.plot(grad_params, 'g')
+            ax2.set_ylabel('average gradient')
             ax3.cla()
             ax3.plot(grad_vars, 'b')
             ax3.set_ylabel('gradient variance')

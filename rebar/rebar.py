@@ -2,7 +2,7 @@ import autograd.numpy as np
 import autograd.numpy.random as npr
 
 from autograd.scipy.special import expit, logit
-from autograd import grad, primitive, value_and_grad, make_jvp
+from autograd import grad, primitive, value_and_grad, make_vjp
 
 
 
@@ -85,27 +85,31 @@ def simple_mc_rebar(model_params, est_params, noise_u, noise_v, f):
     samples = bernoulli_sample(model_params, noise_u)
     return f(model_params, samples)
 
-def rebar_vjp(g, ans, vs, gvs, model_params, est_params, noise_u, noise_v, f):
-    return g * rebar_grad(model_params, est_params, noise_u, noise_v, f)
+def rebar_vjp(g, ans, vs, gvs, *args):
+    return g * rebar_grad(*args)
 simple_mc_rebar.defvjp(rebar_vjp, argnum=0)
 simple_mc_rebar.defvjp_is_zero(argnums=(1,))
 
 
-
-# This is an attempt to implement the single-sample estimator
-# of the gradient of the variance of the gradients from the paper.  It doesn't work yet.
+# This wrapper lets us implement the single-sample estimator
+# of the gradient of the variance of the gradient estimate from the paper.
 @primitive
-def rebar_variance(est_params, model_params, noise_u, noise_v, f):
-    rebar_grads = grad(simple_mc_rebar)(model_params, est_params, noise_u, noise_v, f)
-    return np.var(rebar_grads, axis=0)
+def simple_mc_rebar_grads_var(*args):
+    # Returns estimates of objective, gradients, and variance of gradients.
+    obj, grads = value_and_grad(simple_mc_rebar)(*args)
+    return obj, grads, np.var(grads, axis=0)
 
-def rebar_variance_vjp(g, variance, vs, gvs, est_params, model_params, noise_u, noise_v, f):
-    def rebar_est(est_params):
-        return rebar_grad(model_params, est_params, noise_u, noise_v, f)
-    rebar_hat = np.mean(rebar_est(est_params))
-    return make_jvp(rebar_est)(est_params)(2 * g * rebar_hat)
-rebar_variance.defvjp(rebar_variance_vjp)
-
+def rebar_obj_vjp((obj_g, rebar_g, var_g), ans, vs, gvs, *args):
+    return obj_g * rebar_grad(*args)
+def rebar_var_vjp(g, ans, vs, gvs, *args):
+    # Unbiased estimator of grad of variance of rebar.
+    _, grads, _ = ans
+    _, _, var_g = g
+    grad_est = 2 * var_g * grads / grads.shape[0]  # Formula from paper
+    est_params_vjp, _ = make_vjp(rebar_grad, argnum=1)(*args)
+    return est_params_vjp(grad_est)
+simple_mc_rebar_grads_var.defvjp(rebar_obj_vjp, argnum=0)
+simple_mc_rebar_grads_var.defvjp(rebar_var_vjp, argnum=1)
 
 
 
@@ -195,7 +199,27 @@ def simple_mc_generalized_rebar(model_params, est_params, noise_u, noise_v, f):
     samples = bernoulli_sample(model_params, noise_u)
     return f(model_params, samples)
 
-def generalized_rebar_vjp(g, ans, vs, gvs, model_params, est_params, noise_u, noise_v, f):
-    return g * generalized_rebar_grad(model_params, est_params, noise_u, noise_v, f)
+def generalized_rebar_vjp(g, ans, vs, gvs, *args):
+    return g * generalized_rebar_grad(*args)
 simple_mc_generalized_rebar.defvjp(generalized_rebar_vjp, argnum=0)
 simple_mc_generalized_rebar.defvjp_is_zero(argnums=(1,))
+
+
+@primitive
+def gen_rebar_grads_var(*args):
+    # Returns estimates of objective, gradients, and variance of gradients.
+    obj, grads = value_and_grad(simple_mc_generalized_rebar)(*args)
+    return obj, grads, np.var(grads, axis=0)
+
+def gen_rebar_obj_vjp((obj_g, rebar_g, var_g), ans, vs, gvs, *args):
+    return obj_g * generalized_rebar_grad(*args)
+
+def gen_rebar_var_vjp(g, ans, vs, gvs, *args):
+    # Unbiased estimator of grad of variance of rebar.
+    _, grads, _ = ans
+    _, _, var_g = g
+    grad_est = 2 * var_g * grads / grads.shape[0]  # Formula from paper
+    est_params_vjp, _ = make_vjp(generalized_rebar_grad, argnum=1)(*args)
+    return est_params_vjp(grad_est)
+gen_rebar_grads_var.defvjp(gen_rebar_obj_vjp, argnum=0)
+gen_rebar_grads_var.defvjp(gen_rebar_var_vjp, argnum=1)
