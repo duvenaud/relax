@@ -9,7 +9,7 @@ from autograd.scipy.special import expit, logit
 from autograd import grad, value_and_grad
 from autograd.optimizers import adam
 
-from rebar import simple_mc_rebar
+from rebar import simple_mc_rebar, simple_mc_simple_rebar
 
 if __name__ == '__main__':
 
@@ -63,9 +63,9 @@ if __name__ == '__main__':
             ax1.plot(expit(params), 'r')
             ax1.set_ylabel('parameter values')
             ax1.set_ylim([0, 1])
-            ax2.cla()
-            ax2.plot(grad_params, 'g')
-            ax2.set_ylabel('average gradient')
+            # ax2.cla()
+            # ax2.plot(grad_params, 'g')
+            # ax2.set_ylabel('average gradient')
             ax3.cla()
             ax3.plot(grad_vars, 'b')
             ax3.set_ylabel('gradient variance')
