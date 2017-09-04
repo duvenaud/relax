@@ -6,17 +6,17 @@ import autograd.numpy as np
 import autograd.numpy.random as npr
 from autograd.scipy.special import expit, logit
 
-from autograd import grad
+from autograd import grad, value_and_grad
 from autograd.optimizers import adam
 
-from rebar import simple_mc_rebar_grads_var
+from rebar import simple_mc_concrete
 
 if __name__ == '__main__':
 
     D = 100
     rs = npr.RandomState(0)
-    num_samples = 1
-    init_params = (np.zeros(D), (1.0, 1.0))
+    num_samples = 50
+    init_params = (np.zeros(D), 1.0)
 
     def objective(params, b):
         return np.sum((b - np.linspace(0, 1, D))**2, axis=-1, keepdims=True)
@@ -27,16 +27,16 @@ if __name__ == '__main__':
         rs = npr.RandomState(t)
         noise_u = rs.rand(num_samples, D)
         noise_v = rs.rand(num_samples, D)
-        objective_vals, grads, gradvar = \
-            simple_mc_rebar_grads_var(params_rep, est_params, noise_u, noise_v, objective)
-        return np.mean(objective_vals), gradvar
+        objective_vals, grads = \
+            value_and_grad(simple_mc_concrete)(params_rep, est_params, noise_u, objective)
+        return np.mean(objective_vals), np.var(grads, axis=0)
 
     def combined_obj(combined_params, t):
         # Combines objective value and variance of gradients.
         # However, model_params shouldn't affect variance (in expectation),
         # and est_params shouldn't affect objective (in expectation).
         obj_value, grad_variances = mc_objective_and_var(combined_params, t)
-        return obj_value + np.mean(grad_variances)
+        return obj_value #+ grad_variances
 
     # Set up figure.
     fig = plt.figure(figsize=(8, 8), facecolor='white')
@@ -44,18 +44,14 @@ if __name__ == '__main__':
     ax2 = fig.add_subplot(512, frameon=False)
     ax3 = fig.add_subplot(513, frameon=False)
     ax4 = fig.add_subplot(514, frameon=False)
-    ax5 = fig.add_subplot(515, frameon=False)
     plt.ion()
     plt.show(block=False)
 
     temperatures = []
-    etas = []
     def callback(combined_params, t, gradient):
-        params, est_params = combined_params
+        params, temperature = combined_params
         grad_params = gradient[:D]
-        log_temperature, log_eta = est_params
-        temperatures.append(np.exp(log_temperature))
-        etas.append(np.exp(log_eta))
+        temperatures.append(temperature)
         if t % 10 == 0:
             objective_val, grad_vars = mc_objective_and_var(combined_params, t)
             print("Iteration {} objective {}".format(t, objective_val))
@@ -73,10 +69,6 @@ if __name__ == '__main__':
             ax4.cla()
             ax4.plot(temperatures, 'b')
             ax4.set_ylabel('temperature')
-            ax5.cla()
-            ax5.plot(etas, 'b')
-            ax5.set_ylabel('eta')
-            ax5.set_xlabel('iteration')
 
             plt.draw()
             plt.pause(1.0/30.0)
