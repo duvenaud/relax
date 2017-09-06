@@ -91,8 +91,9 @@ def decoder(b):
     return log_alpha
 
 def Q_func(z):
-    h1 = tf.layers.dense(2. * z - 1., 50, tf.nn.relu, name="q_1", use_bias=True)
-    out = tf.layers.dense(h1, 1, name="q_out", use_bias=True)
+    h1 = tf.layers.dense(2. * z - 1., 200, tf.nn.relu, name="q_1")
+    h2 = tf.layers.dense(h1, 200, tf.nn.relu, name="q_2")
+    out = tf.layers.dense(h2, 1, name="q_out")
     scale = tf.get_variable(
         "q_scale", shape=[1], dtype=tf.float32,
         initializer=tf.constant_initializer(0), trainable=True
@@ -101,9 +102,9 @@ def Q_func(z):
 
 
 def main():
-    TRAIN_DIR = "./binary_vae_relaxed_small"
+    TRAIN_DIR = "./binary_vae_test"
     use_reinforce = False
-    relaxed = True
+    relaxed = False
     if os.path.exists(TRAIN_DIR):
         print("Deleting existing train dir")
         import shutil
@@ -111,9 +112,9 @@ def main():
         shutil.rmtree(TRAIN_DIR)
     os.makedirs(TRAIN_DIR)
     sess = tf.Session()
-    num_epochs = 100
+    num_epochs = 300
     batch_size = 100
-    num_latents = 20
+    num_latents = 200
     lr = .0001
     dataset = input_data.read_data_sets("MNIST_data/", one_hot=True)
     x = tf.placeholder(tf.float32, [batch_size, 784])
@@ -194,8 +195,10 @@ def main():
     batch_eta = tf.expand_dims(eta, 0)
     batch_f_b = tf.expand_dims(f_b, 1)
     batch_f_z_tilde = tf.expand_dims(f_z_tilde, 1)
-    rebar = (batch_f_b - batch_eta * batch_f_z_tilde) * d_log_p_d_log_alpha + batch_eta * (d_f_z_d_log_alpha - d_f_z_tilde_d_log_alpha)
-    reinforce = batch_f_b * d_log_p_d_log_alpha
+    d_f_b_d_log_alpha = tf.gradients(f_b, log_alpha)[0]
+    tf.summary.histogram("df/dtheta", d_f_b_d_log_alpha)
+    rebar = (batch_f_b - batch_eta * batch_f_z_tilde) * d_log_p_d_log_alpha + batch_eta * (d_f_z_d_log_alpha - d_f_z_tilde_d_log_alpha) + d_f_b_d_log_alpha
+    reinforce = batch_f_b * d_log_p_d_log_alpha + d_f_b_d_log_alpha
     tf.summary.histogram("rebar", rebar)
     tf.summary.histogram("reinforce", reinforce)
 
