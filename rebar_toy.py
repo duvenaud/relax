@@ -81,7 +81,8 @@ def neg_elbo(x, b, log_alpha, pred_x_log_alpha):
 """ Networks """
 def Q_func(z):
     h1 = tf.layers.dense(2. * z - 1., 10, tf.nn.relu, name="q_1", use_bias=True)
-    out = tf.layers.dense(h1, 1, name="q_out", use_bias=True)
+    h2 = tf.layers.dense(h1, 10, tf.nn.relu, name="q_2", use_bias=True)
+    out = tf.layers.dense(h2, 1, name="q_out", use_bias=True)
     scale = tf.get_variable(
         "q_scale", shape=[1], dtype=tf.float32,
         initializer=tf.constant_initializer(0), trainable=True
@@ -288,5 +289,5 @@ if __name__ == "__main__":
     thetas = []
     for i in range(10):
         tf.reset_default_graph()
-        thetas.append(main(relaxed="super"))
+        thetas.append(main(relaxed="super", visualize=True))
     print(np.mean(thetas), np.std(thetas))
