@@ -125,6 +125,17 @@ class SBN(object):  # REINFORCE
     Else:
         1 x linear layer
     """
+    if "q_func" in scope_prefix:
+      h = slim.fully_connected(input,
+                               self.hparams.n_hidden,
+                               reuse=reuse,
+                               activation_fn=tf.nn.relu,
+                               scope='%s_nonlinear_1' % scope_prefix)
+      h = slim.fully_connected(h,
+                               n_output,
+                               reuse=reuse,
+                               activation_fn=None,
+                               scope='%s_nonlinear_2' % scope_prefix)
     if self.hparams.nonlinear:
       h = slim.fully_connected(input,
                                self.hparams.n_hidden,
@@ -291,7 +302,7 @@ class SBN(object):  # REINFORCE
       self.run_generator_network = True
       return logP, logP
   
-  def _q_func(self, samples):
+  def _q_func(self, samples, collection='Q_FUNC'):
     '''Returns learning signal and function.
   
     This is the implementation for SBNs for the ELBO.
@@ -312,25 +323,29 @@ class SBN(object):  # REINFORCE
     if self.hparams.task in ['sbn', 'omni']:
       with slim.arg_scope([slim.fully_connected],
                           weights_initializer=slim.variance_scaling_initializer(),
-                          variables_collections=[Q_COLLECTION]):
+                          variables_collections=[collection, tf.GraphKeys.GLOBAL_VARIABLES, Q_COLLECTION]):
   
-        for i in reversed(xrange(self.hparams.n_layer)):
-          if i == 0:
-            n_output = self.hparams.n_input
-          else:
-            n_output = self.hparams.n_hidden
-          input = 2.0*samples[i]['activation']-1.0
+#        for i in reversed(xrange(self.hparams.n_layer)):
+#          if i == 0:
+#            n_output = self.hparams.n_input
+#          else:
+#            n_output = self.hparams.n_hidden
+        n_output = self.hparams.n_input
+        i = self.hparams.n_layer - 1  # use the last layer
+        input = 2.0*samples[i]['activation']-1.0
   
-          h = self._create_transformation(input,
-                                          n_output,
-                                          reuse=reuse,
-                                          scope_prefix='q_func_%d' % i)
+        h = self._create_transformation(input,
+                                        n_output,
+                                        reuse=reuse,
+                                        scope_prefix='q_func_%d' % i)
+        h = tf.reduce_sum(h)
+          
       self.run_q_func = True
       return h, h
     elif self.hparams.task == 'sp':
       with slim.arg_scope([slim.fully_connected],
                           weights_initializer=slim.variance_scaling_initializer(),
-                          variables_collections=[Q_COLLECTION]):
+                          variables_collections=[collection, tf.GraphKeys.GLOBAL_VARIABLES, Q_COLLECTION]):
         n_output = int(self.hparams.n_input/2)
         i = self.hparams.n_layer - 1  # use the last layer
         input = 2.0*samples[i]['activation']-1.0
@@ -401,6 +416,7 @@ class SBN(object):  # REINFORCE
     extra_optimizer = tf.train.AdamOptimizer(
         learning_rate=10*self.hparams.learning_rate,
         beta2=self.hparams.beta2)
+
     with tf.control_dependencies(
         [tf.group(*[g for g, _ in (grads_and_vars + extra_grads_and_vars) if g is not None])]):
 
@@ -899,16 +915,20 @@ class SBN(object):  # REINFORCE
 
     hardELBO, nvil_gradient, logQHard = self._create_hard_elbo()
     if self.hparams.quadratic:
-      gumbel_cv, extra  = self._create_gumbel_control_variate_quadratic(logQHard, temperature=temperature)
+      gumbel_cv, extra  = self._create_relaxed_gumbel_control_variate_quadratic(logQHard, temperature=temperature)
     else:
-      gumbel_cv, extra  = self._create_gumbel_control_variate(logQHard, temperature=temperature)
+      gumbel_cv, extra  = self._create_relaxed_gumbel_control_variate(logQHard, temperature=temperature)
 
     f_grads = self.optimizer_class.compute_gradients(tf.reduce_mean(-nvil_gradient))
+    f_grads = [(grad,var) for grad,var in f_grads if 'q_func' not in var.name]
+    print(len(f_grads))
 
     eta = {}
     h_grads, eta_statistics = self.multiply_by_eta_per_layer(
         self.optimizer_class.compute_gradients(tf.reduce_mean(gumbel_cv)),
         eta)
+    h_grads = [(grad,var) for grad,var in h_grads if 'q_func' not in var.name]
+    
 
     model_grads = U.add_grads_and_vars(f_grads, h_grads)
     total_grads = model_grads
@@ -927,6 +947,8 @@ class SBN(object):  # REINFORCE
         reinf_g_t_i, _ = self.multiply_by_eta_per_layer(
             self.optimizer_class.compute_gradients(tf.reduce_mean(tf.stop_gradient(df_dt) * logQHard[layer])),
             eta)
+        reinf_g_t_i = [(grad,var) for grad,var in reinf_g_t_i if 'q_func' not in var.name]
+        print(reinf_g_t_i)
         reinf_g_t += U.vectorize(reinf_g_t_i, set_none_to_zero=True)
 
       reparam = tf.add_n([reparam_i for _, reparam_i in extra])
@@ -936,13 +958,17 @@ class SBN(object):  # REINFORCE
       reinf_g_t, _ = self.multiply_by_eta_per_layer(
           self.optimizer_class.compute_gradients(tf.reduce_mean(tf.stop_gradient(df_dt) * tf.add_n(logQHard))),
           eta)
+      reinf_g_t = [(grad,var) for grad,var in reinf_g_t if 'q_func' not in var.name]
       reinf_g_t = U.vectorize(reinf_g_t, set_none_to_zero=True)
 
     reparam_g, _ = self.multiply_by_eta_per_layer(
         self.optimizer_class.compute_gradients(tf.reduce_mean(reparam)),
         eta)
+    reparam_g = [(grad,var) for grad,var in reparam_g if 'q_func' not in var.name]
+
     reparam_g = U.vectorize(reparam_g, set_none_to_zero=True)
     reparam_g_t = tf.gradients(tf.reduce_mean(2*tf.stop_gradient(g - gbar)*reparam_g), self.pre_temperature_variable)[0]
+    
 
     variance_objective_grad = tf.reduce_mean(2*(g - gbar)*reinf_g_t) + reparam_g_t
 
@@ -1174,7 +1200,13 @@ class SBNRelaxedDynamicRebar(SBN):
     # Create additional updates for control variates and temperature
     eta_grads = (self.optimizer_class.compute_gradients(variance_objective,
                                                         var_list=tf.get_collection('CV'))
-                 + [(variance_objective_grad, self.pre_temperature_variable)])
+                 + [(variance_objective_grad, self.pre_temperature_variable)]
+                 + self.optimizer_class.compute_gradients(variance_objective,
+                                                           var_list=tf.get_collection('Q_FUNC')))
+#    eta_grads = (self.optimizer_class.compute_gradients(variance_objective,
+#                                                        var_list=tf.get_collection('CV'))
+#                 + self.optimizer_class.compute_gradients(variance_objective,
+#                                                           var_list=tf.get_collection('Q_FUNC')))
 
     self._create_train_op(loss_grads, eta_grads)
 
@@ -1220,7 +1252,7 @@ class SBNTrackGradVariances(SBN):
     moments.append(self.compute_gradient_moments(rebar_gradient))
     
     self.losses.append(('RelaxedDynamicREBAR', self.get_relaxed_dynamic_rebar_gradient))
-    relaxed_dynamic_rebar_gradient, _, variance_objective, variance_objective_grad = self.get_dynamic_rebar_gradient()
+    relaxed_dynamic_rebar_gradient, _, variance_objective3, variance_objective_grad2 = self.get_relaxed_dynamic_rebar_gradient()
     moments.append(self.compute_gradient_moments(relaxed_dynamic_rebar_gradient))
 
     mu = tf.reduce_mean(tf.stack([f for f, _ in moments]), axis=0)
@@ -1240,13 +1272,15 @@ class SBNTrackGradVariances(SBN):
     self.lHat.append(tf.log(tf.reduce_mean(mu*mu)))
     #    self.lHat.extend(map(tf.log, grad_variances))
 
-    return ELBO, gradient_to_follow, variance_objective + variance_objective2, variance_objective_grad
+    return ELBO, gradient_to_follow, variance_objective + variance_objective2 + variance_objective3, variance_objective_grad + variance_objective_grad2
 
   def _create_network(self):
     logF, loss_grads, variance_objective, variance_objective_grad = self._create_loss()
     eta_grads = (self.optimizer_class.compute_gradients(variance_objective,
                                                         var_list=tf.get_collection('CV'))
-                 + [(variance_objective_grad, self.pre_temperature_variable)])
+                 + [(variance_objective_grad, self.pre_temperature_variable)]
+                 + self.optimizer_class.compute_gradients(variance_objective,
+                                                           var_list=tf.get_collection('Q_FUNC')))
     self._create_train_op(loss_grads, eta_grads)
 
     # Create IWAE lower bound for evaluation
