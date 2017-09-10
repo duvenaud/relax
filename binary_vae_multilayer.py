@@ -174,7 +174,7 @@ class ZSampler:
 
 def main(use_reinforce=False, relaxed=False, num_epochs=300,
          batch_size=100, num_latents=200, num_layers=2, lr=.0001):
-    TRAIN_DIR = "./binary_vae_test"
+    TRAIN_DIR = "./binary_vae_rebar"
     if os.path.exists(TRAIN_DIR):
         print("Deleting existing train dir")
         import shutil
@@ -279,20 +279,10 @@ def main(use_reinforce=False, relaxed=False, num_epochs=300,
     la_grads = []
     for l in range(num_layers):
         if use_reinforce:
-            la_grads.append(reinforce / batch_size)
+            la_grads.append(reinforces[l] / batch_size)
         else:
-            la_grads.append(rebar / batch_size)
-
-    inf_grads = []
-    for l in range(num_layers):
-        inf_grad = tf.gradients(inf_la_b[l], inf_vars, grad_ys=la_grads[l])
-        inf_grads.append(inf_grad)
-    z_inf_grads = zip(*inf_grads)
-    inf_grads = []
-    for ig in z_inf_grads:
-        grads = [g for g in ig if g is not None]
-        grads = tf.add_n(grads)
-        inf_grads.append(grads)
+            la_grads.append(rebars[l] / batch_size)
+    inf_grads = tf.gradients(inf_la_b, inf_vars, grad_ys=la_grads)
     inf_gradvars = zip(inf_grads, inf_vars)
 
     gen_opt = tf.train.AdamOptimizer(lr)
