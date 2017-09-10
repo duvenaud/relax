@@ -210,7 +210,6 @@ def main():
     inf_vars = [v for v in tf.trainable_variables() if "encoder" in v.name]
     # need to scale by batch size cuz tf.gradients sums
     log_alpha_grads = (reinforce if use_reinforce else rebar) / batch_size
-    inf_vars = [v for v in tf.trainable_variables() if "encode" in v.name]
     inf_grads = tf.gradients(log_alpha, inf_vars, grad_ys=log_alpha_grads)
     inf_gradvars = zip(inf_grads, inf_vars)
     inf_train_op = inf_opt.apply_gradients(inf_gradvars)
