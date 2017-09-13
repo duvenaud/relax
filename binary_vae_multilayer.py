@@ -92,10 +92,12 @@ def neg_elbo(x, samples, log_alphas_inf, log_alphas_gen, prior=None, log=False):
     log_q_b = tf.add_n(log_q_bs)
     # compute log[p(b1, ..., bN, x)]
     log_p_x_bs = []
+
     if prior is None:
         all_log_alphas_gen = list(reversed(log_alphas_gen)) + [tf.zeros_like(samples[0])]
     else:
         all_log_alphas_gen = list(reversed(log_alphas_gen)) + [prior]
+
     all_samples_gen = [x] + samples
     for b, log_alpha in zip(all_samples_gen, all_log_alphas_gen):
         log_p_next_given_cur = tf.reduce_sum(bernoulli_loglikelihood(b, log_alpha), axis=1)
@@ -205,6 +207,7 @@ class ZSampler:
 def main(use_reinforce=False, relaxed=False, num_epochs=800,
          batch_size=24, num_latents=200, num_layers=2, lr=.0001):
     TRAIN_DIR = "./binary_vae_rebar_old"
+
     if os.path.exists(TRAIN_DIR):
         print("Deleting existing train dir")
         import shutil
@@ -281,6 +284,7 @@ def main(use_reinforce=False, relaxed=False, num_epochs=800,
     f_b = neg_elbo(x_binary, samples_b, inf_la_b, gen_la_b, log=True)
     f_z = neg_elbo(x_binary, samples_z, inf_la_z, gen_la_z)
     f_zt = neg_elbo(x_binary, samples_zt, inf_la_zt, gen_la_zt)
+
     tf.summary.scalar("fb", tf.reduce_mean(f_b))
     tf.summary.scalar("fz", tf.reduce_mean(f_z))
     tf.summary.scalar("fzt", tf.reduce_mean(f_zt))
