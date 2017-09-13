@@ -40,7 +40,7 @@ def bernoulli_loglikelihood_derivitive(b, log_alpha):
     return b * sna - (1-b) * (1 - sna)
 
 
-def v_from_u(u, log_alpha):
+def v_from_u(u, log_alpha, force_same=True):
     u_prime = tf.nn.sigmoid(-log_alpha)
     v_1 = (u - u_prime) / safe_clip(1 - u_prime)
     v_1 = tf.clip_by_value(v_1, 0, 1)
@@ -53,7 +53,8 @@ def v_from_u(u, log_alpha):
 
     v = tf.where(u > u_prime, v_1, v_0)
     v = tf.check_numerics(v, 'v sampling is not numerically stable.')
-    v = v + tf.stop_gradient(-v + u)  # v and u are the same up to numerical errors
+    if force_same:
+        v = v + tf.stop_gradient(-v + u)  # v and u are the same up to numerical errors
     return v
 
 
@@ -93,7 +94,8 @@ def loss_func(b, t):
     return tf.reduce_mean(tf.square(b - t), axis=1)
 
 
-def main(use_reinforce=False, relaxed=False, visualize=False, log_var=False, tf_log=False):
+def main(use_reinforce=False, relaxed=False, visualize=False,
+         log_var=False, tf_log=False, force_same=False, test_bias=False):
     with tf.Session() as sess:
         TRAIN_DIR = "./toy_problem"
         if os.path.exists(TRAIN_DIR):
@@ -124,7 +126,7 @@ def main(use_reinforce=False, relaxed=False, visualize=False, log_var=False, tf_
         u = tf.random_uniform([batch_size, num_latents], dtype=tf.float32)
         z = reparameterize(log_alpha, u)
         b = tf.to_float(tf.stop_gradient(z > 0))
-        v = v_from_u(u, log_alpha)
+        v = v_from_u(u, log_alpha, force_same=force_same)
         z_tilde = reparameterize(log_alpha, v)
 
         # rebar variables
@@ -247,6 +249,25 @@ def main(use_reinforce=False, relaxed=False, visualize=False, log_var=False, tf_
                     rf_m, rf_v = np.mean(reinforces), np.std(reinforces)
                     print("Reinforce mean = {}, Reinforce std = {}".format(rf_m, rf_v))
                     print("Rebar mean     = {}, Rebar std     = {}".format(re_m, re_v))
+
+                if test_bias:
+                    rebars = []
+                    reinforces = []
+                    for _ in range(10000):
+                        rb, re = sess.run([rebar, reinforce])
+                        rebars.append(rb)
+                        reinforces.append(re)
+                    rebars = np.array(rebars)
+                    reinforces = np.array(reinforces)
+                    re_var = np.log(reinforces.var(axis=0))
+                    rb_var = np.log(rebars.var(axis=0))
+                    diffs = np.abs(rebars.mean(axis=0) - reinforces.mean(axis=0))
+                    sess.run([rebar_var.assign(rb_var), reinforce_var.assign(re_var), est_diffs.assign(diffs)])
+                    print("rebar variance = {}".format(rb_var.mean()))
+                    print("reinforce variance = {}".format(re_var.mean()))
+                    print("rebar     = {}".format(rebars.mean(axis=0)[0]))
+                    print("reinforce = {}\n".format(reinforces.mean(axis=0)[0]))
+
             else:
                 _, = sess.run([train_op])
 
@@ -262,26 +283,6 @@ def main(use_reinforce=False, relaxed=False, visualize=False, log_var=False, tf_
         print(tv)
         return theta_value[0][0]
 
-            # if i % 100 == 0:
-            #     # bias test
-            #     rebars = []
-            #     reinforces = []
-            #     for _ in range(10000):
-            #         rb, re = sess.run([rebar, reinforce])
-            #         rebars.append(rb)
-            #         reinforces.append(re)
-            #     rebars = np.array(rebars)
-            #     reinforces = np.array(reinforces)
-            #     re_var = reinforces.var(axis=0)
-            #     rb_var = rebars.var(axis=0)
-            #     diffs = np.abs(rebars.mean(axis=0) - reinforces.mean(axis=0))
-            #     sess.run([rebar_var.assign(rb_var), reinforce_var.assign(re_var), est_diffs.assign(diffs)])
-            #     print("rebar variance", rb_var.mean())
-            #     print("reinforce variance", re_var.mean())
-            #     print(rebars.mean(axis=0)[0])
-            #     print(reinforces.mean(axis=0)[0])
-            #     print()
-
 
 
 
@@ -289,5 +290,5 @@ if __name__ == "__main__":
     thetas = []
     for i in range(10):
         tf.reset_default_graph()
-        thetas.append(main(relaxed="super", visualize=True))
+        thetas.append(main(relaxed=False, visualize=False, force_same=True, test_bias=True))
     print(np.mean(thetas), np.std(thetas))

@@ -39,7 +39,7 @@ def bernoulli_loglikelihood_derivitive(b, log_alpha):
     return b * sna - (1-b) * (1 - sna)
 
 
-def v_from_u(u, log_alpha):
+def v_from_u(u, log_alpha, force_same=True):
     u_prime = tf.nn.sigmoid(-log_alpha)
     v_1 = (u - u_prime) / safe_clip(1 - u_prime)
     v_1 = tf.clip_by_value(v_1, 0, 1)
@@ -52,7 +52,8 @@ def v_from_u(u, log_alpha):
 
     v = tf.where(u > u_prime, v_1, v_0)
     v = tf.check_numerics(v, 'v sampling is not numerically stable.')
-    v = v + tf.stop_gradient(-v + u)  # v and u are the same up to numerical errors
+    if force_same:
+        v = v + tf.stop_gradient(-v + u)  # v and u are the same up to numerical errors
     return v
 
 

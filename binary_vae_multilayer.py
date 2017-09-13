@@ -32,6 +32,18 @@ def softplus(x):
 def bernoulli_loglikelihood(b, log_alpha):
     return b * (-softplus(-log_alpha)) + (1 - b) * (-log_alpha - softplus(-log_alpha))
 
+def bernoulli_kl_divergence(log_alpha_q, log_alpha_p):
+    zeros = tf.zeros_like(log_alpha_q)
+    ones = tf.ones_like(log_alpha_q)
+    log_q_0 = bernoulli_loglikelihood(zeros, log_alpha_q)
+    log_q_1 = bernoulli_loglikelihood(ones, log_alpha_q)
+    log_p_0 = bernoulli_loglikelihood(zeros, log_alpha_p)
+    log_p_1 = bernoulli_loglikelihood(ones, log_alpha_p)
+    q0 = tf.exp(log_q_0)
+    q1 = tf.exp(log_q_1)
+    kls = q0 * (log_q_0 - log_p_0) + q1 * (log_q_1 - log_p_1)
+    return tf.reduce_sum(kls, axis=1)
+
 
 def bernoulli_loglikelihood_derivitive(b, log_alpha):
     assert gs(b) == gs(log_alpha)
@@ -70,7 +82,7 @@ def assert_same_shapes(*args):
     assert all([s == s0 for s in sr])
 
 
-def neg_elbo(x, samples, log_alphas_inf, log_alphas_gen):
+def neg_elbo(x, samples, log_alphas_inf, log_alphas_gen, prior=None, log=False):
     assert len(samples) == len(log_alphas_inf) == len(log_alphas_gen)
     # compute log[q(b1|x)q(b2|b1)...q(bN|bN-1)]
     log_q_bs = []
@@ -80,12 +92,22 @@ def neg_elbo(x, samples, log_alphas_inf, log_alphas_gen):
     log_q_b = tf.add_n(log_q_bs)
     # compute log[p(b1, ..., bN, x)]
     log_p_x_bs = []
-    all_log_alphas_gen = [tf.zeros_like(samples[0])] + log_alphas_gen
-    all_samples_gen = samples + [x]
+    if prior is None:
+        all_log_alphas_gen = list(reversed(log_alphas_gen)) + [tf.zeros_like(samples[0])]
+    else:
+        all_log_alphas_gen = list(reversed(log_alphas_gen)) + [prior]
+    all_samples_gen = [x] + samples
     for b, log_alpha in zip(all_samples_gen, all_log_alphas_gen):
         log_p_next_given_cur = tf.reduce_sum(bernoulli_loglikelihood(b, log_alpha), axis=1)
         log_p_x_bs.append(log_p_next_given_cur)
     log_p_b_x = tf.add_n(log_p_x_bs)
+
+    if log:
+        for i, log_q in enumerate(log_q_bs):
+            log_p = log_p_x_bs[i+1]
+            kl = tf.reduce_mean(log_q - log_p)
+            tf.summary.scalar("kl_{}".format(i), kl)
+        tf.summary.scalar("log_p_x_given_b", tf.reduce_mean(log_p_x_bs[0]))
 
     return -1. * (log_p_b_x - log_q_b)
 
@@ -116,15 +138,23 @@ def inference_network(x, layer, num_layers, num_latents, name, reuse, sampler):
             samples.append(sample)
     return log_alphas, samples
 
-def generator_network(samples, layer, num_layers, num_latents, name, reuse):
+def generator_network(samples, layer, num_layers, num_latents, name, reuse, sampler=None):
     with tf.variable_scope(name, reuse=reuse):
         log_alphas = []
+        PRODUCE_SAMPLES = False
+        if samples is None:
+            PRODUCE_SAMPLES = True
+            prior_log_alpha = tf.zeros_like(sampler.u[-1])
+            samples = [None for l in range(num_layers)]
+            samples[-1] = sampler.sample(prior_log_alpha, num_layers-1)
         for l in reversed(range(num_layers)):
             log_alpha = layer(
                 samples[l],
                 784 if l == 0 else num_latents, str(l), reuse
             )
             log_alphas.append(log_alpha)
+            if l > 0 and PRODUCE_SAMPLES:
+                samples[l-1] = sampler.sample(log_alpha, l-1)
     return log_alphas
 
 def Q_func(z):
@@ -172,9 +202,9 @@ class ZSampler:
         return sig_z
 
 
-def main(use_reinforce=False, relaxed=False, num_epochs=300,
-         batch_size=100, num_latents=200, num_layers=2, lr=.0001):
-    TRAIN_DIR = "./binary_vae_test"
+def main(use_reinforce=False, relaxed=False, num_epochs=800,
+         batch_size=24, num_latents=200, num_layers=2, lr=.0001):
+    TRAIN_DIR = "./binary_vae_rebar_old"
     if os.path.exists(TRAIN_DIR):
         print("Deleting existing train dir")
         import shutil
@@ -211,10 +241,20 @@ def main(use_reinforce=False, relaxed=False, num_epochs=300,
         samples_b, decoder, num_layers,
         num_latents, "decoder", False
     )
+    # produce reconstruction summary
     a = tf.exp(gen_la_b[-1])
     dec_log_theta = a / (1 + a)
     dec_log_theta_im = tf.reshape(dec_log_theta, [batch_size, 28, 28, 1])
     tf.summary.image("x_pred", dec_log_theta_im)
+    # produce samples
+    _samples_la_b = generator_network(
+        None, decoder, num_layers,
+        num_latents, "decoder", True, sampler=b_sampler
+    )
+    a = tf.exp(_samples_la_b[-1])
+    dec_log_theta = a / (1 + a)
+    dec_log_theta_im = tf.reshape(dec_log_theta, [batch_size, 28, 28, 1])
+    tf.summary.image("x_sample", dec_log_theta_im)
 
     v = [v_from_u(_u, log_alpha) for _u, log_alpha in zip(u, inf_la_b)]
     # create soft samplers
@@ -222,7 +262,7 @@ def main(use_reinforce=False, relaxed=False, num_epochs=300,
     sig_zt_sampler = ZSampler(v, batch_temps)
     # generate soft forward passes
     inf_la_z, samples_z = inference_network(
-        x, encoder, num_layers,
+        x_binary, encoder, num_layers,
         num_latents, "encoder", True, sig_z_sampler
     )
     gen_la_z = generator_network(
@@ -230,7 +270,7 @@ def main(use_reinforce=False, relaxed=False, num_epochs=300,
         num_latents, "decoder", True
     )
     inf_la_zt, samples_zt = inference_network(
-        x, encoder, num_layers,
+        x_binary, encoder, num_layers,
         num_latents, "encoder", True, sig_zt_sampler
     )
     gen_la_zt = generator_network(
@@ -238,9 +278,9 @@ def main(use_reinforce=False, relaxed=False, num_epochs=300,
         num_latents, "decoder", True
     )
     # create loss evaluations
-    f_b = neg_elbo(x, samples_b, inf_la_b, gen_la_b)
-    f_z = neg_elbo(x, samples_z, inf_la_z, gen_la_z)
-    f_zt = neg_elbo(x, samples_zt, inf_la_zt, gen_la_zt)
+    f_b = neg_elbo(x_binary, samples_b, inf_la_b, gen_la_b, log=True)
+    f_z = neg_elbo(x_binary, samples_z, inf_la_z, gen_la_z)
+    f_zt = neg_elbo(x_binary, samples_zt, inf_la_zt, gen_la_zt)
     tf.summary.scalar("fb", tf.reduce_mean(f_b))
     tf.summary.scalar("fz", tf.reduce_mean(f_z))
     tf.summary.scalar("fzt", tf.reduce_mean(f_zt))
@@ -261,8 +301,8 @@ def main(use_reinforce=False, relaxed=False, num_epochs=300,
     reinforces = []
     for l in range(num_layers):
         term1 = (batch_f_b - batch_etas[l] * batch_f_zt) * d_log_p_d_la[l]
-        term2 = batch_etas[l] * (d_f_z_d_la[l] - d_f_zt_d_la[l]) + d_f_b_d_la[l]
-        rebar = term1 + term2
+        term2 = batch_etas[l] * (d_f_z_d_la[l] - d_f_zt_d_la[l])
+        rebar = term1 + term2 + d_f_b_d_la[l]
         rebars.append(rebar)
         reinforce = batch_f_b * d_log_p_d_la[l] + d_f_b_d_la[l]
         reinforces.append(reinforce)
@@ -279,20 +319,10 @@ def main(use_reinforce=False, relaxed=False, num_epochs=300,
     la_grads = []
     for l in range(num_layers):
         if use_reinforce:
-            la_grads.append(reinforce / batch_size)
+            la_grads.append(reinforces[l] / batch_size)
         else:
-            la_grads.append(rebar / batch_size)
-
-    inf_grads = []
-    for l in range(num_layers):
-        inf_grad = tf.gradients(inf_la_b[l], inf_vars, grad_ys=la_grads[l])
-        inf_grads.append(inf_grad)
-    z_inf_grads = zip(*inf_grads)
-    inf_grads = []
-    for ig in z_inf_grads:
-        grads = [g for g in ig if g is not None]
-        grads = tf.add_n(grads)
-        inf_grads.append(grads)
+            la_grads.append(rebars[l] / batch_size)
+    inf_grads = tf.gradients(inf_la_b, inf_vars, grad_ys=la_grads)
     inf_gradvars = zip(inf_grads, inf_vars)
 
     gen_opt = tf.train.AdamOptimizer(lr)
@@ -309,8 +339,7 @@ def main(use_reinforce=False, relaxed=False, num_epochs=300,
 
     print("Inference")
     for g, v in inf_gradvars:
-        print("    {}".format(v.name))
-        print(g)
+        print("    {}, {}".format(v.name, g))
         tf.summary.histogram(v.name, v)
         tf.summary.histogram(v.name + "_grad", g)
     print("Generative")
@@ -337,7 +366,7 @@ def main(use_reinforce=False, relaxed=False, num_epochs=300,
 
     #LOOK AT REINFORCE GRADIENTS AND MAKE SURE THEY ARE DIFFERENT
 
-    test_loss = tf.Variable(600, trainable=False, name="test_loss", dtype=tf.float32)
+    test_loss = tf.Variable(1000, trainable=False, name="test_loss", dtype=tf.float32)
     #rebar_var = tf.Variable(np.zeros([batch_size, num_latents]), trainable=False, name="rebar_variance", dtype=tf.float32)
     #reinforce_var = tf.Variable(np.zeros([batch_size, num_latents]), trainable=False, name="reinforce_variance",
     #                            dtype=tf.float32)
@@ -371,6 +400,42 @@ def main(use_reinforce=False, relaxed=False, num_epochs=300,
             tl = np.mean(losses)
             print("Test loss = {}".format(tl))
             sess.run(test_loss.assign(tl))
+
+            # # bias test
+            # rebar_gs = [[] for i in range(num_layers)]
+            # reinforce_gs = [[] for i in range(num_layers)]
+            # for _iter in range(100000):
+            #     if _iter % 1000 == 0:
+            #         print(_iter)
+            #     vals = sess.run(rebars + reinforces, feed_dict={x: batch_xs})
+            #     rbs = vals[:num_layers]
+            #     refs = vals[num_layers:]
+            #     for i, (rb, ref) in enumerate(zip(rbs, refs)):
+            #         rebar_gs[i].append(rb)
+            #         reinforce_gs[i].append(ref)
+            # rebar_gs = np.array(rebar_gs)
+            # reinforce_gs = np.array(reinforce_gs)
+            #
+            # ref_var = np.log(reinforce_gs.var(axis=1))
+            # rb_var = np.log(rebar_gs.var(axis=1))
+            # ref_mean = reinforce_gs.mean(axis=1)
+            # rb_mean = rebar_gs.mean(axis=1)
+            # diffs = np.abs(rebar_gs.mean(axis=1) - reinforce_gs.mean(axis=1))
+            # percent_diffs = diffs / rebar_gs.mean(axis=1)
+            # for l in range(num_layers):
+            #     print("layer {}".format(l))
+            #     print("    rebar mean: {}".format(rb_mean[l, 0, :10]))
+            #     print("    reinforce mean: {}".format(ref_mean[l, 0, :10]))
+            # print("rebar variance", rb_var.mean())
+            # print("reinforce variance", ref_var.mean())
+            # print("diffs", diffs.mean())
+            # print("percent diffs", percent_diffs.mean())
+            # 1/0
+            # #print(rebars.mean(axis=0)[0])
+            # #print(reinforces.mean(axis=0)[0])
+            # #sess.run(
+            # #    [rebar_var.assign(rb_var), reinforce_var.assign(re_var), est_diffs.assign(diffs)]
+            # #)
 
 
 if __name__ == "__main__":
