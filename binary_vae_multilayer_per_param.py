@@ -191,7 +191,7 @@ class ZSampler:
 
 def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
          batch_size=24, num_latents=200, num_layers=2, lr=.0001, test_bias=False):
-    TRAIN_DIR = "./binary_vae_time_test_new_grads"
+    TRAIN_DIR = "./binary_vae_time_test_relax"
     if os.path.exists(TRAIN_DIR):
         print("Deleting existing train dir")
         import shutil
@@ -232,8 +232,8 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
     # create binary sampler
     b_sampler = BSampler(u)
     # generate hard forward pass
-    encoder_name = "model_encoder"
-    decoder_name = "model_decoder"
+    encoder_name = "encoder"
+    decoder_name = "decoder"
     inf_la_b, samples_b = inference_network(
         x_binary, train_mean,
         encoder, num_layers,
@@ -291,9 +291,10 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
     f_zt, _ = neg_elbo(x_binary, samples_zt, inf_la_zt, gen_la_zt, p_prior)
     log_q_b = tf.add_n([tf.reduce_mean(log_q_b) for log_q_b in log_q_bs])
 
-    model_params = [v for v in tf.global_variables() if "model" in v.name]
+    encoder_params = [v for v in tf.global_variables() if "encoder" in v.name]
+    decoder_params = [v for v in tf.global_variables() if "decoder" in v.name]
     if learn_prior:
-        model_params.append(p_prior)
+        decoder_params.append(p_prior)
 
     model_opt = tf.train.AdamOptimizer(lr, beta2=.99999)
     # compute gradients and store gradients 50% speed increase
@@ -301,7 +302,7 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
     vals = [f_b, f_z, f_zt, log_q_b]
     names = ['f_b', 'f_z', 'f_zt', 'log_q_b']
     for val, name in zip(vals, names):
-        val_gradvars = model_opt.compute_gradients(val, var_list=model_params)
+        val_gradvars = model_opt.compute_gradients(val, var_list=encoder_params)
         grads[name] = {}
         for g, v in val_gradvars:
             grads[name][v.name] = g
@@ -311,7 +312,7 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
     variance_objectives = []
     rebars = []
     reinforces = []
-    for param in model_params:
+    for param in encoder_params:
         print(param.name)
         # create eta
         eta = create_eta()
@@ -323,9 +324,6 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
         d_fzt_dt = grads['f_zt'][param.name]
         d_log_q_dt = grads['log_q_b'][param.name]
 
-        if d_log_q_dt is None:
-            print("derivitive of log q wrt {} is 0".format(param.name))
-            d_log_q_dt = 0.0
         reinforce = f_b * d_log_q_dt + d_fb_dt
         rebar = (f_b - eta * f_zt) * d_log_q_dt + eta * (d_fz_dt - d_fzt_dt) + d_fb_dt
         tf.summary.histogram(param.name, param)
@@ -339,6 +337,13 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
         variance_objectives.append(tf.reduce_mean(tf.square(rebar)))
         rebars.append(rebar)
         reinforces.append(reinforce)
+
+    decoder_gradvars = model_opt.compute_gradients(f_b, var_list=decoder_params)
+    for g, v in decoder_gradvars:
+        print(v.name)
+        tf.summary.histogram(v.name, v)
+        tf.summary.histogram(v.name + "_grad", g)
+    grad_vars.extend(decoder_gradvars)
 
     variance_objective = tf.add_n(variance_objectives)
     model_train_op = model_opt.apply_gradients(grad_vars)
