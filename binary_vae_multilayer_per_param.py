@@ -1,6 +1,7 @@
 from tensorflow.examples.tutorials.mnist import input_data
 import tensorflow as tf
 import numpy as np
+import time
 import os
 
 """ Helper Functions """
@@ -31,18 +32,6 @@ def softplus(x):
 
 def bernoulli_loglikelihood(b, log_alpha):
     return b * (-softplus(-log_alpha)) + (1 - b) * (-log_alpha - softplus(-log_alpha))
-
-def bernoulli_kl_divergence(log_alpha_q, log_alpha_p):
-    zeros = tf.zeros_like(log_alpha_q)
-    ones = tf.ones_like(log_alpha_q)
-    log_q_0 = bernoulli_loglikelihood(zeros, log_alpha_q)
-    log_q_1 = bernoulli_loglikelihood(ones, log_alpha_q)
-    log_p_0 = bernoulli_loglikelihood(zeros, log_alpha_p)
-    log_p_1 = bernoulli_loglikelihood(ones, log_alpha_p)
-    q0 = tf.exp(log_q_0)
-    q1 = tf.exp(log_q_1)
-    kls = q0 * (log_q_0 - log_p_0) + q1 * (log_q_1 - log_p_1)
-    return tf.reduce_sum(kls, axis=1)
 
 
 def bernoulli_loglikelihood_derivitive(b, log_alpha):
@@ -202,7 +191,7 @@ class ZSampler:
 
 def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
          batch_size=24, num_latents=200, num_layers=2, lr=.0001, test_bias=False):
-    TRAIN_DIR = "./binary_vae_verify_correct"
+    TRAIN_DIR = "./binary_vae_time_test_new_grads"
     if os.path.exists(TRAIN_DIR):
         print("Deleting existing train dir")
         import shutil
@@ -305,6 +294,18 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
     model_params = [v for v in tf.global_variables() if "model" in v.name]
     if learn_prior:
         model_params.append(p_prior)
+
+    model_opt = tf.train.AdamOptimizer(lr, beta2=.99999)
+    # compute gradients and store gradients 50% speed increase
+    grads = {}
+    vals = [f_b, f_z, f_zt, log_q_b]
+    names = ['f_b', 'f_z', 'f_zt', 'log_q_b']
+    for val, name in zip(vals, names):
+        val_gradvars = model_opt.compute_gradients(val, var_list=model_params)
+        grads[name] = {}
+        for g, v in val_gradvars:
+            grads[name][v.name] = g
+
     grad_vars = []
     etas = []
     variance_objectives = []
@@ -316,12 +317,12 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
         eta = create_eta()
         tf.summary.scalar(eta.name, eta)
 
-        # non reinforce gradient
-        d_fb_dt = tf.gradients(f_b, param)[0]
-        # relaxation gradients
-        d_fz_dt = tf.gradients(f_z, param)[0]
-        d_fzt_dt = tf.gradients(f_zt, param)[0]
-        d_log_q_dt = tf.gradients(log_q_b, param)[0]
+        # # non reinforce gradient
+        d_fb_dt = grads['f_b'][param.name]
+        d_fz_dt = grads['f_z'][param.name]
+        d_fzt_dt = grads['f_zt'][param.name]
+        d_log_q_dt = grads['log_q_b'][param.name]
+
         if d_log_q_dt is None:
             print("derivitive of log q wrt {} is 0".format(param.name))
             d_log_q_dt = 0.0
@@ -340,7 +341,6 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
         reinforces.append(reinforce)
 
     variance_objective = tf.add_n(variance_objectives)
-    model_opt = tf.train.AdamOptimizer(lr, beta2=.99999)
     model_train_op = model_opt.apply_gradients(grad_vars)
     if use_reinforce:
         train_op = model_train_op
@@ -367,12 +367,15 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
 
     iters_per_epoch = dataset.train.num_examples // batch_size
     iters = iters_per_epoch * num_epochs
+    t = time.time()
     for i in range(iters):
         batch_xs, _ = dataset.train.next_batch(batch_size)
         if i % 1000 == 0:
             loss, _, sum_str = sess.run([total_loss, train_op, summ_op], feed_dict={x: batch_xs})
             summary_writer.add_summary(sum_str, i)
-            print(i, loss)
+            time_taken = time.time() - t
+            t = time.time()
+            print(i, loss, "{} / batch".format(time_taken / 1000))
             if test_bias:
                 rebs = []
                 refs = []
