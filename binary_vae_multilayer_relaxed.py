@@ -140,10 +140,21 @@ def generator_network(samples, output_bias, layer, num_layers, num_latents, name
                 samples[l-1] = sampler.sample(log_alpha, l-1)
     return log_alphas
 
-def Q_func(x, z, name, reuse):
-    inp = tf.concat([x, z], 1)
+# def Q_func(x, z, name, reuse):
+#     inp = tf.concat([x, z], 1)
+#     with tf.variable_scope(name, reuse=reuse):
+#         h1 = tf.layers.dense(inp, 200, tf.tanh, name="1")
+#         h2 = tf.layers.dense(h1, 200, tf.tanh, name="2")
+#         out = tf.layers.dense(h2, 1, name="out")
+#         #scale = tf.get_variable(
+#         #    "scale", shape=[1], dtype=tf.float32,
+#         #    initializer=tf.constant_initializer(0), trainable=True
+#         #)
+#     #return scale[0] * out
+#     return tf.reduce_mean(out)
+def Q_func(z, name, reuse):
     with tf.variable_scope(name, reuse=reuse):
-        h1 = tf.layers.dense(inp, 200, tf.tanh, name="1")
+        h1 = tf.layers.dense(2. * z - 1., 200, tf.tanh, name="1")
         h2 = tf.layers.dense(h1, 200, tf.tanh, name="2")
         out = tf.layers.dense(h2, 1, name="out")
         #scale = tf.get_variable(
@@ -201,7 +212,7 @@ class SIGZSampler:
 
 def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
          batch_size=24, num_latents=200, num_layers=2, lr=.0001, test_bias=False):
-    TRAIN_DIR = "./binary_vae_time_test_relax_with_x"
+    TRAIN_DIR = "./binary_vae_time_test_relax"
     if os.path.exists(TRAIN_DIR):
         print("Deleting existing train dir")
         import shutil
@@ -322,19 +333,21 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
     grad_vars = []
     etas = []
     variance_objectives = []
+    q_objectives = []
     rebars = []
     reinforces = []
     for l in range(num_layers):
         z = zs[l]
         zt = zts[l]
         name = "Q_{}".format(l)
-        f_z = Q_func(x_binary, z, name, False)
-        f_zt = Q_func(x_binary, zt, name, True)
+        f_z = Q_func(z, name, False)
+        f_zt = Q_func(zt, name, True)
         tf.summary.scalar("fz_{}".format(l), f_z)
         tf.summary.scalar("fzt_{}".format(l), f_zt)
         params = [v for v in encoder_params if "encoder/{}".format(l) in v.name]
         f_z_gradvars = model_opt.compute_gradients(f_z, var_list=params)
         f_zt_gradvars = model_opt.compute_gradients(f_zt, var_list=params)
+        q_objectives.append(tf.square(f_b - f_z) + tf.square(f_b - f_zt))
         # sanity check to make sure same order
         for v1, v2 in zip(f_z_gradvars, f_zt_gradvars):
             assert v1[1] == v2[1], (v1[1], v2[1])
@@ -402,6 +415,7 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
     grad_vars.extend(decoder_gradvars)
 
     variance_objective = tf.add_n(variance_objectives)
+    q_objective = tf.add(q_objectives)
     model_train_op = model_opt.apply_gradients(grad_vars)
     if use_reinforce:
         train_op = model_train_op
@@ -412,7 +426,9 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
         for v in q_vars:
             print(v.name)
             tf.summary.histogram(v.name, v)
-        variance_gradvars = variance_opt.compute_gradients(variance_objective, var_list=etas+q_vars)
+        variance_gradvars = variance_opt.compute_gradients(variance_objective, var_list=etas)
+        q_gradvars = variance_opt.compute_gradients(q_objective, var_list=q_vars)
+        variance_gradvars = variance_gradvars + q_gradvars
         for g, v in variance_gradvars:
             tf.summary.histogram(v.name+"_gradient", g)
         variance_train_op = variance_opt.apply_gradients(variance_gradvars)
