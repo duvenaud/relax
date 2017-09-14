@@ -415,6 +415,7 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
     grad_vars.extend(decoder_gradvars)
 
     variance_objective = tf.add_n(variance_objectives)
+    print(q_objectives)
     q_objective = tf.add(q_objectives)
     model_train_op = model_opt.apply_gradients(grad_vars)
     if use_reinforce:
