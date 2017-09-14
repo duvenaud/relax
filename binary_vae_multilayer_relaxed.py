@@ -90,7 +90,7 @@ def neg_elbo(x, samples, log_alphas_inf, log_alphas_gen, prior, log=False):
             kl = tf.reduce_mean(log_q - log_p)
             tf.summary.scalar("kl_{}".format(i), kl)
         tf.summary.scalar("log_p_x_given_b", tf.reduce_mean(log_p_x_bs[0]))
-    return -1. * tf.reduce_mean((log_p_b_x - log_q_b)), log_q_bs
+    return -1. * (log_p_b_x - log_q_b), log_q_bs
 
 
 """ Networks """
@@ -162,7 +162,7 @@ def Q_func(z, name, reuse):
         #    initializer=tf.constant_initializer(0), trainable=True
         #)
     #return scale[0] * out
-    return tf.reduce_mean(out)
+    return out
 
 """ Variable Creation """
 def create_log_temp():
@@ -313,7 +313,8 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
     #     num_latents, decoder_name, True
     # )
     # create loss evaluations
-    f_b, log_q_bs = neg_elbo(x_binary, samples_b, inf_la_b, gen_la_b, p_prior, log=True)
+    f_b_batch, log_q_bs = neg_elbo(x_binary, samples_b, inf_la_b, gen_la_b, p_prior, log=True)
+    f_b = tf.reduce_mean(f_b_batch)
     #f_z, _ = neg_elbo(x_binary, samples_z, inf_la_z, gen_la_z, p_prior)
     #f_zt, _ = neg_elbo(x_binary, samples_zt, inf_la_zt, gen_la_zt, p_prior)
     log_q_b = tf.add_n([tf.reduce_mean(log_q_b) for log_q_b in log_q_bs])
@@ -340,14 +341,16 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
         z = zs[l]
         zt = zts[l]
         name = "Q_{}".format(l)
-        f_z = Q_func(z, name, False)
-        f_zt = Q_func(zt, name, True)
+        f_z_batch = Q_func(z, name, False)
+        f_zt_batch = Q_func(zt, name, True)
+        f_z = tf.reduce_mean(f_z_batch)
+        f_zt = tf.reduce_mean(f_zt_batch)
         tf.summary.scalar("fz_{}".format(l), f_z)
         tf.summary.scalar("fzt_{}".format(l), f_zt)
         params = [v for v in encoder_params if "encoder/{}".format(l) in v.name]
         f_z_gradvars = model_opt.compute_gradients(f_z, var_list=params)
         f_zt_gradvars = model_opt.compute_gradients(f_zt, var_list=params)
-        q_objectives.append(tf.square(f_b - f_z) + tf.square(f_b - f_zt))
+        q_objectives.append(tf.reduce_mean(tf.square(f_b_batch - f_z_batch)) + tf.reduce_mean(tf.square(f_b_batch - f_zt_batch)))
         # sanity check to make sure same order
         for v1, v2 in zip(f_z_gradvars, f_zt_gradvars):
             assert v1[1] == v2[1], (v1[1], v2[1])
