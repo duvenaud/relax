@@ -140,21 +140,10 @@ def generator_network(samples, output_bias, layer, num_layers, num_latents, name
                 samples[l-1] = sampler.sample(log_alpha, l-1)
     return log_alphas
 
-# def Q_func(x, z, name, reuse):
-#     inp = tf.concat([x, z], 1)
-#     with tf.variable_scope(name, reuse=reuse):
-#         h1 = tf.layers.dense(inp, 200, tf.tanh, name="1")
-#         h2 = tf.layers.dense(h1, 200, tf.tanh, name="2")
-#         out = tf.layers.dense(h2, 1, name="out")
-#         #scale = tf.get_variable(
-#         #    "scale", shape=[1], dtype=tf.float32,
-#         #    initializer=tf.constant_initializer(0), trainable=True
-#         #)
-#     #return scale[0] * out
-#     return tf.reduce_mean(out)
-def Q_func(z, name, reuse):
+def Q_func(x, z, name, reuse):
+    inp = tf.concat([x, z], 1)
     with tf.variable_scope(name, reuse=reuse):
-        h1 = tf.layers.dense(2. * z - 1., 200, tf.tanh, name="1")
+        h1 = tf.layers.dense(inp, 200, tf.tanh, name="1")
         h2 = tf.layers.dense(h1, 200, tf.tanh, name="2")
         out = tf.layers.dense(h2, 1, name="out")
         #scale = tf.get_variable(
@@ -163,6 +152,17 @@ def Q_func(z, name, reuse):
         #)
     #return scale[0] * out
     return out
+# def Q_func(z, name, reuse):
+#     with tf.variable_scope(name, reuse=reuse):
+#         h1 = tf.layers.dense(2. * z - 1., 200, tf.tanh, name="1")
+#         h2 = tf.layers.dense(h1, 200, tf.tanh, name="2")
+#         out = tf.layers.dense(h2, 1, name="out")
+#         #scale = tf.get_variable(
+#         #    "scale", shape=[1], dtype=tf.float32,
+#         #    initializer=tf.constant_initializer(0), trainable=True
+#         #)
+#     #return scale[0] * out
+#     return out
 
 """ Variable Creation """
 def create_log_temp():
@@ -341,8 +341,8 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
         z = zs[l]
         zt = zts[l]
         name = "Q_{}".format(l)
-        f_z_batch = Q_func(z, name, False)
-        f_zt_batch = Q_func(zt, name, True)
+        f_z_batch = Q_func(x_binary, z, name, False)
+        f_zt_batch = Q_func(x_binary, zt, name, True)
         f_z = tf.reduce_mean(f_z_batch)
         f_zt = tf.reduce_mean(f_zt_batch)
         tf.summary.scalar("fz_{}".format(l), f_z)
