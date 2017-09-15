@@ -62,8 +62,13 @@ def reparameterize(log_alpha, noise):
     return log_alpha + safe_log_prob(noise) - safe_log_prob(1 - noise)
 
 
-def concrete_relaxation(z, temp, log_alpha):
-    return tf.sigmoid(z / temp + log_alpha)
+def concrete_relaxation(z, temp):
+    return tf.sigmoid(z / temp)
+
+
+def mu_prop_relaxation(log_alpha, noise, temp):
+    l_u = safe_log_prob(noise) - safe_log_prob(1 - noise)
+    return (((tf.square(temp) + temp + 1.) / (temp + 1.)) * log_alpha + l_u) / temp
 
 
 def neg_elbo(x, samples, log_alphas_inf, log_alphas_gen, prior, log=False):
@@ -185,13 +190,13 @@ class ZSampler:
         self.temp = temp
     def sample(self, log_alpha, l):
         z = reparameterize(log_alpha, self.u[l])
-        sig_z = concrete_relaxation(z, self.temp[l], log_alpha)
+        sig_z = concrete_relaxation(z, self.temp[l])
         return sig_z
 
 
 def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
          batch_size=24, num_latents=200, num_layers=2, lr=.0001, test_bias=False):
-    TRAIN_DIR = "./binary_vae_time_test_relax"
+    TRAIN_DIR = "./binary_vae_verify_again"
     if os.path.exists(TRAIN_DIR):
         print("Deleting existing train dir")
         import shutil
