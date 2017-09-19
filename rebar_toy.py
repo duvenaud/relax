@@ -268,17 +268,21 @@ def main(use_reinforce=False, relaxed=False, visualize=False,
                     print("rebar     = {}".format(rebars.mean(axis=0)[0]))
                     print("reinforce = {}\n".format(reinforces.mean(axis=0)[0]))
 
+                if visualize:
+                    # run 100 iterations of variance reduction operation
+                    for i in range(1000):
+                        sess.run(var_train_op)
+                    X = [float(i) / 100 for i in range(100)]
+                    FZ = []
+                    for x in X:
+                        fz = sess.run(f_z, feed_dict={sig_z: [[x]]})
+                        FZ.append(fz)
+                    plt.plot(X, FZ)
+                    plt.show()
+
             else:
                 _, = sess.run([train_op])
 
-        if visualize:
-            X = [float(i) / 100 for i in range(100)]
-            FZ = []
-            for x in X:
-                fz = sess.run(f_z, feed_dict={sig_z: [[x]]})
-                FZ.append(fz)
-            plt.plot(X, FZ)
-            plt.show()
         tv = theta_value[0][0]
         print(tv)
         return theta_value[0][0]
@@ -290,5 +294,5 @@ if __name__ == "__main__":
     thetas = []
     for i in range(10):
         tf.reset_default_graph()
-        thetas.append(main(relaxed=False, visualize=False, force_same=True, test_bias=True))
+        thetas.append(main(relaxed=False, visualize=True, force_same=True, test_bias=False))
     print(np.mean(thetas), np.std(thetas))

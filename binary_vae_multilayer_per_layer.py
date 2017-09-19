@@ -3,6 +3,8 @@ import tensorflow as tf
 import numpy as np
 import time
 import os
+import datasets
+
 
 """ Helper Functions """
 def safe_log_prob(x, eps=1e-8):
@@ -156,12 +158,16 @@ def generator_network(samples, output_bias, layer, num_layers, num_latents, name
     return log_alphas
 
 
-def Q_func(x, bs, name, reuse):
-    inp = tf.concat([x] + bs, 1)
+def Q_func(x, x_mean, z, bs, name, reuse):
+    inp = tf.concat([x - x_mean, z] + [2. * b - 1 for b in bs], 1)
     with tf.variable_scope(name, reuse=reuse):
         h1 = tf.layers.dense(inp, 200, tf.tanh, name="1")
         h2 = tf.layers.dense(h1, 200, tf.tanh, name="2")
         out = tf.layers.dense(h2, 1, name="out")[:, 0]
+        # scale = tf.get_variable(
+        #     "q_scale", shape=[1], dtype=tf.float32,
+        #     initializer=tf.constant_initializer(0), trainable=True
+        # )
     return out
 
 
@@ -225,8 +231,9 @@ def get_variables(tag, arr=None):
         return [v for v in arr if tag in v.name]
 
 
-def main(relaxation=None, learn_prior=True, num_epochs=840,
-         batch_size=24, num_latents=200, num_layers=2, lr=.0001, test_bias=False, train_dir=None):
+def main(relaxation=None, learn_prior=True, max_iters=2000000,
+         batch_size=24, num_latents=200, num_layers=2, lr=.0001,
+         test_bias=False, train_dir=None, iwae_samples=100, dataset="mnist"):
 
     if os.path.exists(train_dir):
         print("Deleting existing train dir")
@@ -236,15 +243,18 @@ def main(relaxation=None, learn_prior=True, num_epochs=840,
     os.makedirs(train_dir)
 
     sess = tf.Session()
-    dataset = input_data.read_data_sets("MNIST_data/", one_hot=True)
-    train_binary = (dataset.train.images > .5).astype(np.float32)
-    train_mean = np.mean(train_binary, axis=0, keepdims=True)
+    if dataset == "mnist":
+        X_tr, X_va, X_te = datasets.load_mnist()
+    elif dataset == "omni":
+        X_tr, X_va, X_te = datasets.load_omniglot()
+    else:
+        assert False
+    train_mean = np.mean(X_tr, axis=0, keepdims=True)
     train_output_bias = -np.log(1. / np.clip(train_mean, 0.001, 0.999) - 1.).astype(np.float32)
 
     x = tf.placeholder(tf.float32, [batch_size, 784])
     x_im = tf.reshape(x, [batch_size, 28, 28, 1])
     tf.summary.image("x_true", x_im)
-    x_binary = tf.to_float(x > .5)
 
     # make prior for top b
     p_prior = tf.Variable(
@@ -271,7 +281,7 @@ def main(relaxation=None, learn_prior=True, num_epochs=840,
     encoder_name = "encoder"
     decoder_name = "decoder"
     inf_la_b, samples_b = inference_network(
-        x_binary, train_mean,
+        x, train_mean,
         encoder, num_layers,
         num_latents, encoder_name, False, b_sampler
     )
@@ -290,7 +300,7 @@ def main(relaxation=None, learn_prior=True, num_epochs=840,
     log_image(_samples_la_b[-1], "x_sample")
 
     # hard loss evaluation and log probs
-    f_b, log_q_bs = neg_elbo(x_binary, samples_b, inf_la_b, gen_la_b, p_prior, log=True)
+    f_b, log_q_bs = neg_elbo(x, samples_b, inf_la_b, gen_la_b, p_prior, log=True)
     batch_f_b = tf.expand_dims(f_b, 1)
     total_loss = tf.reduce_mean(f_b)
     tf.summary.scalar("fb", total_loss)
@@ -341,7 +351,7 @@ def main(relaxation=None, learn_prior=True, num_epochs=840,
 
             # soft forward passes
             inf_la_z, samples_z = inference_network(
-                x_binary, train_mean,
+                x, train_mean,
                 encoder, num_layers,
                 num_latents, encoder_name, True, sig_z_sampler,
                 samples=prev_samples_z, log_alphas=prev_log_alphas
@@ -352,7 +362,7 @@ def main(relaxation=None, learn_prior=True, num_epochs=840,
                 num_latents, decoder_name, True
             )
             inf_la_zt, samples_zt = inference_network(
-                x_binary, train_mean,
+                x, train_mean,
                 encoder, num_layers,
                 num_latents, encoder_name, True, sig_zt_sampler,
                 samples=prev_samples_zt, log_alphas=prev_log_alphas
@@ -363,19 +373,17 @@ def main(relaxation=None, learn_prior=True, num_epochs=840,
                 num_latents, decoder_name, True
             )
             # soft loss evaluataions
-            f_z, _ = neg_elbo(x_binary, samples_z, inf_la_z, gen_la_z, p_prior)
-            f_zt, _ = neg_elbo(x_binary, samples_zt, inf_la_zt, gen_la_zt, p_prior)
+            f_z, _ = neg_elbo(x, samples_z, inf_la_z, gen_la_z, p_prior)
+            f_zt, _ = neg_elbo(x, samples_zt, inf_la_zt, gen_la_zt, p_prior)
 
         if relaxation is not None:
             # sample z and zt
+            prev_bs = samples_b[:l]
             cur_z_sample = z_sampler.sample(cur_la_b, l)
-            prev_samples_z = samples_b[:l] + [cur_z_sample]
-
             cur_zt_sample = zt_sampler.sample(cur_la_b, l)
-            prev_samples_zt = samples_b[:l] + [cur_zt_sample]
 
-            q_z = Q_func(x_binary, prev_samples_z, Q_name(l), False)
-            q_zt = Q_func(x_binary, prev_samples_zt, Q_name(l), True)
+            q_z = Q_func(x, train_mean, cur_z_sample, prev_bs, Q_name(l), False)
+            q_zt = Q_func(x, train_mean, cur_zt_sample, prev_bs, Q_name(l), True)
             tf.summary.scalar("q_z_{}".format(l), tf.reduce_mean(q_z))
             tf.summary.scalar("q_zt_{}".format(l), tf.reduce_mean(q_zt))
             if relaxation == "add":
@@ -438,52 +446,64 @@ def main(relaxation=None, learn_prior=True, num_epochs=840,
             tf.summary.histogram(v.name+"_grad", g)
 
     test_loss = tf.Variable(1000, trainable=False, name="test_loss", dtype=tf.float32)
+    train_loss = tf.Variable(1000, trainable=False, name="train_loss", dtype=tf.float32)
     tf.summary.scalar("test_loss", test_loss)
+    tf.summary.scalar("train_loss", train_loss)
     summ_op = tf.summary.merge_all()
     summary_writer = tf.summary.FileWriter(train_dir)
     sess.run(tf.global_variables_initializer())
 
-    iters_per_epoch = dataset.train.num_examples // batch_size
-    iters = iters_per_epoch * num_epochs
+    iters_per_epoch = X_tr.shape[0] // batch_size
+    print("Train set has {} examples".format(X_tr.shape[0]))
     t = time.time()
-    for i in range(iters):
-        batch_xs, _ = dataset.train.next_batch(batch_size)
-        if i % 100 == 0:
-            loss, _, sum_str = sess.run([total_loss, train_op, summ_op], feed_dict={x: batch_xs})
-            summary_writer.add_summary(sum_str, i)
-            time_taken = time.time() - t
-            t = time.time()
-            print(i, loss, "{} / batch".format(time_taken / 100))
-            if test_bias:
-                rebs = []
-                refs = []
-                for _i in range(100000):
-                    if _i % 1000 == 0:
-                        print(_i)
-                    rb, re = sess.run([rebars[3], reinforces[3]], feed_dict={x: batch_xs})
-                    rebs.append(rb[:5])
-                    refs.append(re[:5])
-                rebs = np.array(rebs)
-                refs = np.array(refs)
-                re_var = np.log(refs.var(axis=0))
-                rb_var = np.log(rebs.var(axis=0))
-                print("rebar variance     = {}".format(rb_var))
-                print("reinforce variance = {}".format(re_var))
-                print("rebar     = {}".format(rebs.mean(axis=0)))
-                print("reinforce = {}\n".format(refs.mean(axis=0)))
-        else:
-            loss, _ = sess.run([total_loss, train_op], feed_dict={x: batch_xs})
+    for epoch in range(10000000):
+        train_losses = []
+        for i in range(iters_per_epoch):
+            cur_iter = epoch * iters_per_epoch + i
+            if cur_iter > max_iters:
+                print("Training Completed")
+                return
+            batch_xs = X_tr[i*batch_size: (i+1) * batch_size]
+            if i % 100 == 0:
+                loss, _, sum_str = sess.run([total_loss, train_op, summ_op], feed_dict={x: batch_xs})
+                summary_writer.add_summary(sum_str, cur_iter)
+                time_taken = time.time() - t
+                t = time.time()
+                print(cur_iter, loss, "{} / batch".format(time_taken / 100))
+                if test_bias:
+                    rebs = []
+                    refs = []
+                    for _i in range(100000):
+                        if _i % 1000 == 0:
+                            print(_i)
+                        rb, re = sess.run([rebars[3], reinforces[3]], feed_dict={x: batch_xs})
+                        rebs.append(rb[:5])
+                        refs.append(re[:5])
+                    rebs = np.array(rebs)
+                    refs = np.array(refs)
+                    re_var = np.log(refs.var(axis=0))
+                    rb_var = np.log(rebs.var(axis=0))
+                    print("rebar variance     = {}".format(rb_var))
+                    print("reinforce variance = {}".format(re_var))
+                    print("rebar     = {}".format(rebs.mean(axis=0)))
+                    print("reinforce = {}\n".format(refs.mean(axis=0)))
+            else:
+                loss, _ = sess.run([total_loss, train_op], feed_dict={x: batch_xs})
 
-        if i % iters_per_epoch == 0:
-            # epoch over, run test data
-            losses = []
-            for _ in range(dataset.test.num_examples // batch_size):
-                batch_xs, _ = dataset.test.next_batch(batch_size)
-                losses.append(sess.run(total_loss, feed_dict={x: batch_xs}))
-            tl = np.mean(losses)
-            print("Test loss = {}".format(tl))
-            sess.run(test_loss.assign(tl))
+            train_losses.append(loss)
+
+        # epoch over, run test data
+        test_losses = []
+        for _it in range(X_te.shape[0] // batch_size - 1):
+            batch_xs = X_te[_it*batch_size: (_it+1)*batch_size]
+            test_losses.append(sess.run(total_loss, feed_dict={x: batch_xs}))
+        trl = np.mean(train_losses)
+        tel = np.mean(test_losses)
+        print("Test loss = {}, Train loss = {}".format(tel, trl))
+        sess.run([test_loss.assign(tel), train_loss.assign(trl)])
+
+        np.random.shuffle(X_tr)
 
 
 if __name__ == "__main__":
-    main(num_layers=3, relaxation="all", train_dir="./binary_vae_2_layer_rebar")
+    main(num_layers=2, relaxation=None, train_dir="./binary_vae_2_layer_rebar_omniglot", dataset="omni", lr=.0001)
