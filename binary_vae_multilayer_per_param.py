@@ -196,7 +196,7 @@ class ZSampler:
 
 def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
          batch_size=24, num_latents=200, num_layers=2, lr=.0001, test_bias=False):
-    TRAIN_DIR = "./binary_vae_3_der_diff"
+    TRAIN_DIR = "./binary_vae_3_layers"
     if os.path.exists(TRAIN_DIR):
         print("Deleting existing train dir")
         import shutil
@@ -332,7 +332,6 @@ def main(use_reinforce=False, relaxed=False, learn_prior=True, num_epochs=820,
         reinforce = f_b * d_log_q_dt + d_fb_dt
         rebar = (f_b - eta * f_zt) * d_log_q_dt + eta * (d_fz_dt - d_fzt_dt) + d_fb_dt
         tf.summary.histogram(param.name, param)
-        tf.summary.histogram(param.name+"_der_diff", (d_fz_dt - d_fzt_dt))
         tf.summary.histogram(param.name+"_reinforce", reinforce)
         tf.summary.histogram(param.name+"_rebar", rebar)
         if use_reinforce:

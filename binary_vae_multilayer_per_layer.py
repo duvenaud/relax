@@ -226,14 +226,14 @@ def get_variables(tag, arr=None):
 
 
 def main(relaxation=None, learn_prior=True, num_epochs=840,
-         batch_size=24, num_latents=200, num_layers=2, lr=.0001, test_bias=False):
-    TRAIN_DIR = "./binary_vae_test_per_layer_relaxed"
-    if os.path.exists(TRAIN_DIR):
+         batch_size=24, num_latents=200, num_layers=2, lr=.0001, test_bias=False, train_dir=None):
+
+    if os.path.exists(train_dir):
         print("Deleting existing train dir")
         import shutil
 
-        shutil.rmtree(TRAIN_DIR)
-    os.makedirs(TRAIN_DIR)
+        shutil.rmtree(train_dir)
+    os.makedirs(train_dir)
 
     sess = tf.Session()
     dataset = input_data.read_data_sets("MNIST_data/", one_hot=True)
@@ -318,6 +318,9 @@ def main(relaxation=None, learn_prior=True, num_epochs=840,
     sig_z_sampler = SIGZSampler(u, batch_temperatures)
     sig_zt_sampler = SIGZSampler(v, batch_temperatures)
 
+    z_sampler = ZSampler(u)
+    zt_sampler = ZSampler(v)
+
     rebars = []
     reinforces = []
     variance_objectives = []
@@ -325,47 +328,64 @@ def main(relaxation=None, learn_prior=True, num_epochs=840,
     for l in range(num_layers):
         cur_la_b = inf_la_b[l]
 
-        cur_z_sample = sig_z_sampler.sample(cur_la_b, l)
-        prev_samples_z = samples_b[:l] + [cur_z_sample]
+        # if standard rebar or additive relaxation
+        if relaxation is None or relaxation == "add":
+            # compute soft samples and soft passes through model and soft elbos
+            cur_z_sample = sig_z_sampler.sample(cur_la_b, l)
+            prev_samples_z = samples_b[:l] + [cur_z_sample]
 
-        cur_zt_sample = sig_zt_sampler.sample(cur_la_b, l)
-        prev_samples_zt = samples_b[:l] + [cur_zt_sample]
+            cur_zt_sample = sig_zt_sampler.sample(cur_la_b, l)
+            prev_samples_zt = samples_b[:l] + [cur_zt_sample]
 
-        prev_log_alphas = inf_la_b[:l] + [cur_la_b]
+            prev_log_alphas = inf_la_b[:l] + [cur_la_b]
 
-        # soft forward passes
-        inf_la_z, samples_z = inference_network(
-            x_binary, train_mean,
-            encoder, num_layers,
-            num_latents, encoder_name, True, sig_z_sampler,
-            samples=prev_samples_z, log_alphas=prev_log_alphas
-        )
-        gen_la_z = generator_network(
-            samples_z, train_output_bias,
-            decoder, num_layers,
-            num_latents, decoder_name, True
-        )
-        inf_la_zt, samples_zt = inference_network(
-            x_binary, train_mean,
-            encoder, num_layers,
-            num_latents, encoder_name, True, sig_zt_sampler,
-            samples=prev_samples_zt, log_alphas=prev_log_alphas
-        )
-        gen_la_zt = generator_network(
-            samples_zt, train_output_bias,
-            decoder, num_layers,
-            num_latents, decoder_name, True
-        )
-        # soft loss evaluataions
-        f_z, _ = neg_elbo(x_binary, samples_z, inf_la_z, gen_la_z, p_prior)
-        f_zt, _ = neg_elbo(x_binary, samples_zt, inf_la_zt, gen_la_zt, p_prior)
-        if relaxation:
+            # soft forward passes
+            inf_la_z, samples_z = inference_network(
+                x_binary, train_mean,
+                encoder, num_layers,
+                num_latents, encoder_name, True, sig_z_sampler,
+                samples=prev_samples_z, log_alphas=prev_log_alphas
+            )
+            gen_la_z = generator_network(
+                samples_z, train_output_bias,
+                decoder, num_layers,
+                num_latents, decoder_name, True
+            )
+            inf_la_zt, samples_zt = inference_network(
+                x_binary, train_mean,
+                encoder, num_layers,
+                num_latents, encoder_name, True, sig_zt_sampler,
+                samples=prev_samples_zt, log_alphas=prev_log_alphas
+            )
+            gen_la_zt = generator_network(
+                samples_zt, train_output_bias,
+                decoder, num_layers,
+                num_latents, decoder_name, True
+            )
+            # soft loss evaluataions
+            f_z, _ = neg_elbo(x_binary, samples_z, inf_la_z, gen_la_z, p_prior)
+            f_zt, _ = neg_elbo(x_binary, samples_zt, inf_la_zt, gen_la_zt, p_prior)
+
+        if relaxation is not None:
+            # sample z and zt
+            cur_z_sample = z_sampler.sample(cur_la_b, l)
+            prev_samples_z = samples_b[:l] + [cur_z_sample]
+
+            cur_zt_sample = zt_sampler.sample(cur_la_b, l)
+            prev_samples_zt = samples_b[:l] + [cur_zt_sample]
+
             q_z = Q_func(x_binary, prev_samples_z, Q_name(l), False)
             q_zt = Q_func(x_binary, prev_samples_zt, Q_name(l), True)
             tf.summary.scalar("q_z_{}".format(l), tf.reduce_mean(q_z))
             tf.summary.scalar("q_zt_{}".format(l), tf.reduce_mean(q_zt))
-            f_z = f_z + q_z
-            f_zt = f_zt + q_zt
+            if relaxation == "add":
+                f_z = f_z + q_z
+                f_zt = f_zt + q_zt
+            elif relaxation == "all":
+                f_z = q_z
+                f_zt = q_zt
+            else:
+                assert False
         tf.summary.scalar("f_z_{}".format(l), tf.reduce_mean(f_z))
         tf.summary.scalar("f_zt_{}".format(l), tf.reduce_mean(f_zt))
         cur_samples_b = samples_b[l]
@@ -374,11 +394,6 @@ def main(relaxation=None, learn_prior=True, num_epochs=840,
         # get gradient of soft-losses wrt current parameter
         d_f_z_d_la = tf.gradients(f_z, cur_la_b)[0]
         d_f_zt_d_la = tf.gradients(f_zt, cur_la_b)[0]
-        """
-        The problem is that im not using the same log alpha for fz and fzt
-        """
-        tf.summary.histogram("d_f_z_d_la_{}".format(l), d_f_z_d_la)
-        tf.summary.histogram("d_f_zt_d_la_{}".format(l), d_f_zt_d_la)
         batch_f_zt = tf.expand_dims(f_zt, 1)
         eta = batch_etas[l]
         # compute rebar and reinforce
@@ -407,7 +422,7 @@ def main(relaxation=None, learn_prior=True, num_epochs=840,
 
     variance_objective = tf.add_n(variance_objectives)
     variance_vars = log_temperatures + etas
-    if relaxation:
+    if relaxation is not None:
         q_vars = get_variables("Q_")
         variance_vars = variance_vars + q_vars
     variance_gradvars = variance_opt.compute_gradients(variance_objective, var_list=variance_vars)
@@ -418,13 +433,14 @@ def main(relaxation=None, learn_prior=True, num_epochs=840,
 
     for g, v in model_gradvars + variance_gradvars:
         print(g, v.name)
-        tf.summary.histogram(v.name, v)
-        tf.summary.histogram(v.name+"_grad", g)
+        if g is not None:
+            tf.summary.histogram(v.name, v)
+            tf.summary.histogram(v.name+"_grad", g)
 
     test_loss = tf.Variable(1000, trainable=False, name="test_loss", dtype=tf.float32)
     tf.summary.scalar("test_loss", test_loss)
     summ_op = tf.summary.merge_all()
-    summary_writer = tf.summary.FileWriter(TRAIN_DIR)
+    summary_writer = tf.summary.FileWriter(train_dir)
     sess.run(tf.global_variables_initializer())
 
     iters_per_epoch = dataset.train.num_examples // batch_size
@@ -470,4 +486,4 @@ def main(relaxation=None, learn_prior=True, num_epochs=840,
 
 
 if __name__ == "__main__":
-    main(num_layers=2, relaxation=True)
+    main(num_layers=3, relaxation="all", train_dir="./binary_vae_2_layer_rebar")
