@@ -64,9 +64,9 @@ def reparameterize(log_alpha, noise):
     return log_alpha + safe_log_prob(noise) - safe_log_prob(1 - noise)
 
 
-def concrete_relaxation(log_alpha, noise, temp):
+def concrete_relaxation(log_alpha, noise, temp, name):
     z = log_alpha + safe_log_prob(noise) - safe_log_prob(1 - noise)
-    return tf.sigmoid(z / temp)
+    return tf.sigmoid(z / temp, name=name)
 
 
 def neg_elbo(x, samples, log_alphas_inf, log_alphas_gen, prior, log=False):
@@ -191,28 +191,31 @@ def create_eta(num):
 
 
 class BSampler:
-    def __init__(self, u):
+    def __init__(self, u, name):
         self.u = u
+        self.name = name
     def sample(self, log_alpha, l):
         z = reparameterize(log_alpha, self.u[l])
-        b = tf.to_float(tf.stop_gradient(z > 0))
+        b = tf.to_float(tf.stop_gradient(z > 0), name="{}_{}".format(self.name, l))
         return b
 
 
 class ZSampler:
-    def __init__(self, u):
+    def __init__(self, u, name):
         self.u = u
+        self.name = name
     def sample(self, log_alpha, l):
-        z = reparameterize(log_alpha, self.u[l])
+        z = reparameterize(log_alpha, self.u[l], name="{}_{}".format(self.name, l))
         return z
 
 
 class SIGZSampler:
-    def __init__(self, u, temp):
+    def __init__(self, u, temp, name):
         self.u = u
         self.temp = temp
+        self.name = name
     def sample(self, log_alpha, l):
-        sig_z = concrete_relaxation(log_alpha, self.u[l], self.temp[l])
+        sig_z = concrete_relaxation(log_alpha, self.u[l], self.temp[l], name="{}_{}".format(self.name, l))
         return sig_z
 
 
@@ -276,7 +279,8 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
         for l in range(num_layers)
     ]
     # create binary sampler
-    b_sampler = BSampler(u)
+    b_sampler = BSampler(u, "b_sampler")
+    gen_b_sampler = BSampler(u, "gen_b_sampler")
     # generate hard forward pass
     encoder_name = "encoder"
     decoder_name = "decoder"
@@ -295,7 +299,7 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
     _samples_la_b = generator_network(
         None, train_output_bias,
         decoder, num_layers,
-        num_latents, decoder_name, True, sampler=b_sampler, prior=p_prior
+        num_latents, decoder_name, True, sampler=gen_b_sampler, prior=p_prior
     )
     log_image(_samples_la_b[-1], "x_sample")
 
@@ -325,11 +329,11 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
     # conditional samples
     v = [v_from_u(_u, log_alpha) for _u, log_alpha in zip(u, inf_la_b)]
     # need to create soft samplers
-    sig_z_sampler = SIGZSampler(u, batch_temperatures)
-    sig_zt_sampler = SIGZSampler(v, batch_temperatures)
+    sig_z_sampler = SIGZSampler(u, batch_temperatures, "sig_z_sampler")
+    sig_zt_sampler = SIGZSampler(v, batch_temperatures, "sig_zt_sampler")
 
-    z_sampler = ZSampler(u)
-    zt_sampler = ZSampler(v)
+    z_sampler = ZSampler(u, "z_sampler")
+    zt_sampler = ZSampler(v, "zt_sampler")
 
     rebars = []
     reinforces = []
@@ -506,4 +510,4 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
 
 
 if __name__ == "__main__":
-    main(num_layers=2, relaxation=None, train_dir="./binary_vae_2_layer_rebar_omniglot", dataset="omni", lr=.0001)
+    main(num_layers=2, relaxation=None, train_dir="./binary_vae_2_layer_rebar_high_lr_many_eta", dataset="mnist", lr=.0003)
