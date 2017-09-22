@@ -188,6 +188,20 @@ def CopyQFunc(z, name, reuse):
         out = tf.reshape(out_r, old_shape)
         return out
 
+def FCQFunc(z, name, reuse):
+    # Q function that applies the same function for each z given
+    # HACK
+    cur_scope = tf.get_variable_scope().name
+    if not "encoder" in cur_scope:
+        name = 'encoder/{}'.format(name)
+    print(name, tf.get_variable_scope().name, reuse)
+    with tf.variable_scope(name, reuse=reuse) as scope:
+        print(scope.name)
+        h1 = tf.layers.dense(z, 10, tf.nn.relu, name="h1")
+        h2 = tf.layers.dense(h1, 10, tf.nn.relu, name="h2")
+        out = tf.layers.dense(h2, 1, name="out")
+        return out
+
 
 """ Variable Creation """
 def create_log_temp(num):
