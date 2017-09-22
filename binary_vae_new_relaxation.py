@@ -480,7 +480,7 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
         if g is not None:
             tf.summary.histogram(v.name, v)
             tf.summary.histogram(v.name+"_grad", g)
-    1/0
+
     test_loss = tf.Variable(1000, trainable=False, name="test_loss", dtype=tf.float32)
     train_loss = tf.Variable(1000, trainable=False, name="train_loss", dtype=tf.float32)
     tf.summary.scalar("test_loss", test_loss)
