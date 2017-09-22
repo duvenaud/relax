@@ -178,9 +178,8 @@ def CopyQFunc(z, name, reuse):
     if not "encoder" in cur_scope:
         name = 'encoder/{}'.format(name)
     print(name, tf.get_variable_scope().name, reuse)
-    #with tf.variable_scope(tf.get_variable_scope(), reuse=reuse):
-    with tf.variable_scope(name, reuse=True if reuse else None):#, reuse=reuse) as scope:
-        #print(scope.name)
+    with tf.variable_scope(name, reuse=reuse) as scope:
+        print(scope.name)
         old_shape = gs(z)
         z_r = tf.reshape(z, [-1, 1])
         h1 = tf.layers.dense(z_r, 10, tf.nn.relu, name="h1")
@@ -244,18 +243,18 @@ class LearnedSampler:
         self.q_func = q_func
         self.name = name
         self.Qs = {}
+
+        # have to pre-make q funcs to avoid namespace shit
+        for l, noise in enumerate(self.u):
+            _ = self.q_func(tf.zeros_like(noise), Q_name(l), False)
+
     def sample(self, log_alpha, l):
         z = reparameterize(log_alpha, self.u[l])
         # need 1 q func per layer
         q_vars = get_variables(Q_name(l))
         # if this q func exists then reuse it
-        if len(q_vars) > 0:
-            print("Using old Q {}".format(l))
-            qz = self.q_func(z, Q_name(l), True)
-        # otherwise create new one
-        else:
-            print("Creating new Q {}".format(l))
-            qz = self.q_func(z, Q_name(l), False)
+        assert len(q_vars) > 0
+        qz = self.q_func(z, Q_name(l), True)
         return qz
 
 def log_image(im_vec, name):
