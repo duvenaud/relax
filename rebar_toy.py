@@ -62,8 +62,8 @@ def reparameterize(log_alpha, noise):
     return log_alpha + safe_log_prob(noise) - safe_log_prob(1 - noise)
 
 
-def concrete_relaxation(z, temp, log_alpha):
-    return tf.sigmoid(z / temp + log_alpha)
+def concrete_relaxation(z, temp):
+    return tf.sigmoid(z / temp)
 
 
 def assert_same_shapes(*args):
@@ -107,7 +107,6 @@ def main(use_reinforce=False, relaxed=False, visualize=False,
         iters = 5000
         batch_size = 1
         num_latents = 1
-        #target = np.array([[float(i) / num_latents for i in range(num_latents)]], dtype=np.float32)
         target = np.array([[.499 for i in range(num_latents)]], dtype=np.float32)
         print("Target is {}".format(target))
         lr = .01
@@ -144,27 +143,37 @@ def main(use_reinforce=False, relaxed=False, visualize=False,
         )
         temperature = tf.exp(log_temperature)
 
-        # relaxation variables
-        batch_temp = tf.expand_dims(temperature, 0)
-        sig_z = concrete_relaxation(z, batch_temp, log_alpha)
-        sig_z_tilde = concrete_relaxation(z_tilde, batch_temp, log_alpha)
-
         # loss function evaluations
         f_b = loss_func(b, target)
-        f_z = loss_func(sig_z, target)
-        f_z_tilde = loss_func(sig_z_tilde, target)
-        if relaxed != False:
-            print("Relaxed Model")
+        # if we are relaxing the relaxation
+        if relaxed == "relaxation":
             with tf.variable_scope("Q_func"):
-                q_z = Q_func(sig_z)[:, 0]
+                sig_z = Q_func(z)
             with tf.variable_scope("Q_func", reuse=True):
-                q_z_tilde = Q_func(sig_z_tilde)[:, 0]
-            if relaxed == True:
-                f_z = f_z + q_z
-                f_z_tilde = f_z_tilde + q_z_tilde
-            elif relaxed == "super":
-                f_z = q_z
-                f_z_tilde = q_z_tilde
+                sig_z_tilde = Q_func(z_tilde)
+            f_z = loss_func(sig_z, target)
+            f_z_tilde = loss_func(sig_z_tilde, target)
+
+        else:
+            # relaxation variables
+            batch_temp = tf.expand_dims(temperature, 0)
+            sig_z = concrete_relaxation(z, batch_temp)
+            sig_z_tilde = concrete_relaxation(z_tilde, batch_temp)
+
+            f_z = loss_func(sig_z, target)
+            f_z_tilde = loss_func(sig_z_tilde, target)
+
+            if relaxed != False:
+                with tf.variable_scope("Q_func"):
+                    q_z = Q_func(sig_z)[:, 0]
+                with tf.variable_scope("Q_func", reuse=True):
+                    q_z_tilde = Q_func(sig_z_tilde)[:, 0]
+                if relaxed == True:
+                    f_z = f_z + q_z
+                    f_z_tilde = f_z_tilde + q_z_tilde
+                elif relaxed == "super":
+                    f_z = q_z
+                    f_z_tilde = q_z_tilde
 
 
         tf.summary.scalar("fb", tf.reduce_mean(f_b))
@@ -201,6 +210,7 @@ def main(use_reinforce=False, relaxed=False, visualize=False,
         var_opt = tf.train.AdamOptimizer(lr)
         var_vars = [eta, log_temperature]
         if relaxed:
+            print("Relaxed model")
             q_vars = [v for v in tf.trainable_variables() if "Q_func" in v.name]
             var_vars = var_vars + q_vars
         var_gradvars = var_opt.compute_gradients(variance_loss, var_list=var_vars)
@@ -209,8 +219,9 @@ def main(use_reinforce=False, relaxed=False, visualize=False,
         print("Variance")
         for g, v in var_gradvars:
             print("    {}".format(v.name))
-            tf.summary.histogram(v.name, v)
-            tf.summary.histogram(v.name + "_grad", g)
+            if g is not None:
+                tf.summary.histogram(v.name, v)
+                tf.summary.histogram(v.name + "_grad", g)
 
         if use_reinforce:
             with tf.control_dependencies([inf_train_op]):
@@ -268,7 +279,7 @@ def main(use_reinforce=False, relaxed=False, visualize=False,
                     print("rebar     = {}".format(rebars.mean(axis=0)[0]))
                     print("reinforce = {}\n".format(reinforces.mean(axis=0)[0]))
 
-                if visualize:
+                if visualize == "f":
                     # run 100 iterations of variance reduction operation
                     for i in range(1000):
                         sess.run(var_train_op)
@@ -276,6 +287,15 @@ def main(use_reinforce=False, relaxed=False, visualize=False,
                     FZ = []
                     for x in X:
                         fz = sess.run(f_z, feed_dict={sig_z: [[x]]})
+                        FZ.append(fz)
+                    plt.plot(X, FZ)
+                    plt.show()
+                elif visualize == "sig":
+                    #X = [2. * (float(i) / 100) - 1. for i in range(100)]
+                    X = sorted([sess.run(z)[0][0] for i in range(100)])
+                    FZ = []
+                    for x in X:
+                        fz = sess.run(f_z, feed_dict={z: [[x]]})
                         FZ.append(fz)
                     plt.plot(X, FZ)
                     plt.show()
@@ -294,5 +314,5 @@ if __name__ == "__main__":
     thetas = []
     for i in range(10):
         tf.reset_default_graph()
-        thetas.append(main(relaxed=False, visualize=True, force_same=True, test_bias=False))
+        thetas.append(main(relaxed="relaxation", visualize="sig", force_same=True, test_bias=False))
     print(np.mean(thetas), np.std(thetas))

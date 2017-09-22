@@ -60,8 +60,8 @@ def v_from_u(u, log_alpha, force_same=True):
     return v
 
 
-def reparameterize(log_alpha, noise):
-    return log_alpha + safe_log_prob(noise) - safe_log_prob(1 - noise)
+def reparameterize(log_alpha, noise, name=None):
+    return tf.identity(log_alpha + safe_log_prob(noise) - safe_log_prob(1 - noise), name=name)
 
 
 def concrete_relaxation(log_alpha, noise, temp, name):
@@ -510,4 +510,4 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
 
 
 if __name__ == "__main__":
-    main(num_layers=2, relaxation=None, train_dir="./binary_vae_2_layer_rebar_high_lr_many_eta", dataset="mnist", lr=.0003)
+    main(num_layers=2, relaxation="add", train_dir="/ais/gobi5/wgrathwohl/rebar_experiments/binary_var_add_omni_p0005", dataset="omni", lr=.0005)
