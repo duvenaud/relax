@@ -246,7 +246,11 @@ class LearnedSampler:
 
         # have to pre-make q funcs to avoid namespace shit
         for l, noise in enumerate(self.u):
-            _ = self.q_func(tf.zeros_like(noise), Q_name(l), False)
+            q_vars = get_variables(Q_name(l))
+            if len(q_vars) == 0:
+                _ = self.q_func(tf.zeros_like(noise), Q_name(l), False)
+            else:
+                print("Making Q {}".format(l))
 
     def sample(self, log_alpha, l):
         z = reparameterize(log_alpha, self.u[l])
