@@ -248,9 +248,9 @@ class LearnedSampler:
         for l, noise in enumerate(self.u):
             q_vars = get_variables(Q_name(l))
             if len(q_vars) == 0:
-                _ = self.q_func(tf.zeros_like(noise), Q_name(l), False)
-            else:
                 print("Making Q {}".format(l))
+                _ = self.q_func(tf.zeros_like(noise), Q_name(l), False)
+
 
     def sample(self, log_alpha, l):
         z = reparameterize(log_alpha, self.u[l])
@@ -429,7 +429,6 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
         # soft loss evaluataions
         f_z, _ = neg_elbo(x, samples_z, inf_la_z, gen_la_z, p_prior)
         f_zt, _ = neg_elbo(x, samples_zt, inf_la_zt, gen_la_zt, p_prior)
-        1/0
 
         tf.summary.scalar("f_z_{}".format(l), tf.reduce_mean(f_z))
         tf.summary.scalar("f_zt_{}".format(l), tf.reduce_mean(f_zt))
