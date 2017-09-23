@@ -196,10 +196,10 @@ def FCQFunc(z, name, reuse):
         name = 'encoder/{}'.format(name)
     print(name, tf.get_variable_scope().name, reuse)
     with tf.variable_scope(name, reuse=reuse) as scope:
-        print(scope.name)
-        h1 = tf.layers.dense(z, 10, tf.nn.relu, name="h1")
-        h2 = tf.layers.dense(h1, 10, tf.nn.relu, name="h2")
-        out = tf.layers.dense(h2, 1, name="out")
+        num_elements = gs(z)[1]
+        h1 = tf.layers.dense(z, num_elements, tf.nn.relu, name="h1")
+        h2 = tf.layers.dense(h1, num_elements, tf.nn.relu, name="h2")
+        out = tf.layers.dense(h2, num_elements, name="out")
         return out
 
 
@@ -367,7 +367,8 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
     # optimizer for model parameters
     model_opt = tf.train.AdamOptimizer(lr, beta2=.99999)
     # optimizer for variance reducing parameters
-    variance_opt = tf.train.AdamOptimizer(10. * lr, beta2=.99999)
+    #variance_opt = tf.train.AdamOptimizer(10. * lr, beta2=.99999)
+    variance_opt = tf.train.AdamOptimizer(lr, beta2=.99999)
     # get encoder and decoder variables
     encoder_params = get_variables(encoder_name)
     decoder_params = get_variables(decoder_name)
@@ -475,7 +476,8 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
             tf.summary.histogram(v.name+"_grad_loss", lg)
         layer_gradvars = list(zip(layer_grads, layer_params))
         model_gradvars.extend(layer_gradvars)
-        variance_objective = tf.reduce_mean(tf.reduce_sum(tf.square(rebar), axis=1))
+        # variance_objective = tf.reduce_mean(tf.reduce_sum(tf.square(rebar), axis=1))
+        variance_objective = tf.reduce_mean(tf.square(rebar))
         variance_objectives.append(variance_objective)
 
     variance_objective = tf.add_n(variance_objectives)
@@ -556,4 +558,4 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
 
 
 if __name__ == "__main__":
-    main(num_layers=2, relaxation="copy", train_dir="/ais/gobi5/wgrathwohl/rebar_experiments/binary_var_new_relaxation", dataset="mnist", lr=.0005)
+    main(num_layers=2, relaxation="fc", train_dir="/ais/gobi5/wgrathwohl/rebar_experiments/binary_var_new_relaxation_fc_low_var_lr", dataset="mnist", lr=.0005)

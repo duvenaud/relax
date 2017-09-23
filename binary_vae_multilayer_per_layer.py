@@ -510,4 +510,4 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
 
 
 if __name__ == "__main__":
-    main(num_layers=2, relaxation="add", train_dir="/ais/gobi5/wgrathwohl/rebar_experiments/binary_var_add_omni_p0005", dataset="omni", lr=.0005)
+    main(num_layers=3, relaxation="add", train_dir="/ais/gobi5/wgrathwohl/rebar_experiments/binary_var_3_layer_add", dataset="mnist", lr=.0005)
