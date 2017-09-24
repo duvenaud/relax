@@ -163,7 +163,9 @@ def Q_func(x, x_mean, z, bs, name, reuse):
     with tf.variable_scope(name, reuse=reuse):
         h1 = tf.layers.dense(inp, 200, tf.tanh, name="1")
         h2 = tf.layers.dense(h1, 200, tf.tanh, name="2")
-        out = tf.layers.dense(h2, 1, name="out")[:, 0]
+        h3 = tf.layers.dense(h2, 200, tf.tanh, name="3")
+        h4 = tf.layers.dense(h3, 200, tf.tanh, name="4")
+        out = tf.layers.dense(h4, 1, name="out")[:, 0]
         # scale = tf.get_variable(
         #     "q_scale", shape=[1], dtype=tf.float32,
         #     initializer=tf.constant_initializer(0), trainable=True
@@ -510,4 +512,4 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
 
 
 if __name__ == "__main__":
-    main(num_layers=3, relaxation="add", train_dir="/ais/gobi5/wgrathwohl/rebar_experiments/binary_var_3_layer_add", dataset="mnist", lr=.0005)
+    main(num_layers=3, relaxation="add", train_dir="/ais/gobi5/wgrathwohl/rebar_experiments/binary_var_3_layer_add_big_Q", dataset="mnist", lr=.0005)

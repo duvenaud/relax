@@ -486,6 +486,14 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
         q_vars = get_variables("Q_")
         variance_vars = variance_vars + q_vars
     variance_gradvars = variance_opt.compute_gradients(variance_objective, var_list=variance_vars)
+    variance_gradvars2 = []
+    for g, v in variance_gradvars:
+        if "eta" in v.name:
+            variance_gradvars2.append((10. * g, v))
+        else:
+            variance_gradvars2.append((g, v))
+    variance_gradvars = variance_gradvars2
+
     variance_train_op = variance_opt.apply_gradients(variance_gradvars)
     model_train_op = model_opt.apply_gradients(model_gradvars)
     with tf.control_dependencies([model_train_op, variance_train_op]):
@@ -558,4 +566,4 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
 
 
 if __name__ == "__main__":
-    main(num_layers=2, relaxation="fc", train_dir="/ais/gobi5/wgrathwohl/rebar_experiments/binary_var_new_relaxation_fc_low_var_lr", dataset="mnist", lr=.0005)
+    main(num_layers=2, relaxation="copy", train_dir="/ais/gobi5/wgrathwohl/rebar_experiments/binary_var_new_relaxation_copy_low_var_lr_high_eta", dataset="mnist", lr=.0005)
