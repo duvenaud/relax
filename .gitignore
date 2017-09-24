@@ -1,3 +1,11 @@
+*.aux
+*.bbl
+*.synctex
+*.synctex.gz
+*.out
+*.log
+*.blg
+
 *.DS_Store
 
 # Byte-compiled / optimized / DLL files

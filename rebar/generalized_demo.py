@@ -48,8 +48,6 @@ if __name__ == '__main__':
 
     def combined_obj(combined_params, t):
         # Combines objective value and variance of gradients.
-        # However, model_params shouldn't affect variance (in expectation),
-        # and est_params shouldn't affect objective (in expectation).
         obj_value, grad_variances = mc_objective_and_var(combined_params, t)
         return obj_value + np.mean(grad_variances)
 
@@ -105,8 +103,8 @@ if __name__ == '__main__':
             f_tilde = lambda x: func_plus_nn(params, x, np.exp(log_nn_scale), nn_params, objective)
             f_map       = map_and_stack(make_one_d(f,       slide_d, params))
             f_tilde_map = map_and_stack(make_one_d(f_tilde, slide_d, params))
-            ax6.plot(xrange, f_map(xrange) - np.mean(f_map(xrange)),       'g')
-            ax6.plot(xrange, f_tilde_map(xrange) - np.mean(f_tilde_map(xrange)), 'b')
+            ax6.plot(xrange, f_map(xrange), 'g')
+            ax6.plot(xrange, f_tilde_map(xrange), 'b')
             ax6.set_ylabel('mean of f tilde 1d')
             ax6.set_xlabel('relaxed sample')
             plt.draw()
