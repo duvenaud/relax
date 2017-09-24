@@ -46,12 +46,60 @@ We generalize this method, showing that the particular relaxation used by REBAR 
 We examine the properties of optimal relaxations, and show that this more general procedure enables faster training of discrete latent variable models.
 \end{abstract}
 
+
+
+f is not optimal relaxation
+
+concrete is not optimal relaxation
+
+toy experiments
+
+real exps on binary vae comparing:
+
+%rebar
+
+%g(z) (simple rebar)
+
+%f(g(z))
+
+%f(g_1(z)) + g_2(z)
+
+
+
 \section{Introduction}
+
+
+
+[TODO: motivate necessity for this type of optimizing]
+
+gradient based optimization is dope af
+
+discrete latent structure is dope
+
+can?t fit because:
+
+discrete sampling keeps us from applying reparamaterization gradients 
+
+reinforce doesn?t get this info
+
+pay homage to rebar
+
+introduces conditional reparam
+
+introduces gradient signal for minimizing variance
+
+
+
 
 \paragraph{Contributions}
 \begin{itemize}
-\item We show...
+\item we keep conditional reparam from rebar while exploring and expanding on gradient signal for minimizing variance of estimator
+\item we generalize the concrete and muprop relaxations for a learnable family of functions that can be optimized via gradient decent to minimize the variance of the estimator
+\item We show that concrete relax is not optimal, and that control variate based on the discrete objective at continuous input is is not the optimal control variate.
+\item we combine these insights into a new family of estimators that generalizes rebar
 \end{itemize}
+
+
 
 \section{REINFORCE, Concrete, and REBAR gradient estimator}
 % NOTE: this is a rough draft version of the final section
@@ -167,7 +215,7 @@ gives us the REBAR gradient estimator: \begin{align}
 The special form of $\tilde{z}$ yields a lower-variance gradient estimate because a number of the random variables are conditionally marginalized out of the estimator.
 Two features of this control variate make it particularly effective: its high correlation with the REINFORCE gradient, and a low-variance, reparameterized form of certain terms in the estimator.
 
-\section{The generalized REBAR estimator}
+\section{RELAX: The generalized REBAR estimator}
 The REBAR estimator uses a control variate that evaluates the original loss function at relaxed inputs, reparameterized both unconditionally (denoted $z$, and conditionally, denoted $\tilde{z}$). The central result of this paper is that learning the function in the control variate leads to even better convergence properties. Specifically, we generalize the conditional marginalization and control variate of REBAR to the following form:
 \begin{align}
     \mathbb{E}_{p(u,v)}[Q(\tilde{z};\phi)\frac{\partial}{\partial \theta}\log p(H(z))] = \mathbb{E}_{p(u,v)}[\frac{\partial}{\partial \theta}Q(\tilde{z};\phi) - \frac{\partial}{\partial \theta} Q(z; \phi)],
@@ -184,14 +232,28 @@ Where the second equality comes from the fact that for all $\phi$, the RELAX est
 % dramatic % lets make sure we have the data to back that up
 % reduction in variance on the same benchmark tests used by \cite{tucker2017rebar}.
 
-** TODO: flesh out more or present toy examples
-
 % I think this section should go next
-\section{Properties of Optimal Relaxations}
+%\section{Properties of Optimal Relaxations}
 % maybe we should change the name of this section to "Questioning the Concrete Relaxation" in which case maybe  it should go before the above section???
 In \cite{tucker2017rebar} the concrete distribution \cite{maddison2016concrete} is used in the control variate due to its similarity to the Bernoulli distribution and assumed correlation with the target function (**TODO EXPAND THIS).
 
 NEXT: PROVE THAT CONCRETE IS NOT THE OPTIMAL RELAXATION TO USE (SHOULD BE EASY TO PROVE BUT WE NEED TO DO IT)
+
+
+%Using variational calculus, we can examine the form of the optimal relaxation $\relaxed{}$
+
+Relaxing Assumptions
+
+identifying assumptions other estimators in the past made
+
+demonstrate (proof?) that those assumptions are not optimal
+
+and that the optimum is a function of {f, theta}
+
+
+
+\section{Experiments}
+\label{experiments}
 
 NEXT: OPTIMAL RELAXATION FOR TOY PROBLEM
 NEXT: ELABORATE ON DEPENDENCE ON THETA
@@ -199,9 +261,54 @@ NEXT: ELABORATE ON DEPENDENCE ON THETA
 
 **TODO NEW EXPERIMENT: HALFWAY THROUGH A VAE TRAINING STOP, AND OPTIMIZE THE VARINACE OF Q AND OF REBAR WRT TEMP AND ETA AND COMPARE GRADIENTS
 
-%Using variational calculus, we can examine the form of the optimal relaxation $\relaxed{}$
+\subsection{Toy Experiment}
 
-\section{Understanding the REBAR estimator through the Generalized Reparameterization Gradient}
+[pictures, variances graphs]
+
+[head to head comparisons] 
+
+\subsection{Discrete Variational Autoencoder}
+
+[VAE, results, variances]
+
+
+
+\section{Related Work}
+\label{related work}
+
+NVIL, VIMCO, things like that
+
+\par{Generalized Reparameterization Gradients}
+REBAR and the generalization in this paper uses a mixture of score function and reparameterization gradients.
+A recent paper by \cite{ruiz2016generalized} unifies these two gradient estimators as the generalized reparameterization gradient (GRG).
+This framework can help disentangle the various components of generalized REBAR.
+
+REBAR innovation as further decomposition the correction term into secondary reparameterization components
+note this is a recursive application of the principles of GRG
+observe that the GRG suggests this recursive application to components of an estimator
+propose that other estimators could be similarly recursively decomposed?
+
+
+[TODO: cite certigrad arxiv 1706.08605]
+
+
+
+\section{Limitations}
+\label{limitation}
+
+\section{Conclusion}
+\label{conclusion}
+
+
+\bibliography{bibliography}
+\bibliographystyle{iclr2018_conference}
+
+
+\section{Appendix A: Control Variates}
+% basic definitions following level of detail in Tucker 2017
+
+
+%\section{Understanding the REBAR estimator through the Generalized Reparameterization Gradient}
 
 % ** Questions to answer: 
 % (1) is z-tilde a clever way of using Rao-Blackwellization for a part of the reparameterization gradient? This would mean that the reparameterization z-tilde is related to the sufficient statistic of the estimator...
@@ -210,11 +317,8 @@ NEXT: ELABORATE ON DEPENDENCE ON THETA
 % (3) is the REBAR control variate really using the reparameterization gradient in a meaningful way? Or, is it best viewed as just another f + control variate where control variate is cleverly designed with lower variance? 
 
 
-REBAR and the generalization in this paper uses a mixture of score function and reparameterization gradients.
-A recent paper by \cite{ruiz2016generalized} unifies these two gradient estimators as the generalized reparameterization gradient (GRG).
-This framework can help disentangle the various components of generalized REBAR.
 
-\subsection{Combining score function and reparameterization gradients}
+%\subsection{Combining score function and reparameterization gradients}
 
 \par{Generalizing the reparameterization trick}
 
@@ -225,32 +329,18 @@ example: inverse CDF of Gaussian with uniform $s$
 write out expected gradient under transformation
 show decomposition of expected gradient into reparameterization and correction terms 
 
-\par{Applying GRG to REBAR}
+%\par{Applying GRG to REBAR}
 
-show mapping of terms
-note denser derivation in REBAR appendix
+%show mapping of terms
+%note denser derivation in REBAR appendix
 
-\par{Interpreting REBAR through GRG}
-
-REBAR innovation as further decomposition the correction term into secondary reparameterization components
-note this is a recursive application of the principles of GRG
-observe that the GRG suggests this recursive application to components of an estimator
-propose that other estimators could be similarly recursively decomposed?
+%\par{Interpreting REBAR through GRG}
 
 
 
-[TODO: cite certigrad arxiv 1706.08605]
 
 
-\section{Experiments}
-\subsection{Toy example}
 
 
-\bibliography{bibliography}
-\bibliographystyle{iclr2018_conference}
-
-
-\section{Appendix A: Control Variates}
-% basic definitions following level of detail in Tucker 2017
 
 \end{document}
