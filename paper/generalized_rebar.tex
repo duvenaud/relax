@@ -1,0 +1,346 @@
+\documentclass{article}
+%\usepackage{nips_2016}
+\usepackage{iclr2018_conference, times}
+
+%\usepackage[utf8]{inputenc} % allow utf-8 input
+%\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{amsmath}
+\usepackage{hyperref}
+
+\newcommand{\vtheta}{\mathbf{\theta}}
+\newcommand{\relaxed}{\tilde f}
+\newcommand{\discreteDist}{p_{\theta}(b)}
+\newcommand{\loss}{f(b)}
+\newcommand{\lossGrad}{\loss{} \frac{\partial}{\partial \theta }\log \discreteDist{}}
+\newcommand{\mcGrad}{\hat{g}}
+\newcommand{\expectedLoss}{\mathbb{E}_{\discreteDist{}}[\loss{}]}
+\newcommand{\expectedLossLogTrick}{\mathbb{E}_{\discreteDist{}}[\lossGrad{}]}
+\newcommand{\var}{\text{Var}}
+
+
+
+\title{RELAX: General relaxations for unbiased gradient estimates in discrete latent-variable models}
+
+\author{
+  David S.~Hippocampus\thanks{Use footnote for providing further
+    information about author (webpage, alternative
+    address)---\emph{not} for acknowledging funding agencies.} \\
+  Department of Computer Science\\
+  Cranberry-Lemon University\\
+  Pittsburgh, PA 15213 \\
+  \texttt{hippo@cs.cranberry-lemon.edu} \\
+}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+The recently-developed REBAR method reduces the variance of the REINFORCE gradient estimator by adding a control variate based on the Gumbel-softmax relaxation.
+The free parameters of REBAR can be tuned by gradient descent to minimize variance.
+We generalize this method, showing that the particular relaxation used by REBAR can be generalized, and replaced by a neural network to be optimized during learning.
+We examine the properties of optimal relaxations, and show that this more general procedure enables faster training of discrete latent variable models.
+\end{abstract}
+
+
+
+f is not optimal relaxation
+
+concrete is not optimal relaxation
+
+toy experiments
+
+real exps on binary vae comparing:
+
+%rebar
+
+%g(z) (simple rebar)
+
+%f(g(z))
+
+%f(g_1(z)) + g_2(z)
+
+
+
+\section{Introduction}
+
+
+
+[TODO: motivate necessity for this type of optimizing]
+
+gradient based optimization is dope af
+
+discrete latent structure is dope
+
+can?t fit because:
+
+discrete sampling keeps us from applying reparamaterization gradients 
+
+reinforce doesn?t get this info
+
+pay homage to rebar
+
+introduces conditional reparam
+
+introduces gradient signal for minimizing variance
+
+
+
+
+\paragraph{Contributions}
+\begin{itemize}
+\item we keep conditional reparam from rebar while exploring and expanding on gradient signal for minimizing variance of estimator
+\item we generalize the concrete and muprop relaxations for a learnable family of functions that can be optimized via gradient decent to minimize the variance of the estimator
+\item We show that concrete relax is not optimal, and that control variate based on the discrete objective at continuous input is is not the optimal control variate.
+\item we combine these insights into a new family of estimators that generalizes rebar
+\end{itemize}
+
+
+
+\section{REINFORCE, Concrete, and REBAR gradient estimator}
+% NOTE: this is a rough draft version of the final section
+
+In this section we briefly review the REINFORCE, Concrete, and REBAR gradient estimators.
+
+\subsection{REINFORCE}
+
+% problem formulation: simple stochastic system with discrete latent variable 
+For simplicity of exposition, consider a simple stochastic model that has a discrete latent variable $b$ with probability $\discreteDist{}$ and loss function $\loss{}$.
+
+Note we assume without loss of generality that $\loss{}$ is independent of the parameters  $\theta$ of $\discreteDist{}$.
+Training the model involves minimizing the expected cost $\mathcal{L}(\theta)=\expectedLoss{}$.
+This can be achieved efficiently using gradient optimization, requiring exact or approximate computation of $g=\partial\mathcal{L} / {\partial \theta}$.
+
+In many cases of interest, an analytic form of the gradient $g$ is not known, and so an estimator $\mcGrad{}$ is required, such as the Monte Carlo estimator $\mcGrad{}\approx \sum_{i=1}^n\hat{g}(b_i) / n$ where $b_i\sim \discreteDist{}$ and $n$ is the number of samples. 
+
+% REINFORCE: baseline, doesn't work well without variance reduction
+
+The REINFORCE gradient \cite{williams1992simple} expands $g$ as $\expectedLossLogTrick{}$ using the log-derivative trick, and uses exactly a Monte Carlo estimation scheme. 
+However, the derivative of the log-likelihood w.r.t. its parameters (known as the score function in statistics) has high variance under Monte Carlo estimation, and so variance-reduction techniques such as control variates or Rao-Blackwellization are usually applied to improve the speed of convergence to a good solution.
+
+\subsection{Concrete estimator}
+% CONCRETE: relaxation, following level of detail in Tucker et al. 2017. Biased estimator.
+
+Another approach to estimating the gradient of a loss that involves discrete random variables is a continuous relaxation. 
+\cite{maddison2016concrete} and \cite{jang2016categorical} developed in parallel a reparameterization of a categorical distribution using the Gumbel-Max trick for sampling from a discrete distribution.
+
+The reparameterization is intuitive to understand when considering each point in discrete distribution as one-hot vector.
+Since we want the gradient to be defined at all points, we can extend the distribution over one-hot vectors to allow it to take values in its convex hull, so that the support is maintained of the discrete points in the support of the distribution.
+The convex hull is the d-1 dimensional probability simplex in $\mathbb{R}^k$, where $k$ is the dimension of the discrete distribution.
+
+Let $G_{1:k} = -\log-\log(U_{i:k})$ be samples from the Gumbel distribution, and learnable parameters $(\alpha_1, \dots, \alpha_k)$ be interpreted as some unnormalized parameterization of the discrete distribution under consideration.
+Then, consider the following sampling procedure: for each k, find the k that maximizes $\log \alpha_k - G_k$, and then set $D_k=1$ and $D_{i \neq k} = 0$. The Gumbel-Max trick states that sampling from the discrete distribution is equivalent to taking this argmax, that is, $p(D_k = 1) = \alpha_k / \sum_{i=1}^n \alpha_i$.
+
+Since taking an argmax is still a discontinuous operation, \cite{maddison2016concrete} and \cite{jang2016categorical} proposed further relaxing the argmax operator through the softmax function with an additional temperature parameter $\lambda$:
+\begin{equation}
+x_k = \frac{\exp\{( \log \alpha_k+ G_k) / \lambda\}}{\sum_{i=1}^n\exp\{( \log \alpha_i+ G_i) / \lambda\}}
+\end{equation}
+This relaxation allows values within the simplex, but in the low temperature limit, it becomes exactly the discrete argmax.
+One limitation of the concrete distribution is that it is a biased estimator except in limiting temperature.
+In other words, a small amount of bias is present for a non-zero temperature.
+
+%** Note for next revision: tie this into the REBAR estimator by using the Logistic random variable used by \cite{tucker2017rebar} from the appendix of \cite{maddison2016concrete}.
+
+%** Other points: Concrete trades lower variance for a biased estimator
+
+\subsection{REBAR estimator}
+% REBAR: unbiased estimator that combines REINFORCE with CONCRETE.
+
+The REBAR gradient estimator develops a lower-variance gradient estimator that outperforms one based on a Concrete relaxation. REBAR relies on a carefully designed control variate, so we begin with a review of this theory.
+
+\subsubsection{Control Variates for Variance Reduction}
+For an unbiased estimator $f(b)$, a control variate is a function $\tilde{f}$ with a known or estimatable mean $\mathbb{E}[\tilde{f}]$. Since the mean of the function can be subtracted from the expectation, $f(b) - \eta (\tilde{f}-\mathbb{E}[\tilde{f}])$ remains an unbiased estimator.
+A control variate is scaled by a constant $\eta$.
+Note that we can write $\text{Var}(f(b)+\eta(\tilde{f}-\mathbb{E}[\tilde{f}]))$ as
+\begin{align}
+    \text{Var}(f(b)+\eta \tilde{f}) = \text{Var}(X) + \eta^2\var(\tilde{f}) + 2 \eta \text{Cov}(f(b),\tilde{f}),
+\end{align}
+which, evaluating the first derivative w.r.t. $\eta$ and solving for zero yields:
+\begin{align}
+    \eta = -\frac{Cov(f(b), \tilde{f})}{Var(\tilde{f})}.
+\end{align}
+The variance reduction effect of a control variate is induced by the high correlation of the control variate with the original estimator.
+The intuition behind this is as follows.
+When $f(b)$ and $\tilde{f}$ are positively correlated, then this means $\tilde(f)$ is large when $f(b)$ is large.
+So, if in some minibatch $\tilde{f}$ is greater than its known mean, then with high probability $f(b)$ is also greater than its true mean.
+That means this minibatch would contribute variance to the overall estimation algorithm, since the values we're estimating of $f(b)$ are with high probability greater than the true mean (the true gradient, in the case of REBAR). 
+With positive correlation, $\text{Cov}(f(b), \tilde{f})) > 0$, and so $\eta$ is negative. 
+Then, the effect of the control variate in such a minibatch is to reduce the REINFORCE estimate by subtracting the quantity $\eta(\tilde{f} - \mathbb{E}[\tilde{f}]$.
+
+Hence, a suitably scaled control variate with high correlation to the original estimator dampens or amplifies the value of the overall estimator towards the true mean per minibatch.
+The same explanation applies to the case where the correlation is negative by swapping the terms "lesser" for "greater" and "reducing" by "increasing".
+This is why high correlation of $f(b)$ with $\tilde{f}$ is desirable: it renders the control variate effective in drawing down the effect of high variability in a stochastic estimator by a magnitude commensurate with the difference of a highly correlated function and its known mean.
+
+\subsubsection{Reducing Gradient Variance through a Low-Variance Control Variate}
+Following \cite{tucker2017rebar}, the following overview focuses on a single discrete Bernoulli random variable.
+The core of the REBAR estimator is a REINFORCE-style estimate of a non-differentiable reparameterization of the discrete latent variable as $b=H(z)$, where $H$ is the hard-threshold function an
+\begin{align}
+z := g(u, \theta) := \log\frac{\theta}{1-\theta} + \log\frac{u}{1-u}, u \sim \text{Unif}[0,1]
+\end{align}
+While $z$ is a reparameterization that renders the parameters of $b$ learnable by gradient-based methods, $H$ introduces a new discontinuity in the loss.
+Instead of relaxing the hard threshold as in \cite{maddison2016concrete}, \cite{tucker2017rebar} uses a REINFORCE estimator for the gradient reparameterized with $H(z)$:
+\begin{align}
+    \frac{\partial}{\partial \theta} \mathbb{E}_{p(b)}[f(b)] = \frac{\partial}{\partial \theta} \mathbb{E}_{p(u)}[f(H(z))] = \mathbb{E}_{p(u)}[f(H(z))\frac{\partial}{\partial \theta}\log p(z)]
+\end{align}
+This allows the parameters $\theta$ to be learned using gradient information, but the loss is still non-differentiable due to the hard threshold.
+Since this uses a REINFORCE estimator, it also has high variance.
+
+Hence, \cite{tucker2017rebar} develop a control variate. A natural continuous relaxation of the hard threshold function is the sigmoid function, leading \cite{tucker2017rebar} to choose a $H(z) \approx \sigma_\lambda(z) := \sigma(z / \lambda) = (1+\exp( - z / \lambda))^{-1}$.
+This relaxation leads to the following control variate summed with its expectation:
+\begin{align}
+    \frac{\partial}{\partial \theta} \mathbb{E}_{p(z)}[f(\sigma_\lambda(z))] =  \mathbb{E}_{p(z)}[f(\sigma_\lambda(z))\frac{\partial}{\partial \theta}\log p(z)].
+\end{align}
+Unfortunately, simply applying this control variate was found to be ineffective. 
+The author's key insight was to derive a low-variance form of this control variate that takes advantage of a conditional marginalization of the reparameterized $z$ given a particular choice of discrete $b$.
+This introduces a second reparameterization $\tilde{z}$ of $p(z|b)$, which depends on another sample $v\sim \text{Unif}[0,1]$.
+See \cite{tucker2017rebar} for details of the derivation.
+
+
+The control variate has the following form:
+\begin{align}
+    f(\sigma_\lambda(\tilde{z}))\frac{\partial}{\partial \theta}\log p(H(z))
+\end{align}
+and noting that 
+\begin{align}  \mathbb{E}_{p(u,v)}[f(\sigma_\lambda(\tilde{z}))\frac{\partial}{\partial \theta}\log p(H(z))] = \mathbb{E}_{p(u,v)}[\frac{\partial}{\partial \theta}f(\sigma_\lambda(\tilde{z}))  - \frac{\partial}{\partial \theta} f(\sigma_\lambda(z))]
+\end{align}
+gives us the REBAR gradient estimator: \begin{align}
+    \frac{\partial}{\partial \theta} \mathbb{E}_{p(b)}[f(b)] = \mathbb{E}_{p(u,v)}[f(\sigma_\lambda(\tilde{z}))\frac{\partial}{\partial \theta}\log p(H(z))  - \eta f(\sigma_\lambda(\tilde{z}))\frac{\partial}{\partial \theta}\log p(H(z)) + \eta\frac{\partial}{\partial \theta} f(\sigma_\lambda(z)) - \eta\frac{\partial}{\partial \theta}f(\sigma_\lambda(\tilde{z})) ]
+\end{align} where $\eta$ is trained to minimize the variance of the estimator. 
+
+% ** TODO: place \eta in this equation?
+The special form of $\tilde{z}$ yields a lower-variance gradient estimate because a number of the random variables are conditionally marginalized out of the estimator.
+Two features of this control variate make it particularly effective: its high correlation with the REINFORCE gradient, and a low-variance, reparameterized form of certain terms in the estimator.
+
+\section{RELAX: The generalized REBAR estimator}
+The REBAR estimator uses a control variate that evaluates the original loss function at relaxed inputs, reparameterized both unconditionally (denoted $z$, and conditionally, denoted $\tilde{z}$). The central result of this paper is that learning the function in the control variate leads to even better convergence properties. Specifically, we generalize the conditional marginalization and control variate of REBAR to the following form:
+\begin{align}
+    \mathbb{E}_{p(u,v)}[Q(\tilde{z};\phi)\frac{\partial}{\partial \theta}\log p(H(z))] = \mathbb{E}_{p(u,v)}[\frac{\partial}{\partial \theta}Q(\tilde{z};\phi) - \frac{\partial}{\partial \theta} Q(z; \phi)],
+\end{align}
+where Q is an MLP with parameters $\phi$.
+
+The generalized REBAR estimator replaces the loss function evaluations in the control variate with an adaptive $Q$ function which is trained via gradient decent to minimize the variance of the estimator. As shown in \cite{tucker2017rebar}, this can be easily computed. Denoting the RELAX estimator as $r(\phi)$ we obtain:
+\begin{align}
+    \frac{\partial}{\partial\phi}\var{(r(\phi))} = \frac{\partial}{\partial\phi}\mathbb{E}[r(\phi)^2] + \frac{\partial}{\partial\phi}\mathbb{E}[r(\phi)]^2 = \frac{\partial}{\partial\phi}\mathbb{E}[r(\phi)^2] = \mathbb{E}[\frac{\partial}{\partial\phi}r(\phi)^2]
+\end{align}
+Where the second equality comes from the fact that for all $\phi$, the RELAX estimator is unbiased and therefore $\frac{\partial}{\partial\phi}\mathbb{E}[r(\phi)]^2 = 0$.
+
+% This small change to the REBAR control variate yields a 
+% dramatic % lets make sure we have the data to back that up
+% reduction in variance on the same benchmark tests used by \cite{tucker2017rebar}.
+
+% I think this section should go next
+%\section{Properties of Optimal Relaxations}
+% maybe we should change the name of this section to "Questioning the Concrete Relaxation" in which case maybe  it should go before the above section???
+In \cite{tucker2017rebar} the concrete distribution \cite{maddison2016concrete} is used in the control variate due to its similarity to the Bernoulli distribution and assumed correlation with the target function (**TODO EXPAND THIS).
+
+NEXT: PROVE THAT CONCRETE IS NOT THE OPTIMAL RELAXATION TO USE (SHOULD BE EASY TO PROVE BUT WE NEED TO DO IT)
+
+
+%Using variational calculus, we can examine the form of the optimal relaxation $\relaxed{}$
+
+Relaxing Assumptions
+
+identifying assumptions other estimators in the past made
+
+demonstrate (proof?) that those assumptions are not optimal
+
+and that the optimum is a function of {f, theta}
+
+
+
+\section{Experiments}
+\label{experiments}
+
+NEXT: OPTIMAL RELAXATION FOR TOY PROBLEM
+NEXT: ELABORATE ON DEPENDENCE ON THETA
+
+
+**TODO NEW EXPERIMENT: HALFWAY THROUGH A VAE TRAINING STOP, AND OPTIMIZE THE VARINACE OF Q AND OF REBAR WRT TEMP AND ETA AND COMPARE GRADIENTS
+
+\subsection{Toy Experiment}
+
+[pictures, variances graphs]
+
+[head to head comparisons] 
+
+\subsection{Discrete Variational Autoencoder}
+
+[VAE, results, variances]
+
+
+
+\section{Related Work}
+\label{related work}
+
+NVIL, VIMCO, things like that
+
+\par{Generalized Reparameterization Gradients}
+REBAR and the generalization in this paper uses a mixture of score function and reparameterization gradients.
+A recent paper by \cite{ruiz2016generalized} unifies these two gradient estimators as the generalized reparameterization gradient (GRG).
+This framework can help disentangle the various components of generalized REBAR.
+
+REBAR innovation as further decomposition the correction term into secondary reparameterization components
+note this is a recursive application of the principles of GRG
+observe that the GRG suggests this recursive application to components of an estimator
+propose that other estimators could be similarly recursively decomposed?
+
+
+[TODO: cite certigrad arxiv 1706.08605]
+
+
+
+\section{Limitations}
+\label{limitation}
+
+\section{Conclusion}
+\label{conclusion}
+
+
+\bibliography{bibliography}
+\bibliographystyle{iclr2018_conference}
+
+
+\section{Appendix A: Control Variates}
+% basic definitions following level of detail in Tucker 2017
+
+
+%\section{Understanding the REBAR estimator through the Generalized Reparameterization Gradient}
+
+% ** Questions to answer: 
+% (1) is z-tilde a clever way of using Rao-Blackwellization for a part of the reparameterization gradient? This would mean that the reparameterization z-tilde is related to the sufficient statistic of the estimator...
+% (1) also maybe: the Q function has the opportunity to learn an estimator based on the sufficient statistics of the model, which by Rao-Blackwell-Kolmogorov is lower variance
+% (2) What's a better notation to keep the dependence of z on $\theta$ in view?
+% (3) is the REBAR control variate really using the reparameterization gradient in a meaningful way? Or, is it best viewed as just another f + control variate where control variate is cleverly designed with lower variance? 
+
+
+
+%\subsection{Combining score function and reparameterization gradients}
+
+\par{Generalizing the reparameterization trick}
+
+Write sample from distribution $s(\epsilon)$ as $\epsilon = \mathcal{T}^{-1}(\mathbf{z}; \mathbf{\nu})$ for some invertible transform $\mathcal{T}$ with variational parameters $\nu$.
+write out transformed density
+example: normal with standard normal $s$
+example: inverse CDF of Gaussian with uniform $s$
+write out expected gradient under transformation
+show decomposition of expected gradient into reparameterization and correction terms 
+
+%\par{Applying GRG to REBAR}
+
+%show mapping of terms
+%note denser derivation in REBAR appendix
+
+%\par{Interpreting REBAR through GRG}
+
+
+
+
+
+
+
+
+\end{document}

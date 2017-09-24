@@ -9,7 +9,7 @@ from autograd.scipy.special import expit, logit
 from autograd import grad, value_and_grad
 from autograd.optimizers import adam
 
-from rebar import simple_mc_concrete
+from rebar import concrete
 
 if __name__ == '__main__':
 
@@ -26,17 +26,14 @@ if __name__ == '__main__':
         params_rep = np.tile(params, (num_samples, 1))
         rs = npr.RandomState(t)
         noise_u = rs.rand(num_samples, D)
-        noise_v = rs.rand(num_samples, D)
         objective_vals, grads = \
-            value_and_grad(simple_mc_concrete)(params_rep, est_params, noise_u, objective)
+            value_and_grad(concrete)(params_rep, est_params, noise_u, objective)
         return np.mean(objective_vals), np.var(grads, axis=0)
 
     def combined_obj(combined_params, t):
         # Combines objective value and variance of gradients.
-        # However, model_params shouldn't affect variance (in expectation),
-        # and est_params shouldn't affect objective (in expectation).
         obj_value, grad_variances = mc_objective_and_var(combined_params, t)
-        return obj_value #+ grad_variances
+        return obj_value
 
     # Set up figure.
     fig = plt.figure(figsize=(8, 8), facecolor='white')
