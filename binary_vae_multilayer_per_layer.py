@@ -5,6 +5,8 @@ import time
 import os
 import datasets
 
+import argparse
+
 
 """ Helper Functions """
 def safe_log_prob(x, eps=1e-8):
@@ -97,15 +99,17 @@ def neg_elbo(x, samples, log_alphas_inf, log_alphas_gen, prior, log=False):
 
 
 """ Networks """
-def encoder(x, num_latents, name, reuse):
+def linear_layer(x, num_latents, name, reuse):
     with tf.variable_scope(name, reuse=reuse):
         log_alpha = tf.layers.dense(2. * x - 1., num_latents, name="log_alpha")
     return log_alpha
 
 
-def decoder(b, num_latents, name, reuse):
+def nonlinear_layer(x, num_latents, name, reuse):
     with tf.variable_scope(name, reuse=reuse):
-        log_alpha = tf.layers.dense(2. * b - 1., num_latents, name="log_alpha")
+        h1 = tf.layers.dense(2. * x - 1., num_latents, activation=tf.tanh, name="h1")
+        h2 = tf.layers.dense(h1, num_latents, activation=tf.tanh, name="h2")
+        log_alpha = tf.layers.dense(h2, num_latents, name="log_alpha")
     return log_alpha
 
 
@@ -166,10 +170,6 @@ def Q_func(x, x_mean, z, bs, name, reuse):
         h3 = tf.layers.dense(h2, 200, tf.nn.relu, name="3")
         h4 = tf.layers.dense(h3, 200, tf.nn.relu, name="4")
         out = tf.layers.dense(h4, 1, name="out")[:, 0]
-        # scale = tf.get_variable(
-        #     "q_scale", shape=[1], dtype=tf.float32,
-        #     initializer=tf.constant_initializer(0), trainable=True
-        # )
     return out
 
 
@@ -236,16 +236,22 @@ def get_variables(tag, arr=None):
         return [v for v in arr if tag in v.name]
 
 
-def main(relaxation=None, learn_prior=True, max_iters=2000000,
-         batch_size=24, num_latents=200, num_layers=2, lr=.0001,
-         test_bias=False, train_dir=None, iwae_samples=100, dataset="mnist"):
+def main(relaxation=None, learn_prior=True, max_iters=None,
+         batch_size=24, num_latents=200, model_type=None, lr=None,
+         test_bias=False, train_dir=None, iwae_samples=100, dataset="mnist",
+         logf=None, var_lr_scale=10.):
 
-    if os.path.exists(train_dir):
-        print("Deleting existing train dir")
-        import shutil
-
-        shutil.rmtree(train_dir)
-    os.makedirs(train_dir)
+    if model_type == "L1":
+        num_layers = 1
+        layer_type = linear_layer
+    elif model_type == "L2":
+        num_layers = 2
+        layer_type = linear_layer
+    elif model_type == "NL1":
+        num_layers = 1
+        layer_type = nonlinear_layer
+    else:
+        assert False, "bad model type {}".format(model_type)
 
     sess = tf.Session()
     if dataset == "mnist":
@@ -288,19 +294,19 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
     decoder_name = "decoder"
     inf_la_b, samples_b = inference_network(
         x, train_mean,
-        encoder, num_layers,
+        layer_type, num_layers,
         num_latents, encoder_name, False, b_sampler
     )
     gen_la_b = generator_network(
         samples_b, train_output_bias,
-        decoder, num_layers,
+        layer_type, num_layers,
         num_latents, decoder_name, False
     )
     log_image(gen_la_b[-1], "x_pred")
     # produce samples
     _samples_la_b = generator_network(
         None, train_output_bias,
-        decoder, num_layers,
+        layer_type, num_layers,
         num_latents, decoder_name, True, sampler=gen_b_sampler, prior=p_prior
     )
     log_image(_samples_la_b[-1], "x_sample")
@@ -313,7 +319,7 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
     # optimizer for model parameters
     model_opt = tf.train.AdamOptimizer(lr, beta2=.99999)
     # optimizer for variance reducing parameters
-    variance_opt = tf.train.AdamOptimizer(10. * lr, beta2=.99999)
+    variance_opt = tf.train.AdamOptimizer(var_lr_scale * lr, beta2=.99999)
     # get encoder and decoder variables
     encoder_params = get_variables(encoder_name)
     decoder_params = get_variables(decoder_name)
@@ -345,7 +351,7 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
         cur_la_b = inf_la_b[l]
 
         # if standard rebar or additive relaxation
-        if relaxation is None or relaxation == "add":
+        if relaxation == "rebar" or relaxation == "add":
             # compute soft samples and soft passes through model and soft elbos
             cur_z_sample = sig_z_sampler.sample(cur_la_b, l)
             prev_samples_z = samples_b[:l] + [cur_z_sample]
@@ -358,31 +364,31 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
             # soft forward passes
             inf_la_z, samples_z = inference_network(
                 x, train_mean,
-                encoder, num_layers,
+                layer_type, num_layers,
                 num_latents, encoder_name, True, sig_z_sampler,
                 samples=prev_samples_z, log_alphas=prev_log_alphas
             )
             gen_la_z = generator_network(
                 samples_z, train_output_bias,
-                decoder, num_layers,
+                layer_type, num_layers,
                 num_latents, decoder_name, True
             )
             inf_la_zt, samples_zt = inference_network(
                 x, train_mean,
-                encoder, num_layers,
+                layer_type, num_layers,
                 num_latents, encoder_name, True, sig_zt_sampler,
                 samples=prev_samples_zt, log_alphas=prev_log_alphas
             )
             gen_la_zt = generator_network(
                 samples_zt, train_output_bias,
-                decoder, num_layers,
+                layer_type, num_layers,
                 num_latents, decoder_name, True
             )
             # soft loss evaluataions
             f_z, _ = neg_elbo(x, samples_z, inf_la_z, gen_la_z, p_prior)
             f_zt, _ = neg_elbo(x, samples_zt, inf_la_zt, gen_la_zt, p_prior)
 
-        if relaxation is not None:
+        if relaxation == "add" or relaxation == "all":
             # sample z and zt
             prev_bs = samples_b[:l]
             cur_z_sample = z_sampler.sample(cur_la_b, l)
@@ -432,12 +438,11 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
         layer_gradvars = list(zip(layer_grads, layer_params))
         model_gradvars.extend(layer_gradvars)
         variance_objective = tf.reduce_mean(tf.square(rebar))
-        #variance_objective = tf.reduce_mean(tf.reduce_sum(tf.square(rebar), axis=1))
         variance_objectives.append(variance_objective)
 
     variance_objective = tf.add_n(variance_objectives)
     variance_vars = log_temperatures + etas
-    if relaxation is not None:
+    if relaxation != "rebar":
         q_vars = get_variables("Q_")
         variance_vars = variance_vars + q_vars
     variance_gradvars = variance_opt.compute_gradients(variance_objective, var_list=variance_vars)
@@ -452,17 +457,30 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
             tf.summary.histogram(v.name, v)
             tf.summary.histogram(v.name+"_grad", g)
 
-    test_loss = tf.Variable(1000, trainable=False, name="test_loss", dtype=tf.float32)
+    val_loss = tf.Variable(1000, trainable=False, name="val_loss", dtype=tf.float32)
     train_loss = tf.Variable(1000, trainable=False, name="train_loss", dtype=tf.float32)
-    tf.summary.scalar("test_loss", test_loss)
+    tf.summary.scalar("val_loss", val_loss)
     tf.summary.scalar("train_loss", train_loss)
     summ_op = tf.summary.merge_all()
     summary_writer = tf.summary.FileWriter(train_dir)
     sess.run(tf.global_variables_initializer())
 
+    # create savers
+    train_saver = tf.train.Saver(tf.global_variables())
+    val_saver = tf.train.Saver(tf.global_variables())
+
     iters_per_epoch = X_tr.shape[0] // batch_size
     print("Train set has {} examples".format(X_tr.shape[0]))
+    if relaxation != "rebar":
+        print("Pretraining Q network")
+        for i in range(10000):
+            if i % 1000 == 0:
+                print(i)
+            idx = np.random.randint(0, 1000)
+            batch_xs = X_tr[idx * batch_size: (idx + 1) * batch_size]
+            sess.run(variance_train_op, feed_dict={x: batch_xs})
     t = time.time()
+    best_val_loss = np.inf
     for epoch in range(10000000):
         train_losses = []
         for i in range(iters_per_epoch):
@@ -471,12 +489,12 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
                 print("Training Completed")
                 return
             batch_xs = X_tr[i*batch_size: (i+1) * batch_size]
-            if i % 100 == 0:
+            if i % 1000 == 0:
                 loss, _, sum_str = sess.run([total_loss, train_op, summ_op], feed_dict={x: batch_xs})
                 summary_writer.add_summary(sum_str, cur_iter)
                 time_taken = time.time() - t
                 t = time.time()
-                print(cur_iter, loss, "{} / batch".format(time_taken / 100))
+                #print(cur_iter, loss, "{} / batch".format(time_taken / 1000))
                 if test_bias:
                     rebs = []
                     refs = []
@@ -500,17 +518,53 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
             train_losses.append(loss)
 
         # epoch over, run test data
-        test_losses = []
-        for _it in range(X_te.shape[0] // batch_size - 1):
-            batch_xs = X_te[_it*batch_size: (_it+1)*batch_size]
-            test_losses.append(sess.run(total_loss, feed_dict={x: batch_xs}))
+        val_losses = []
+        for _it in range(X_va.shape[0] // batch_size - 1):
+            batch_xs = X_va[_it*batch_size: (_it+1)*batch_size]
+            val_losses.append(sess.run(total_loss, feed_dict={x: batch_xs}))
         trl = np.mean(train_losses)
-        tel = np.mean(test_losses)
-        print("Test loss = {}, Train loss = {}".format(tel, trl))
-        sess.run([test_loss.assign(tel), train_loss.assign(trl)])
-
+        val = np.mean(val_losses)
+        print("({}) Epoch = {}, Val loss = {}, Train loss = {}".format(train_dir, epoch, val, trl))
+        logf.write("{}: {} {}\n".format(epoch, val, trl))
+        sess.run([val_loss.assign(val), train_loss.assign(trl)])
+        if val < best_val_loss:
+            print("saving best model")
+            best_val_loss = val
+            val_saver.save(sess, '{}/best-model'.format(train_dir), global_step=epoch)
         np.random.shuffle(X_tr)
+        if epoch % 10 == 0:
+            train_saver.save(sess, '{}/model'.format(train_dir), global_step=epoch)
 
 
 if __name__ == "__main__":
-    main(num_layers=2, relaxation="add", train_dir="/ais/gobi5/wgrathwohl/rebar_experiments/binary_var_2_layer_add_relu_big_Q_mean_var_loss", dataset="mnist", lr=.0005)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--lr", type=float, default=None)
+    parser.add_argument("--relaxation", type=str, default=None)
+    parser.add_argument("--model", type=str, default=None)
+    parser.add_argument("--max_iters", type=int, default=None)
+    parser.add_argument("--dataset", type=str, default=None)
+    parser.add_argument("--var_lr_scale", type=float, default=10.)
+    FLAGS = parser.parse_args()
+
+    td = "/ais/gobi5/wgrathwohl/rebar_experiments/{}/{}/{}/lr_{}_var_lr_scale_{}_iters_{}".format(
+        FLAGS.dataset, FLAGS.model, FLAGS.relaxation,
+        str(FLAGS.lr).replace('.', 'p'), str(FLAGS.var_lr_scale).replace('.', 'p'),
+        FLAGS.max_iters
+    )
+    print("Train Dir is {}".format(td))
+    if os.path.exists(td):
+        print("Deleting existing train dir")
+        import shutil
+
+        shutil.rmtree(td)
+    os.makedirs(td)
+    # make params file
+    with open("{}/params.txt".format(td), 'w') as f:
+        f.write("{}: {}\n".format("lr", FLAGS.lr))
+        f.write("{}: {}\n".format("relaxation", FLAGS.relaxation))
+        f.write("{}: {}\n".format("model", FLAGS.model))
+        f.write("{}: {}\n".format("max_iters", FLAGS.max_iters))
+        f.write("{}: {}\n".format("dataset", FLAGS.dataset))
+        f.write("{}: {}\n".format("var_lr_scale", FLAGS.var_lr_scale))
+    with open("{}/log.txt".format(td), 'w') as logf:
+        main(relaxation=FLAGS.relaxation, train_dir=td, dataset=FLAGS.dataset, lr=FLAGS.lr, model_type=FLAGS.model, max_iters=FLAGS.max_iters, logf=logf, var_lr_scale=FLAGS.var_lr_scale)

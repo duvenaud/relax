@@ -81,9 +81,11 @@ def neg_elbo(x, b, log_alpha, pred_x_log_alpha):
 
 """ Networks """
 def Q_func(z):
-    h1 = tf.layers.dense(2. * z - 1., 10, tf.nn.relu, name="q_1", use_bias=True)
-    h2 = tf.layers.dense(h1, 10, tf.nn.relu, name="q_2", use_bias=True)
-    out = tf.layers.dense(h2, 1, name="q_out", use_bias=True)
+    h1 = tf.layers.dense(z, 10, tf.nn.relu, name="q_1", use_bias=True)
+    #h2 = tf.layers.dense(h1, 10, tf.nn.relu, name="q_2", use_bias=True)
+    #h3 = tf.layers.dense(h2, 10, tf.nn.relu, name="q_3", use_bias=True)
+    #h4 = tf.layers.dense(h3, 10, tf.nn.relu, name="q_4", use_bias=True)
+    out = tf.layers.dense(h1, 1, name="q_out", use_bias=True)
     scale = tf.get_variable(
         "q_scale", shape=[1], dtype=tf.float32,
         initializer=tf.constant_initializer(0), trainable=True
@@ -165,9 +167,9 @@ def main(use_reinforce=False, relaxed=False, visualize=False,
 
             if relaxed != False:
                 with tf.variable_scope("Q_func"):
-                    q_z = Q_func(sig_z)[:, 0]
+                    q_z = Q_func(z)[:, 0]
                 with tf.variable_scope("Q_func", reuse=True):
-                    q_z_tilde = Q_func(sig_z_tilde)[:, 0]
+                    q_z_tilde = Q_func(z_tilde)[:, 0]
                 if relaxed == True:
                     f_z = f_z + q_z
                     f_z_tilde = f_z_tilde + q_z_tilde
@@ -314,5 +316,5 @@ if __name__ == "__main__":
     thetas = []
     for i in range(10):
         tf.reset_default_graph()
-        thetas.append(main(relaxed="relaxation", visualize="sig", force_same=True, test_bias=False))
+        thetas.append(main(relaxed="super", visualize=False, force_same=True, test_bias=False))
     print(np.mean(thetas), np.std(thetas))
