@@ -161,10 +161,10 @@ def generator_network(samples, output_bias, layer, num_layers, num_latents, name
 def Q_func(x, x_mean, z, bs, name, reuse):
     inp = tf.concat([x - x_mean, z] + [2. * b - 1 for b in bs], 1)
     with tf.variable_scope(name, reuse=reuse):
-        h1 = tf.layers.dense(inp, 200, tf.tanh, name="1")
-        h2 = tf.layers.dense(h1, 200, tf.tanh, name="2")
-        h3 = tf.layers.dense(h2, 200, tf.tanh, name="3")
-        h4 = tf.layers.dense(h3, 200, tf.tanh, name="4")
+        h1 = tf.layers.dense(inp, 200, tf.nn.relu, name="1")
+        h2 = tf.layers.dense(h1, 200, tf.nn.relu, name="2")
+        h3 = tf.layers.dense(h2, 200, tf.nn.relu, name="3")
+        h4 = tf.layers.dense(h3, 200, tf.nn.relu, name="4")
         out = tf.layers.dense(h4, 1, name="out")[:, 0]
         # scale = tf.get_variable(
         #     "q_scale", shape=[1], dtype=tf.float32,
@@ -431,7 +431,8 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
             tf.summary.histogram(v.name+"_grad_loss", lg)
         layer_gradvars = list(zip(layer_grads, layer_params))
         model_gradvars.extend(layer_gradvars)
-        variance_objective = tf.reduce_mean(tf.reduce_sum(tf.square(rebar), axis=1))
+        variance_objective = tf.reduce_mean(tf.square(rebar))
+        #variance_objective = tf.reduce_mean(tf.reduce_sum(tf.square(rebar), axis=1))
         variance_objectives.append(variance_objective)
 
     variance_objective = tf.add_n(variance_objectives)
@@ -512,4 +513,4 @@ def main(relaxation=None, learn_prior=True, max_iters=2000000,
 
 
 if __name__ == "__main__":
-    main(num_layers=3, relaxation="add", train_dir="/ais/gobi5/wgrathwohl/rebar_experiments/binary_var_3_layer_add_big_Q", dataset="mnist", lr=.0005)
+    main(num_layers=2, relaxation="add", train_dir="/ais/gobi5/wgrathwohl/rebar_experiments/binary_var_2_layer_add_relu_big_Q_mean_var_loss", dataset="mnist", lr=.0005)
