@@ -40,10 +40,9 @@
 \begin{document}
 \maketitle
 \begin{abstract}
-The recently-developed REBAR method reduces the variance of the REINFORCE gradient estimator by adding a control variate based on the Gumbel-softmax relaxation.
-The free parameters of REBAR can be tuned by gradient descent to minimize variance.
-We generalize this method, showing that the particular relaxation used by REBAR can be generalized, and replaced by a neural network to be optimized during learning.
-We examine the properties of optimal relaxations, and show that this more general procedure enables faster training of discrete latent variable models.
+The recently-developed REBAR method \cite{tucker2017rebar} reduces the variance of the REINFORCE gradient estimator by adding a control variate based on the concrete relaxation \cite{maddison2016concrete}.
+The free parameters of REBAR can be tuned by gradient descent to minimize the variance of the estimator.
+We generalize this method, showing that the particular relaxation used by REBAR is not necessarily optimal for minimizing variance. We present a new gradient estimator, RELAX, which replaces the REBAR's continuous relaxation with a neural network which is optimized during training. We validate this estimator on a number of generative modeling tasks, demonstrating improved performance over competing methods. 
 \end{abstract}
 
 
@@ -67,14 +66,16 @@ real exps on binary vae comparing:
 
 
 \section{Introduction}
+Gradient based optimization has been key to many recent advances in machine learning, the most notable of which being the use of deep neural networks as general purpose function approximators \cite{SOME DEEP LEARNING STUFF}. Through the back-propagation algorithm \cite{BACKPROP}, the gradient of a loss function can be obtained with respect to each model parameter and learning can be accomplished via gradient decent. Recent advancements such as Stochastic Variational Inference \cite{SVI} and the so-called "Reparametization Trick" \cite{VAE} have enabled the use of gradient base learning for scalable, approximate inference enabling learning in vary large probabilistic models with complex approximating posterior ditributions \cite{NORMALIZING FLOWS OR SOMETHING}. Unfortunately, these approaches are limited to models with continuous random variables or very simple discrete structure. 
 
+Discrete Structures are prevalent in nature and can often much more efficiently represent the semantic information in high dimensional input so tractable approaches to learning in model with discrete latent variables is very appealing. 
 
 
 [TODO: motivate necessity for this type of optimizing]
 
-gradient based optimization is dope af
+(check)gradient based optimization is dope af
 
-discrete latent structure is dope
+(check)discrete latent structure is dope
 
 can?t fit because:
 
