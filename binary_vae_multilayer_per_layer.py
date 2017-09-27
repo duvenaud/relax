@@ -162,14 +162,19 @@ def generator_network(samples, output_bias, layer, num_layers, num_latents, name
     return log_alphas
 
 
-def Q_func(x, x_mean, z, bs, name, reuse):
+def Q_func(x, x_mean, z, bs, name, reuse, depth):
     inp = tf.concat([x - x_mean, z] + [2. * b - 1 for b in bs], 1)
     with tf.variable_scope(name, reuse=reuse):
         h1 = tf.layers.dense(inp, 200, tf.nn.relu, name="1")
         h2 = tf.layers.dense(h1, 200, tf.nn.relu, name="2")
-        h3 = tf.layers.dense(h2, 200, tf.nn.relu, name="3")
-        h4 = tf.layers.dense(h3, 200, tf.nn.relu, name="4")
-        out = tf.layers.dense(h4, 1, name="out")[:, 0]
+        if depth == 2:
+            out = tf.layers.dense(h2, 1, name="out")[:, 0]
+        elif depth == 4:
+            h3 = tf.layers.dense(h2, 200, tf.nn.relu, name="3")
+            h4 = tf.layers.dense(h3, 200, tf.nn.relu, name="4")
+            out = tf.layers.dense(h4, 1, name="out")[:, 0]
+        else:
+            assert False
     return out
 
 
@@ -239,7 +244,7 @@ def get_variables(tag, arr=None):
 def main(relaxation=None, learn_prior=True, max_iters=None,
          batch_size=24, num_latents=200, model_type=None, lr=None,
          test_bias=False, train_dir=None, iwae_samples=100, dataset="mnist",
-         logf=None, var_lr_scale=10.):
+         logf=None, var_lr_scale=10., Q_wd=.0001, Q_depth=-1):
 
     if model_type == "L1":
         num_layers = 1
@@ -394,8 +399,8 @@ def main(relaxation=None, learn_prior=True, max_iters=None,
             cur_z_sample = z_sampler.sample(cur_la_b, l)
             cur_zt_sample = zt_sampler.sample(cur_la_b, l)
 
-            q_z = Q_func(x, train_mean, cur_z_sample, prev_bs, Q_name(l), False)
-            q_zt = Q_func(x, train_mean, cur_zt_sample, prev_bs, Q_name(l), True)
+            q_z = Q_func(x, train_mean, cur_z_sample, prev_bs, Q_name(l), False, depth=Q_depth)
+            q_zt = Q_func(x, train_mean, cur_zt_sample, prev_bs, Q_name(l), True, depth=Q_depth)
             tf.summary.scalar("q_z_{}".format(l), tf.reduce_mean(q_z))
             tf.summary.scalar("q_zt_{}".format(l), tf.reduce_mean(q_zt))
             if relaxation == "add":
@@ -444,8 +449,12 @@ def main(relaxation=None, learn_prior=True, max_iters=None,
     variance_vars = log_temperatures + etas
     if relaxation != "rebar":
         q_vars = get_variables("Q_")
+        wd = tf.add_n([Q_wd * tf.nn.l2_loss(v) for v in q_vars])
+        tf.summary.scalar("Q_weight_decay", wd)
         variance_vars = variance_vars + q_vars
-    variance_gradvars = variance_opt.compute_gradients(variance_objective, var_list=variance_vars)
+    else:
+        wd = 0.0
+    variance_gradvars = variance_opt.compute_gradients(variance_objective+wd, var_list=variance_vars)
     variance_train_op = variance_opt.apply_gradients(variance_gradvars)
     model_train_op = model_opt.apply_gradients(model_gradvars)
     with tf.control_dependencies([model_train_op, variance_train_op]):
@@ -466,15 +475,15 @@ def main(relaxation=None, learn_prior=True, max_iters=None,
     sess.run(tf.global_variables_initializer())
 
     # create savers
-    train_saver = tf.train.Saver(tf.global_variables())
-    val_saver = tf.train.Saver(tf.global_variables())
+    train_saver = tf.train.Saver(tf.global_variables(), max_to_keep=1)
+    val_saver = tf.train.Saver(tf.global_variables(), max_to_keep=1)
 
     iters_per_epoch = X_tr.shape[0] // batch_size
     print("Train set has {} examples".format(X_tr.shape[0]))
     if relaxation != "rebar":
         print("Pretraining Q network")
-        for i in range(10000):
-            if i % 1000 == 0:
+        for i in range(1000):
+            if i % 100 == 0:
                 print(i)
             idx = np.random.randint(0, 1000)
             batch_xs = X_tr[idx * batch_size: (idx + 1) * batch_size]
@@ -490,8 +499,8 @@ def main(relaxation=None, learn_prior=True, max_iters=None,
                 return
             batch_xs = X_tr[i*batch_size: (i+1) * batch_size]
             if i % 1000 == 0:
-                loss, _, sum_str = sess.run([total_loss, train_op, summ_op], feed_dict={x: batch_xs})
-                summary_writer.add_summary(sum_str, cur_iter)
+                loss, _, = sess.run([total_loss, train_op], feed_dict={x: batch_xs})
+                #summary_writer.add_summary(sum_str, cur_iter)
                 time_taken = time.time() - t
                 t = time.time()
                 #print(cur_iter, loss, "{} / batch".format(time_taken / 1000))
@@ -544,11 +553,14 @@ if __name__ == "__main__":
     parser.add_argument("--max_iters", type=int, default=None)
     parser.add_argument("--dataset", type=str, default=None)
     parser.add_argument("--var_lr_scale", type=float, default=10.)
+    parser.add_argument("--Q_depth", type=int, default=-1)
+    parser.add_argument("--Q_wd", type=float, default=0.0)
     FLAGS = parser.parse_args()
 
-    td = "/ais/gobi5/wgrathwohl/rebar_experiments/{}/{}/{}/lr_{}_var_lr_scale_{}_iters_{}".format(
+    td = "/ais/gobi5/wgrathwohl/rebar_experiments/{}/{}/{}/lr_{}_var_lr_scale_{}_Q_depth_{}_Q_wd_{}_iters_{}".format(
         FLAGS.dataset, FLAGS.model, FLAGS.relaxation,
         str(FLAGS.lr).replace('.', 'p'), str(FLAGS.var_lr_scale).replace('.', 'p'),
+        FLAGS.Q_depth, str(FLAGS.Q_wd).replace('.', 'p'),
         FLAGS.max_iters
     )
     print("Train Dir is {}".format(td))
@@ -566,5 +578,14 @@ if __name__ == "__main__":
         f.write("{}: {}\n".format("max_iters", FLAGS.max_iters))
         f.write("{}: {}\n".format("dataset", FLAGS.dataset))
         f.write("{}: {}\n".format("var_lr_scale", FLAGS.var_lr_scale))
+        if FLAGS.relaxation != "rebar":
+            f.write("{}: {}\n".format("Q_depth", FLAGS.Q_depth))
+            f.write("{}: {}\n".format("Q_wd", FLAGS.Q_wd))
+
     with open("{}/log.txt".format(td), 'w') as logf:
-        main(relaxation=FLAGS.relaxation, train_dir=td, dataset=FLAGS.dataset, lr=FLAGS.lr, model_type=FLAGS.model, max_iters=FLAGS.max_iters, logf=logf, var_lr_scale=FLAGS.var_lr_scale)
+        main(
+            relaxation=FLAGS.relaxation, train_dir=td, dataset=FLAGS.dataset,
+            lr=FLAGS.lr, model_type=FLAGS.model, max_iters=FLAGS.max_iters,
+            logf=logf, var_lr_scale=FLAGS.var_lr_scale,
+            Q_depth=FLAGS.Q_depth, Q_wd=FLAGS.Q_wd
+        )
