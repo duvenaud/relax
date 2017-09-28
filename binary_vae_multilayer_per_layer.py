@@ -485,7 +485,7 @@ def main(relaxation=None, learn_prior=True, max_iters=None,
         for i in range(1000):
             if i % 100 == 0:
                 print(i)
-            idx = np.random.randint(0, 1000)
+            idx = np.random.randint(0, iters_per_epoch-1)
             batch_xs = X_tr[idx * batch_size: (idx + 1) * batch_size]
             sess.run(variance_train_op, feed_dict={x: batch_xs})
     t = time.time()
