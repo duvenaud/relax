@@ -268,7 +268,7 @@ NEXT: ELABORATE ON DEPENDENCE ON THETA
 \subsection{Toy Experiment}
 We seek to minimize $\mathbb{E}_{b \sim p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where $p(b|\theta) = \mathtt{Bern}(b|\theta)$. \cite{tucker2017rebar} set the target $t = .45$. Here, we focus on the more challenging case where $t = .499$. With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the true solution of $\theta = 0$.
 
-The fixed Concrete relaxation of REBAR is unable to produce a gradient who's signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE. 
+The fixed Concrete relaxation of REBAR is unable to produce a gradient who's signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE. Figure \ref{fig:toy_var} plots the learned relaxations for a fixed value of $\theta$. It can be seen that RELAX learns a relaxation who's derivative points in the direction of decreased loss for all values of reparameterization noise $u$ whereas REBAR's fixed relaxation  only does for values of $u > t$. (NEED TO VERIFY THIS IS RIGHT)
 
 [pictures, variances graphs]
 \begin{figure}
@@ -291,7 +291,9 @@ The fixed Concrete relaxation of REBAR is unable to produce a gradient who's sig
 [head to head comparisons] 
 
 \subsection{Discrete Variational Autoencoder}
-As in \citep{tucker2017rebar}, we benchmark the RELAX estimator on the task of training a variational autoencoder \cite{VAE} where all random variables are Bernoulli taking values in $\{-1, 1\}$.
+As in \citep{tucker2017rebar}, we benchmark the RELAX estimator on the task of training a variational autoencoder \cite{VAE} where all random variables are Bernoulli taking values in $\{-1, 1\}$. As in \cite{tucker2017rebar}, we compare training the variational lower-bound across the MNIST \cite{MNIST} and Omniglot \cite{OMNIGLOT} datasets. As in \cite{tucker2017rebar} we test models with 1 and 2 of Bernoulli random variables with linear mappings between them and a model with 1 layer of Bernoulli random variables with non-linear mappings between layers.
+
+We found that due to the complicated structure of the loss function, the RELAX estimator performed worse than REBAR. Instead we add a learned relaxation to REBAR's control variate which we denote relaxed-REBAR. Our estimator takes the form of \ref{eq:RELAX} with $$Q(z) = q(z) + f(\sigma_\lambda(z))$$ where $q(z)$ is a learned neural network and $f(\sigma_\lambda(z))$ is the Concrete relaxation of REBAR with temperature parameter $\lambda$. In all experiments, adding the learned $q(z)$ reduced the variance of the gradients and improved the final results. 
 
 [VAE, results, variances]
 
