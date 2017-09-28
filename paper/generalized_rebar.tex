@@ -12,6 +12,7 @@
 \usepackage{microtype}      % microtypography
 \usepackage{amsmath}
 \usepackage{hyperref}
+\usepackage{graphicx}
 
 \newcommand{\vtheta}{\mathbf{\theta}}
 \newcommand{\relaxed}{\tilde f}
@@ -68,7 +69,9 @@ real exps on binary vae comparing:
 \section{Introduction}
 Gradient based optimization has been key to many recent advances in machine learning, the most notable of which being the use of deep neural networks as general purpose function approximators \cite{SOME DEEP LEARNING STUFF}. Through the back-propagation algorithm \cite{BACKPROP}, the gradient of a loss function can be obtained with respect to each model parameter and learning can be accomplished via gradient decent. Recent advancements such as Stochastic Variational Inference \cite{SVI} and the so-called "Reparametization Trick" \cite{VAE} have enabled the use of gradient base learning for scalable, approximate inference enabling learning in vary large probabilistic models with complex approximating posterior ditributions \cite{NORMALIZING FLOWS OR SOMETHING}. Unfortunately, these approaches are limited to models with continuous random variables or very simple discrete structure. 
 
-Discrete Structures are prevalent in nature and can often much more efficiently represent the semantic information in high dimensional input so tractable approaches to learning in model with discrete latent variables is very appealing. 
+Discrete Structures are prevalent in nature and can often much more efficiently represent the semantic information in high dimensional input so tractable approaches to learning in model with discrete latent variables is very appealing. Unfortunately, training models with discrete random variables requires discontinuous sampling operations which keep us from utilizing low-variance reparameterization gradients explicitly. Earlier approaches for dealing with this issue involve high-variance or biased gradient estimates, making learning slow and challenging for large probabilistic models. The recently proposed REBAR estimator deals with this by combining the REINFORCE gradient estimator with a control variate based on a continuous relaxation of the discrete loss function which allows for unbiased and lower-variance gradient estimates. The REBAR estimator also finds a functional form for the variance of the estimator which allows tuning of the estimator parameters via gradient decent to minimize the estimator variance. 
+
+In this work, we study the assumptions made by the REBAR estimator and produce a new estimator, RELAX, which relaxes these assumptions by replacing the continuous relaxation from REBAR with a relaxation learned by a neural network to directly minimize the variance of the estimator. We summarize our contributions below. 
 
 
 [TODO: motivate necessity for this type of optimizing]
@@ -77,17 +80,17 @@ Discrete Structures are prevalent in nature and can often much more efficiently 
 
 (check)discrete latent structure is dope
 
-can?t fit because:
+(check)can?t fit because:
 
-discrete sampling keeps us from applying reparamaterization gradients 
+(check)discrete sampling keeps us from applying reparamaterization gradients 
 
-reinforce doesn?t get this info
+(check)reinforce doesn?t get this info
 
-pay homage to rebar
+(check)pay homage to rebar
 
 introduces conditional reparam
 
-introduces gradient signal for minimizing variance
+(check)introduces gradient signal for minimizing variance
 
 
 
@@ -104,10 +107,7 @@ introduces gradient signal for minimizing variance
 
 \section{REINFORCE, Concrete, and REBAR gradient estimator}
 % NOTE: this is a rough draft version of the final section
-
-In this section we briefly review the REINFORCE, Concrete, and REBAR gradient estimators.
-
-\subsection{REINFORCE}
+In this section we formalize the problem we are trying to solve and review important past work upon which we are building.
 
 % problem formulation: simple stochastic system with discrete latent variable 
 For simplicity of exposition, consider a simple stochastic model that has a discrete latent variable $b$ with probability $\discreteDist{}$ and loss function $\loss{}$.
@@ -118,9 +118,11 @@ This can be achieved efficiently using gradient optimization, requiring exact or
 
 In many cases of interest, an analytic form of the gradient $g$ is not known, and so an estimator $\mcGrad{}$ is required, such as the Monte Carlo estimator $\mcGrad{}\approx \sum_{i=1}^n\hat{g}(b_i) / n$ where $b_i\sim \discreteDist{}$ and $n$ is the number of samples. 
 
+\subsection{REINFORCE}
+
 % REINFORCE: baseline, doesn't work well without variance reduction
 
-The REINFORCE gradient \cite{williams1992simple} expands $g$ as $\expectedLossLogTrick{}$ using the log-derivative trick, and uses exactly a Monte Carlo estimation scheme. 
+The REINFORCE gradient \cite{williams1992simple} expands $g$ as $\expectedLossLogTrick{}$ using the log-derivative trick \cite{LOG DERIVITIVE TRICK}, and uses exactly a Monte Carlo estimation scheme. 
 However, the derivative of the log-likelihood w.r.t. its parameters (known as the score function in statistics) has high variance under Monte Carlo estimation, and so variance-reduction techniques such as control variates or Rao-Blackwellization are usually applied to improve the speed of convergence to a good solution.
 
 \subsection{Concrete estimator}
@@ -254,7 +256,8 @@ and that the optimum is a function of {f, theta}
 
 
 \section{Experiments}
-\label{experiments}
+We demonstrate the effectiveness of our estimator on a number of challenging optimization problems. Following \cite{tucker2017rebar} we begin with a simple toy example to illuminate the potential of our method and then continue to the more relevant problems of optimize binary VAE's and reinforcement learning (OR GRAPH STRUCTURE LEARNING).
+
 
 NEXT: OPTIMAL RELAXATION FOR TOY PROBLEM
 NEXT: ELABORATE ON DEPENDENCE ON THETA
@@ -263,12 +266,32 @@ NEXT: ELABORATE ON DEPENDENCE ON THETA
 **TODO NEW EXPERIMENT: HALFWAY THROUGH A VAE TRAINING STOP, AND OPTIMIZE THE VARINACE OF Q AND OF REBAR WRT TEMP AND ETA AND COMPARE GRADIENTS
 
 \subsection{Toy Experiment}
+We seek to minimize $\mathbb{E}_{b \sim p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where $p(b|\theta) = \mathtt{Bern}(b|\theta)$. \cite{tucker2017rebar} set the target $t = .45$. Here, we focus on the more challenging case where $t = .499$. With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the true solution of $\theta = 0$.
+
+The fixed Concrete relaxation of REBAR is unable to produce a gradient who's signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE. 
 
 [pictures, variances graphs]
+\begin{figure}
+\begin{center}
+\includegraphics[scale=.33]{figures/losses}
+\includegraphics[scale=.33]{figures/theta}
+\end{center}
+\label{fig:toy_loss}
+\caption{Estimator loss (left) and estimated $\theta$ values (right). Estimators with fixed (or no relaxation) struggle to converge to the optimal value}
+\end{figure}
 
+\begin{figure}
+\begin{center}
+\includegraphics[scale=.33]{figures/variance_no_opt}
+\includegraphics[scale=.33]{figures/variance_no_opt}
+\label{fig:toy_var}
+\end{center}
+\caption{Left: Estimator variance. Right: Learned relaxation function for fixed $\theta$}
+\end{figure}
 [head to head comparisons] 
 
 \subsection{Discrete Variational Autoencoder}
+As in \citep{tucker2017rebar}, we benchmark the RELAX estimator on the task of training a variational autoencoder \cite{VAE} where all random variables are Bernoulli taking values in $\{-1, 1\}$.
 
 [VAE, results, variances]
 
