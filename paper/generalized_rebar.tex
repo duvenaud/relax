@@ -14,8 +14,15 @@
 \usepackage{hyperref}
 \usepackage{graphicx}
 
+\definecolor{mydarkblue}{rgb}{0,0.08,0.45}
+\hypersetup{colorlinks=true,
+    linkcolor=mydarkblue,
+    citecolor=mydarkblue,
+    filecolor=mydarkblue,
+    urlcolor=mydarkblue}
+
 \newcommand{\vtheta}{\mathbf{\theta}}
-\newcommand{\relaxed}{\tilde f}
+\newcommand{\relaxed}{r}
 \newcommand{\discreteDist}{p_{\theta}(b)}
 \newcommand{\loss}{f(b)}
 \newcommand{\lossGrad}{\loss{} \frac{\partial}{\partial \theta }\log \discreteDist{}}
@@ -41,7 +48,7 @@
 \begin{document}
 \maketitle
 \begin{abstract}
-The recently-developed REBAR method \cite{tucker2017rebar} reduces the variance of the REINFORCE gradient estimator by adding a control variate based on the concrete relaxation \cite{maddison2016concrete}.
+The recently-developed REBAR method \citep{tucker2017rebar} reduces the variance of the REINFORCE gradient estimator by adding a control variate based on the concrete relaxation \citep{maddison2016concrete}.
 The free parameters of REBAR can be tuned by gradient descent to minimize the variance of the estimator.
 We generalize this method, showing that the particular relaxation used by REBAR is not necessarily optimal for minimizing variance. We present a new gradient estimator, RELAX, which replaces the REBAR's continuous relaxation with a neural network which is optimized during training. We validate this estimator on a number of generative modeling tasks, demonstrating improved performance over competing methods. 
 \end{abstract}
@@ -67,11 +74,19 @@ real exps on binary vae comparing:
 
 
 \section{Introduction}
-Gradient based optimization has been key to many recent advances in machine learning, the most notable of which being the use of deep neural networks as general purpose function approximators \cite{SOME DEEP LEARNING STUFF}. Through the back-propagation algorithm \cite{BACKPROP}, the gradient of a loss function can be obtained with respect to each model parameter and learning can be accomplished via gradient decent. Recent advancements such as Stochastic Variational Inference \cite{SVI} and the so-called "Reparametization Trick" \cite{VAE} have enabled the use of gradient base learning for scalable, approximate inference enabling learning in vary large probabilistic models with complex approximating posterior ditributions \cite{NORMALIZING FLOWS OR SOMETHING}. Unfortunately, these approaches are limited to models with continuous random variables or very simple discrete structure. 
+Gradient based optimization has been key to many recent advances in machine learning, the most notable of which being the use of deep neural networks as general purpose function approximators [cite SOME DEEP LEARNING STUFF].
+Through the back-propagation algorithm [cite BACKPROP], the gradient of a loss function can be obtained with respect to each model parameter and learning can be accomplished via gradient decent.
+Recent advancements such as Stochastic Variational Inference \cite{SVI} and the so-called "reparametization Trick" \cite{VAE} have enabled the use of gradient base learning for scalable, approximate inference enabling learning in vary large probabilistic models with complex approximating posterior ditributions [ cite NORMALIZING FLOWS OR SOMETHING].
+Unfortunately, these approaches are limited to models with continuous random variables or very simple discrete structure. 
 
-Discrete Structures are prevalent in nature and can often much more efficiently represent the semantic information in high dimensional input so tractable approaches to learning in model with discrete latent variables is very appealing. Unfortunately, training models with discrete random variables requires discontinuous sampling operations which keep us from utilizing low-variance reparameterization gradients explicitly. Earlier approaches for dealing with this issue involve high-variance or biased gradient estimates, making learning slow and challenging for large probabilistic models. The recently proposed REBAR estimator deals with this by combining the REINFORCE gradient estimator with a control variate based on a continuous relaxation of the discrete loss function which allows for unbiased and lower-variance gradient estimates. The REBAR estimator also finds a functional form for the variance of the estimator which allows tuning of the estimator parameters via gradient decent to minimize the estimator variance. 
+Discrete structure is prevalent in nature and can often much more efficiently represent the semantic information in high dimensional input so tractable approaches to learning in model with discrete latent variables is very appealing.
+Unfortunately, training models with discrete random variables requires discontinuous sampling operations which keep us from utilizing low-variance reparameterization gradients explicitly.
+Earlier approaches for dealing with this issue involve high-variance or biased gradient estimates, making learning slow and challenging for large probabilistic models.
+The recently proposed REBAR estimator deals with this by combining the REINFORCE gradient estimator with a control variate based on a continuous relaxation of the discrete loss function which allows for unbiased and lower-variance gradient estimates.
+The REBAR estimator also finds a functional form for the variance of the estimator which allows tuning of the estimator parameters via gradient decent to minimize the estimator variance. 
 
-In this work, we study the assumptions made by the REBAR estimator and produce a new estimator, RELAX, which relaxes these assumptions by replacing the continuous relaxation from REBAR with a relaxation learned by a neural network to directly minimize the variance of the estimator. We summarize our contributions below. 
+In this work, we study the assumptions made by the REBAR estimator and produce a new estimator, RELAX, which relaxes these assumptions by replacing the continuous relaxation from REBAR with a relaxation learned by a neural network to directly minimize the variance of the estimator.
+We summarize our contributions below. 
 
 
 [TODO: motivate necessity for this type of optimizing]
@@ -219,13 +234,15 @@ The special form of $\tilde{z}$ yields a lower-variance gradient estimate becaus
 Two features of this control variate make it particularly effective: its high correlation with the REINFORCE gradient, and a low-variance, reparameterized form of certain terms in the estimator.
 
 \section{RELAX: The generalized REBAR estimator}
-The REBAR estimator uses a control variate that evaluates the original loss function at relaxed inputs, reparameterized both unconditionally (denoted $z$, and conditionally, denoted $\tilde{z}$). The central result of this paper is that learning the function in the control variate leads to even better convergence properties. Specifically, we generalize the conditional marginalization and control variate of REBAR to the following form:
+The REBAR estimator uses a control variate that evaluates the original loss function at relaxed inputs, reparameterized both unconditionally (denoted $z$, and conditionally, denoted $\tilde{z}$).
+The central result of this paper is that learning the function in the control variate leads to even better convergence properties.
+Specifically, we generalize the conditional marginalization and control variate of REBAR to the following form:
 \begin{align}
-    \mathbb{E}_{p(u,v)}[Q(\tilde{z};\phi)\frac{\partial}{\partial \theta}\log p(H(z))] = \mathbb{E}_{p(u,v)}[\frac{\partial}{\partial \theta}Q(\tilde{z};\phi) - \frac{\partial}{\partial \theta} Q(z; \phi)],
+    \mathbb{E}_{p(u,v)}[\relaxed (\tilde{z};\phi)\frac{\partial}{\partial \theta}\log p(H(z))] = \mathbb{E}_{p(u,v)}[\frac{\partial}{\partial \theta} \relaxed(\tilde{z};\phi) - \frac{\partial}{\partial \theta} \relaxed(z; \phi)],
 \end{align}
-where Q is an MLP with parameters $\phi$.
+where \relaxed{} is a neural network with parameters $\phi$.
 
-The generalized REBAR estimator replaces the loss function evaluations in the control variate with an adaptive $Q$ function which is trained via gradient decent to minimize the variance of the estimator. As shown in \cite{tucker2017rebar}, this can be easily computed. Denoting the RELAX estimator as $r(\phi)$ we obtain:
+The generalized REBAR estimator replaces the loss function evaluations in the control variate with an adaptive $\relaxed$ function which is trained via gradient decent to minimize the variance of the estimator. As shown in \cite{tucker2017rebar}, this can be easily computed. Denoting the RELAX estimator as $r(\phi)$ we obtain:
 \begin{align}
     \frac{\partial}{\partial\phi}\var{(r(\phi))} = \frac{\partial}{\partial\phi}\mathbb{E}[r(\phi)^2] + \frac{\partial}{\partial\phi}\mathbb{E}[r(\phi)]^2 = \frac{\partial}{\partial\phi}\mathbb{E}[r(\phi)^2] = \mathbb{E}[\frac{\partial}{\partial\phi}r(\phi)^2]
 \end{align}
@@ -263,7 +280,7 @@ NEXT: OPTIMAL RELAXATION FOR TOY PROBLEM
 NEXT: ELABORATE ON DEPENDENCE ON THETA
 
 
-**TODO NEW EXPERIMENT: HALFWAY THROUGH A VAE TRAINING STOP, AND OPTIMIZE THE VARINACE OF Q AND OF REBAR WRT TEMP AND ETA AND COMPARE GRADIENTS
+**TODO NEW EXPERIMENT: HALFWAY THROUGH A VAE TRAINING STOP, AND OPTIMIZE THE VARINACE OF \relaxed{} AND OF REBAR WRT TEMP AND ETA AND COMPARE GRADIENTS
 
 \subsection{Toy Experiment}
 We seek to minimize $\mathbb{E}_{b \sim p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where $p(b|\theta) = \mathtt{Bern}(b|\theta)$. \cite{tucker2017rebar} set the target $t = .45$. Here, we focus on the more challenging case where $t = .499$. With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the true solution of $\theta = 0$.
@@ -293,7 +310,7 @@ The fixed Concrete relaxation of REBAR is unable to produce a gradient who's sig
 \subsection{Discrete Variational Autoencoder}
 As in \citep{tucker2017rebar}, we benchmark the RELAX estimator on the task of training a variational autoencoder \cite{VAE} where all random variables are Bernoulli taking values in $\{-1, 1\}$. As in \cite{tucker2017rebar}, we compare training the variational lower-bound across the MNIST \cite{MNIST} and Omniglot \cite{OMNIGLOT} datasets. As in \cite{tucker2017rebar} we test models with 1 and 2 of Bernoulli random variables with linear mappings between them and a model with 1 layer of Bernoulli random variables with non-linear mappings between layers.
 
-We found that due to the complicated structure of the loss function, the RELAX estimator performed worse than REBAR. Instead we add a learned relaxation to REBAR's control variate which we denote relaxed-REBAR. Our estimator takes the form of \ref{eq:RELAX} with $$Q(z) = q(z) + f(\sigma_\lambda(z))$$ where $q(z)$ is a learned neural network and $f(\sigma_\lambda(z))$ is the Concrete relaxation of REBAR with temperature parameter $\lambda$. In all experiments, adding the learned $q(z)$ reduced the variance of the gradients and improved the final results. 
+We found that due to the complicated structure of the loss function, the RELAX estimator performed worse than REBAR. Instead we add a learned relaxation to REBAR's control variate which we denote relaxed-REBAR. Our estimator takes the form of \ref{eq:RELAX} with $$\bar \relaxed(z) = \relaxed(z) + f(\sigma_\lambda(z))$$ where $\relaxed(z)$ is a learned neural network and $f(\sigma_\lambda(z))$ is the Concrete relaxation of REBAR with temperature parameter $\lambda$. In all experiments, adding the learned $\relaxed(z)$ reduced the variance of the gradients and improved the final results. 
 
 [VAE, results, variances]
 
