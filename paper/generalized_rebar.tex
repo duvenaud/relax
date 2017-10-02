@@ -312,25 +312,30 @@ As in \citep{tucker2017rebar}, we benchmark the RELAX estimator on the task of t
 
 We found that due to the complicated structure of the loss function, the RELAX estimator performed worse than REBAR. Instead we add a learned relaxation to REBAR's control variate which we denote relaxed-REBAR. Our estimator takes the form of \ref{eq:RELAX} with $$\bar \relaxed(z) = \relaxed(z) + f(\sigma_\lambda(z))$$ where $\relaxed(z)$ is a learned neural network and $f(\sigma_\lambda(z))$ is the Concrete relaxation of REBAR with temperature parameter $\lambda$. In all experiments, adding the learned $\relaxed(z)$ reduced the variance of the gradients and improved the final results. 
 
+In \citep{tucker2017rebar}, a separate REBAR estimator was used to estimate the gradients of each model parameter (each weight matrix and bias vector). To apply our estimator to this formulation, we would need to learn a separate relaxation for each model parameter. To get around this, we instead place one gradient estimator on each activation that parameterizes a layer of Bernoulli variables. We then back-propagate this gradient estimate to produce a gradient estimate for each model parameter. To provide a fair comparison, we re-implemented REBAR in this way (denoted REBAR-ours in table \ref{tab:vae}). We believe this explains the large difference in performance between our implementation and that of \citep{tucker2017rebar} for the nonlinear models since there are 3 layers of parameters that all share the same gradient estimator. In the linear models, each layer has its own gradient estimator making our implementation closer to that of \citep{tucker2017rebar}.
+
+
+
 [VAE, results, variances]
 \begin{figure}
 \begin{center}
  \begin{tabular}{|c|c c c||} 
  \hline
- \textbf{MNIST gen.} & REBAR \citep{tucker2017rebar} & REBAR (ours) & relaxed-REBAR \\ [0.5ex] 
+ \textbf{MNIST gen.} & REBAR \citep{tucker2017rebar} & REBAR-ours & relaxed-REBAR \\ [0.5ex] 
  \hline
  Linear 1 layer   & -111.6 & -111.66 & \textbf{-111.22} \\ 
- Linear 2 Layer & -98.8  & -98.23 & -\textbf{98.04} \\
- Nonlinear         & -101.1  &  &  \\
+ Linear 2 Layer & -98.8  & -98.23 & \textbf{-98.04} \\
+ Nonlinear         & -101.1  &  -83.02 &  \textbf{-79.49} \\
  \hline\hline
  \textbf{Omniglot gen.} &&&\\
  \hline
  Linear 1 layer   & -116.83  & -116.75 & \textbf{-116.62} \\ 
  Linear 2 Layer & -108.99  & -108.74 & \textbf{-108.63} \\
- Nonlinear         & -108.72  &  &  \\
+ Nonlinear         & -108.72  & -62.28 & \textbf{-60.32} \\
  \hline
 \end{tabular}
 \end{center}
+\label{tab:vae}
 \caption{Training variational lower bound after training.}
 \end{figure}
 
