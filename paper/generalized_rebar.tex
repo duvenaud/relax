@@ -52,48 +52,40 @@ Gradient-based optimization is the foundation of deep learning and reinforcement
 Even when the mechanism being optimized is unknown or not differentiable, optimization using high-variance or biased gradient estimates is still often the best strategy.
 We introduce a general framework for learning low-variance, unbiased gradient estimators for black-box functions.
 These estimators can be jointly trained with model parameters or policies, and are applicable in both discrete and continuous settings.
-We give unbiased, adaptive analogs of state of the art reinforcement learning methods such as deep deterministic policy gradients and advantage actor-critic.
+We give unbiased, adaptive analogs of state-of-the-art reinforcement learning methods such as deep deterministic policy gradients and advantage actor-critic.
 We also demonstrate this framework for training discrete latent-variable models.
 \end{abstract}
 
 
 
-f is not optimal relaxation
-
-concrete is not optimal relaxation
-
-toy experiments
-
-real exps on binary vae comparing:
-
-%rebar
-
-%g(z) (simple rebar)
-
-%f(g(z))
-
-%f(g_1(z)) + g_2(z)
-
 
 
 \section{Introduction}
-Gradient based optimization has been key to many recent advances in machine learning, the most notable of which being the use of deep neural networks as general purpose function approximators [cite SOME DEEP LEARNING STUFF].
-Through the back-propagation algorithm [cite BACKPROP], the gradient of a loss function can be obtained with respect to each model parameter and learning can be accomplished via gradient decent.
-Recent advancements such as Stochastic Variational Inference \cite{SVI} and the so-called "reparametization Trick" \cite{VAE} have enabled the use of gradient base learning for scalable, approximate inference enabling learning in vary large probabilistic models with complex approximating posterior ditributions [ cite NORMALIZING FLOWS OR SOMETHING].
-Unfortunately, these approaches are limited to models with continuous random variables or very simple discrete structure. 
+Gradient-based optimization has been key to most recent advances in machine learning and deep reinforcement learning.
+%, the most notable of which being the use of deep neural networks as general purpose function approximators.
+Through the back-propagation algorithm \citep{rumelhart1985learning}, the gradient of a loss function can be obtained with respect to each model parameter and learning can be accomplished via gradient decent.
+Recent advancements such as Stochastic Variational Inference \citep{hoffman2013stochastic} and the reparameterization trick \citep{kingma2013autoencoding, rezende2014stochastic} have enabled the use of gradient-based learning for scalable, approximate inference in large probabilistic latent-variable models.
+% enabling learning in vary large probabilistic models with complex approximate posterior distributions.
+% [ cite NORMALIZING FLOWS OR SOMETHING].
+%Unfortunately, these approaches are limited to models with continuous random variables or.
 
-Discrete structure is prevalent in nature and can often much more efficiently represent the semantic information in high dimensional input so tractable approaches to learning in model with discrete latent variables is very appealing.
-Unfortunately, training models with discrete random variables requires discontinuous sampling operations which keep us from utilizing low-variance reparameterization gradients explicitly.
-Earlier approaches for dealing with this issue involve high-variance or biased gradient estimates, making learning slow and challenging for large probabilistic models.
-The recently proposed REBAR estimator deals with this by combining the REINFORCE gradient estimator with a control variate based on a continuous relaxation of the discrete loss function which allows for unbiased and lower-variance gradient estimates.
-The REBAR estimator also finds a functional form for the variance of the estimator which allows tuning of the estimator parameters via gradient decent to minimize the estimator variance. 
+There has been much recent work on producing gradient estimators for general computation graphs.
+In the case where all variables are continuous and deterministic, the backpropagation algorithm, also known as reverse-mode automatic differentiation, gives exact gradients.
+The situation is complicated by the presence of discrete random variables or black-box functions. [cite stochasic computation graphs, and black-box variational inference paper] 
 
-In this work, we study the assumptions made by the REBAR estimator and produce a new estimator, RELAX, which relaxes these assumptions by replacing the continuous relaxation from REBAR with a relaxation learned by a neural network to directly minimize the variance of the estimator.
-We summarize our contributions below. 
+%Discrete structure is prevalent in nature and can often much more efficiently represent the semantic information in high dimensional input so tractable approaches to learning in model with discrete latent variables is very appealing.
+%Unfortunately, training models with discrete random variables requires discontinuous sampling operations which keep us from utilizing low-variance reparameterization gradients explicitly.
+%Earlier approaches for dealing with this issue involve high-variance or biased gradient estimates, making learning slow and challenging for large probabilistic models.
+%The recently proposed REBAR estimator deals with this by combining the REINFORCE gradient estimator with a control variate based on a continuous relaxation of the discrete loss function which allows for unbiased and lower-variance gradient estimates.
+%The REBAR estimator also finds a functional form for the variance of the estimator which allows tuning of the estimator parameters via gradient decent to minimize the estimator variance. 
 
 The recently-developed REBAR method \citep{tucker2017rebar} reduces the variance of the REINFORCE gradient estimator by adding a control variate based on the concrete relaxation \citep{maddison2016concrete}.
 The free parameters of REBAR can be tuned by gradient descent to minimize the variance of the estimator.
 We generalize this method, showing that the particular relaxation used by REBAR is not necessarily optimal for minimizing variance. We present a new gradient estimator, RELAX, which replaces the REBAR's continuous relaxation with a neural network which is optimized during training. We validate this estimator on a number of generative modeling tasks, demonstrating improved performance over competing methods. 
+
+In this work, we study the assumptions made by the REBAR estimator and produce a new estimator, RELAX, which relaxes these assumptions by replacing the continuous relaxation from REBAR with a relaxation learned by a neural network to directly minimize the variance of the estimator.
+We summarize our contributions below. 
+
 
 
 [TODO: motivate necessity for this type of optimizing]
@@ -126,6 +118,13 @@ introduces conditional reparam
 \end{itemize}
 
 
+f is not optimal relaxation
+
+concrete is not optimal relaxation
+
+toy experiments
+
+real exps on binary vae comparing:
 
 \section{REINFORCE, Concrete, and REBAR gradient estimator}
 % NOTE: this is a rough draft version of the final section
@@ -196,11 +195,11 @@ That means this minibatch would contribute variance to the overall estimation al
 With positive correlation, $\text{Cov}(f(b), \tilde{f})) > 0$, and so $\eta$ is negative. 
 Then, the effect of the control variate in such a minibatch is to reduce the REINFORCE estimate by subtracting the quantity $\eta(\tilde{f} - \mathbb{E}[\tilde{f}]$.
 
-Hence, a suitably scaled control variate with high correlation to the original estimator dampens or amplifies the value of the overall estimator towards the true mean per minibatch.
-The same explanation applies to the case where the correlation is negative by swapping the terms "lesser" for "greater" and "reducing" by "increasing".
-This is why high correlation of $f(b)$ with $\tilde{f}$ is desirable: it renders the control variate effective in drawing down the effect of high variability in a stochastic estimator by a magnitude commensurate with the difference of a highly correlated function and its known mean.
+%Hence, a suitably scaled control variate with high correlation to the original estimator dampens or amplifies the value of the overall estimator towards the true mean per minibatch.
+%The same explanation applies to the case where the correlation is negative by swapping the terms "lesser" for "greater" and "reducing" by "increasing".
+%This is why high correlation of $f(b)$ with $\tilde{f}$ is desirable: it renders the control variate effective in drawing down the effect of high variability in a stochastic estimator by a magnitude commensurate with the difference of a highly correlated function and its known mean.
 
-\subsubsection{Reducing Gradient Variance through a Low-Variance Control Variate}
+\subsubsection{Reducing Gradient Variance through Control Variate}
 Following \cite{tucker2017rebar}, the following overview focuses on a single discrete Bernoulli random variable.
 The core of the REBAR estimator is a REINFORCE-style estimate of a non-differentiable reparameterization of the discrete latent variable as $b=H(z)$, where $H$ is the hard-threshold function an
 \begin{align}
@@ -279,6 +278,13 @@ and that the optimum is a function of {f, theta}
 
 
 
+\section{optimizing continuous black-box functions}
+\label{continuous}
+Deep deterministic policy gradients \citep{lillicrap2015continuous}
+
+Also: \citep{levine2016end}
+
+
 \section{Experiments}
 We demonstrate the effectiveness of our estimator on a number of challenging optimization problems. Following \cite{tucker2017rebar} we begin with a simple toy example to illuminate the potential of our method and then continue to the more relevant problems of optimize binary VAE's and reinforcement learning (OR GRAPH STRUCTURE LEARNING).
 
@@ -351,6 +357,11 @@ In \citep{tucker2017rebar}, a separate REBAR estimator was used to estimate the 
 
 \citet{mnih-dqn-2015}
 
+[Do we use ADAM \citep{kingma2015adam} for optimization?]
+
+
+
+
 
 \section{Related Work}
 \label{related work}
@@ -375,8 +386,16 @@ propose that other estimators could be similarly recursively decomposed?
 \section{Limitations}
 \label{limitation}
 
-\section{Conclusion}
+\section{Conclusions and Future Work}
 \label{conclusion}
+
+Other possible applications:
+
+GANs \citep{goodfellow2014generative} that generate text or other discrete objects.
+
+Learning to parse \citep{kusner2017grammar}
+
+
 
 
 \bibliography{bibliography}
