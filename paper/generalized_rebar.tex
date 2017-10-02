@@ -300,7 +300,7 @@ The fixed Concrete relaxation of REBAR is unable to produce a gradient who's sig
 \begin{figure}
 \begin{center}
 \includegraphics[scale=.33]{figures/variance_no_opt}
-\includegraphics[scale=.33]{figures/variance_no_opt}
+\includegraphics[scale=.33]{figures/learned_r}
 \label{fig:toy_var}
 \end{center}
 \caption{Left: Estimator variance. Right: Learned relaxation function for fixed $\theta$}
@@ -313,6 +313,26 @@ As in \citep{tucker2017rebar}, we benchmark the RELAX estimator on the task of t
 We found that due to the complicated structure of the loss function, the RELAX estimator performed worse than REBAR. Instead we add a learned relaxation to REBAR's control variate which we denote relaxed-REBAR. Our estimator takes the form of \ref{eq:RELAX} with $$\bar \relaxed(z) = \relaxed(z) + f(\sigma_\lambda(z))$$ where $\relaxed(z)$ is a learned neural network and $f(\sigma_\lambda(z))$ is the Concrete relaxation of REBAR with temperature parameter $\lambda$. In all experiments, adding the learned $\relaxed(z)$ reduced the variance of the gradients and improved the final results. 
 
 [VAE, results, variances]
+\begin{figure}
+\begin{center}
+ \begin{tabular}{|c|c c c||} 
+ \hline
+ \textbf{MNIST gen.} & REBAR \citep{tucker2017rebar} & REBAR (ours) & relaxed-REBAR \\ [0.5ex] 
+ \hline
+ Linear 1 layer   & -111.6 & -111.66 & \textbf{-111.22} \\ 
+ Linear 2 Layer & -98.8  & -98.23 & -\textbf{98.04} \\
+ Nonlinear         & -101.1  &  &  \\
+ \hline\hline
+ \textbf{Omniglot gen.} &&&\\
+ \hline
+ Linear 1 layer   & -116.83  & -116.75 & \textbf{-116.62} \\ 
+ Linear 2 Layer & -108.99  & -108.74 & \textbf{-108.63} \\
+ Nonlinear         & -108.72  &  &  \\
+ \hline
+\end{tabular}
+\end{center}
+\caption{Training variational lower bound after training.}
+\end{figure}
 
 
 
