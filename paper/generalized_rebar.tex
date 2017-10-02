@@ -33,7 +33,7 @@
 
 
 
-\title{Backpropagation Through The Void:\\ Combining Learned Control Variates with Reparmeterization Gradients for Low-Variance Unbiased Gradient Estimates}
+\title{Backpropagate through anything:\\ Reparameterization through learned control variates}
 
 \author{
   David S.~Hippocampus\thanks{Use footnote for providing further
@@ -48,9 +48,12 @@
 \begin{document}
 \maketitle
 \begin{abstract}
-The recently-developed REBAR method \citep{tucker2017rebar} reduces the variance of the REINFORCE gradient estimator by adding a control variate based on the concrete relaxation \citep{maddison2016concrete}.
-The free parameters of REBAR can be tuned by gradient descent to minimize the variance of the estimator.
-We generalize this method, showing that the particular relaxation used by REBAR is not necessarily optimal for minimizing variance. We present a new gradient estimator, RELAX, which replaces the REBAR's continuous relaxation with a neural network which is optimized during training. We validate this estimator on a number of generative modeling tasks, demonstrating improved performance over competing methods. 
+Gradient-based optimization is the foundation of deep learning and reinforcement learning.
+Even when the mechanism being optimized is unknown or not differentiable, optimization using high-variance or biased gradient estimates is still often the best strategy.
+We introduce a general framework for learning low-variance, unbiased gradient estimators for black-box functions.
+These estimators can be jointly trained with model parameters or policies, and are applicable in both discrete and continuous settings.
+We give unbiased, adaptive analogs of state of the art reinforcement learning methods such as deep deterministic policy gradients and advantage actor-critic.
+We also demonstrate this framework for training discrete latent-variable models.
 \end{abstract}
 
 
@@ -87,6 +90,10 @@ The REBAR estimator also finds a functional form for the variance of the estimat
 
 In this work, we study the assumptions made by the REBAR estimator and produce a new estimator, RELAX, which relaxes these assumptions by replacing the continuous relaxation from REBAR with a relaxation learned by a neural network to directly minimize the variance of the estimator.
 We summarize our contributions below. 
+
+The recently-developed REBAR method \citep{tucker2017rebar} reduces the variance of the REINFORCE gradient estimator by adding a control variate based on the concrete relaxation \citep{maddison2016concrete}.
+The free parameters of REBAR can be tuned by gradient descent to minimize the variance of the estimator.
+We generalize this method, showing that the particular relaxation used by REBAR is not necessarily optimal for minimizing variance. We present a new gradient estimator, RELAX, which replaces the REBAR's continuous relaxation with a neural network which is optimized during training. We validate this estimator on a number of generative modeling tasks, demonstrating improved performance over competing methods. 
 
 
 [TODO: motivate necessity for this type of optimizing]
@@ -339,6 +346,10 @@ In \citep{tucker2017rebar}, a separate REBAR estimator was used to estimate the 
 \caption{Training variational lower bound after training.}
 \end{figure}
 
+
+\subsection{Atari}
+
+\citet{mnih-dqn-2015}
 
 
 \section{Related Work}
