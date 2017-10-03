@@ -23,8 +23,8 @@
 \newcommand{\loss}{f(b)}
 \newcommand{\lossGrad}{\loss{} \frac{\partial}{\partial \theta }\log \discreteDist{}}
 \newcommand{\mcGrad}{\hat{g}}
-\newcommand{\expectedLoss}{\mathbb{E}_{\discreteDist{}}[\loss{}]}
-\newcommand{\expectedLossLogTrick}{\mathbb{E}_{\discreteDist{}}[\lossGrad{}]}
+\newcommand{\expectedLoss}{\mathbb{E}_{\discreteDist{}}\left[ \loss{} \right]}
+\newcommand{\expectedLossLogTrick}{\mathbb{E}_{\discreteDist{}} \left[ \lossGrad{} \right]}
 \newcommand{\var}{\text{Var}}
 
 
@@ -46,7 +46,7 @@
 \begin{abstract}
 Gradient-based optimization is the foundation of deep learning and reinforcement learning.
 Even when the mechanism being optimized is unknown or not differentiable, optimization using high-variance or biased gradient estimates is still often the best strategy.
-We introduce a general framework for learning low-variance, unbiased gradient estimators for black-box functions.
+We introduce a general framework for learning low-variance, unbiased gradient estimators for black-box functions of random variables.
 These estimators can be jointly trained with model parameters or policies, and are applicable in both discrete and continuous settings.
 We give unbiased, adaptive analogs of state-of-the-art reinforcement learning methods such as deep deterministic policy gradients and advantage actor-critic.
 We also demonstrate this framework for training discrete latent-variable models.
@@ -66,7 +66,7 @@ Much recent work has been devoted to constructing gradient estimators for these 
 In reinforcement learning, advantage actor-critic methods~\citep{mnih2016asynchronous} and deep deterministic policy gradients~\citep{lillicrap2015continuous} give low-variance but biased gradient estimates by jointly optimizing policy parameters together with baselines.
 In discrete latent-variable models, low-variance but biased gradient estimates can be given by continuous relaxations of discrete variables~\citep{maddison2016concrete, jang2016categorical}.
 
-A recent advance by \citet{tucker2017rebar} used low-variance but biased baselines given by continuous relaxations to construct unbiased, low-variance gradient estimates.
+A recent advance by \citet{tucker2017rebar} used low-variance but biased gradients from continuous relaxations to construct unbiased, low-variance gradient estimates.
 Furthermore, \citet{tucker2017rebar} showed how to tune the free parameters of these relaxations to minimize their variance during training.
 
 %\paragraph{Contributions}
@@ -80,7 +80,6 @@ We derive improved variants of popular reinforcement learning methods with unbia
 %The recently proposed REBAR estimator deals with this by combining the REINFORCE gradient estimator with a control variate based on a continuous relaxation of the discrete loss function which allows for unbiased and lower-variance gradient estimates.
 %The REBAR estimator also finds a functional form for the variance of the estimator which allows tuning of the estimator parameters via gradient decent to minimize the estimator variance. 
 
-%[TODO: motivate necessity for this type of optimizing]
 %(check)discrete sampling keeps us from applying reparamaterization gradients 
 %(check)reinforce doesn?t get this info
 %introduces conditional reparam
@@ -102,7 +101,7 @@ We derive improved variants of popular reinforcement learning methods with unbia
 \label{first figure}
 \end{center}
 \caption{
-\emph{Left:} Estimator loss.
+\emph{Left:} Estimator losses.
 \emph{Centre:} Estimator variance.
 \emph{Right:}Learned relaxation function.
 }
@@ -111,21 +110,31 @@ We derive improved variants of popular reinforcement learning methods with unbia
 
 \section{Background: Gradient estimators}
 % problem formulation: simple stochastic system with discrete latent variable 
-Consider a simple stochastic model that has a discrete latent variable $b$ with probability $\discreteDist{}$ and loss function $\loss{}$.
+Consider the problem of choosing parameters of a distribution to maximize an expectation.
+This problem comes up in reinforcement learning, where we must choose a policy $\pi$ on actions $a$ to maximize the expected reward $\mathbb{E}_{p(a|\pi)} \left[ r(a) \right]$.
+It also comes up in fitting latent-variable models, when we wish to maximize the marginal probability $p(x|\theta) = \sum p(x|z) p(z|\theta) = \mathbb{E}_{p(z|\theta)} \left[ p(x|z) \right]$.
 
-Note we assume without loss of generality that $\loss{}$ is independent of the parameters  $\theta$ of $\discreteDist{}$.
-Training the model involves minimizing the expected cost $\mathcal{L}(\theta)=\expectedLoss{}$.
+In this paper, we'll consider the general problem of optimizing $\mathcal{L}(\theta)=\expectedLoss{}$.
+Later, we will discuss the case when $\loss{}$ depends directly on $\theta$.
+When the parameters $\theta$ are high-dimensional, gradient-based optimization is a appealing because it provides information about how to adjust each parameter individually.
+
+\paragraph{The reparameterization trick}
+When the latent variables $b$ are continuous, the reparameterization trick can be used to create a low-variance, unbiased gradient estimator by making the dependence of $b$ on $\theta$ explicit:
+\begin{align}
+\hat g = 
+\end{align}
+
 This can be achieved efficiently using gradient optimization, requiring exact or approximate computation of $g=\partial\mathcal{L} / {\partial \theta}$.
 
 In many cases of interest, an analytic form of the gradient $g$ is not known, and so an estimator $\mcGrad{}$ is required, such as the Monte Carlo estimator $\mcGrad{}\approx \sum_{i=1}^n\hat{g}(b_i) / n$ where $b_i\sim \discreteDist{}$ and $n$ is the number of samples. 
 
 
-\subsection{The REINFORCE gradient estimator}
+\paragraph{The REINFORCE gradient estimator}
 % REINFORCE: baseline, doesn't work well without variance reduction
 The REINFORCE gradient estimator~\citep{williams1992simple} expands $g$ as $\expectedLossLogTrick{}$, and uses exactly a Monte Carlo estimation scheme. 
 However, the derivative of the log-likelihood w.r.t. its parameters (known as the score function in statistics) has high variance under Monte Carlo estimation, and so variance-reduction techniques such as control variates or Rao-Blackwellization are usually applied to improve the speed of convergence to a good solution.
 
-\subsection{Concrete relaxation}
+\paragraph{Concrete relaxation}
 Another approach to estimating gradients through discrete random variables is a continuous relaxation. 
 \cite{maddison2016concrete} and \cite{jang2016categorical} developed a differentiable relaxation of the categorical distribution using the Gumbel-Max trick for sampling from a discrete distribution.
 
@@ -135,9 +144,6 @@ Another approach to estimating gradients through discrete random variables is a 
 
 
 
-%** Note for next revision: tie this into the REBAR estimator by using the Logistic random variable used by \cite{tucker2017rebar} from the appendix of \cite{maddison2016concrete}.
-
-%** Other points: Concrete trades lower variance for a biased estimator
 
 \subsection{REBAR estimator}
 % REBAR: unbiased estimator that combines REINFORCE with CONCRETE.
@@ -334,6 +340,11 @@ The automatic theorem-proving-based unbiasedness checker developed by \citet{sel
 
 NVIL, VIMCO, things like that
 
+\citet{asadi2017mean} reduce the variance of actor-critic gradient estimates by simply summing over all possible actions.
+
+\citet{salimans2017evolution} estimate gradients using a form of finite differences, evaluating hundreds of different parameter values in pararallel to construct a gradient estimator.
+In contrast, our method is a simple-sample estimator.
+
 \par{Generalized Reparameterization Gradients}
 REBAR and the generalization in this paper uses a mixture of score function and reparameterization gradients.
 A recent paper by \cite{ruiz2016generalized} unifies these two gradient estimators as the generalized reparameterization gradient (GRG).
@@ -345,12 +356,7 @@ observe that the GRG suggests this recursive application to components of an est
 propose that other estimators could be similarly recursively decomposed?
 
 
-[TODO: cite certigrad arxiv 1706.08605]
 
-
-
-\section{Limitations}
-\label{limitation}
 
 \section{Conclusions and Future Work}
 \label{conclusion}
@@ -362,10 +368,14 @@ GANs \citep{goodfellow2014generative} that generate text or other discrete objec
 Learning to parse \citep{kusner2017grammar}
 
 
-
+\section*{Acknowledgements}
+We thank Tian Qi Chen for helpful discussions.
 
 \bibliography{bibliography}
 \bibliographystyle{iclr2018_conference}
+
+
+
 
 
 \section{Appendix A: Control Variates}
