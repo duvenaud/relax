@@ -70,14 +70,9 @@ A recent advance by \citet{tucker2017rebar} used low-variance but biased baselin
 Furthermore, \citet{tucker2017rebar} showed how to tune the free parameters of these relaxations to minimize their variance during training.
 
 %\paragraph{Contributions}
-In this paper, we simplify and generalize the method of \citet{tucker2017rebar} to learn a free-form control variate parameterized by a neural network, giving lower-variance, unbiased gradient estimates.
+We generalize the method of \citet{tucker2017rebar} to learn a free-form control variate parameterized by a neural network, giving lower-variance, unbiased gradient estimates.
 Importantly, our method is applicable even when no continuous relaxation is available, as in reinforcement learning.
 We derive improved variants of popular reinforcement learning methods with unbiased gradients and more stable training dynamics.
-
-%the recently-developed REBAR method \citep{tucker2017rebar} reduces the variance of the REINFORCE gradient estimator by adding a control variate based on the concrete relaxation \citep{maddison2016concrete, jang2016categorical}.
-
-%There has been much recent work on producing gradient estimators for general computation graphs.
-%In the case where all variables are continuous and deterministic, the backpropagation algorithm, also known as reverse-mode automatic differentiation, gives exact gradients.
 
 %Discrete structure is prevalent in nature and can often much more efficiently represent the semantic information in high dimensional input so tractable approaches to learning in model with discrete latent variables is very appealing.
 %Unfortunately, training models with discrete random variables requires discontinuous sampling operations which keep us from utilizing low-variance reparameterization gradients explicitly.
@@ -85,22 +80,9 @@ We derive improved variants of popular reinforcement learning methods with unbia
 %The recently proposed REBAR estimator deals with this by combining the REINFORCE gradient estimator with a control variate based on a continuous relaxation of the discrete loss function which allows for unbiased and lower-variance gradient estimates.
 %The REBAR estimator also finds a functional form for the variance of the estimator which allows tuning of the estimator parameters via gradient decent to minimize the estimator variance. 
 
-
-%The free parameters of REBAR can be tuned by gradient descent to minimize the variance of the estimator.
-%We generalize this method, showing that the particular relaxation used by REBAR is not necessarily optimal for minimizing variance. We present a new gradient estimator, RELAX, which replaces the REBAR's continuous relaxation with a neural network which is optimized during training. We validate this estimator on a number of generative modeling tasks, demonstrating improved performance over competing methods. 
-
-%In this work, we study the assumptions made by the REBAR estimator and produce a new estimator, RELAX, which relaxes these assumptions by replacing the continuous relaxation from REBAR with a relaxation learned by a neural network to directly minimize the variance of the estimator.
-%We summarize our contributions below. 
-
-
-
 %[TODO: motivate necessity for this type of optimizing]
-%(check)gradient based optimization is dope af
-%(check)discrete latent structure is dope
-%(check)can?t fit because:
 %(check)discrete sampling keeps us from applying reparamaterization gradients 
 %(check)reinforce doesn?t get this info
-%(check)pay homage to rebar
 %introduces conditional reparam
 %(check)introduces gradient signal for minimizing variance
 
@@ -112,13 +94,24 @@ We derive improved variants of popular reinforcement learning methods with unbia
 %\item we combine these insights into a new family of estimators that generalizes rebar
 %\end{itemize}
 
+\begin{figure}
+\begin{center}
+\includegraphics[width=.3\textwidth]{figures/losses}
+\includegraphics[width=.3\textwidth]{figures/variance_no_opt}
+\includegraphics[width=.3\textwidth]{figures/learned_r}
+\label{first figure}
+\end{center}
+\caption{
+\emph{Left:} Estimator loss.
+\emph{Centre:} Estimator variance.
+\emph{Right:}Learned relaxation function.
+}
+\end{figure}
 
 
 \section{Background: Gradient estimators}
-%In this section we formalize the problem we are trying to solve and review important past work upon which we are building.
-
 % problem formulation: simple stochastic system with discrete latent variable 
-For simplicity of exposition, consider a simple stochastic model that has a discrete latent variable $b$ with probability $\discreteDist{}$ and loss function $\loss{}$.
+Consider a simple stochastic model that has a discrete latent variable $b$ with probability $\discreteDist{}$ and loss function $\loss{}$.
 
 Note we assume without loss of generality that $\loss{}$ is independent of the parameters  $\theta$ of $\discreteDist{}$.
 Training the model involves minimizing the expected cost $\mathcal{L}(\theta)=\expectedLoss{}$.
@@ -126,10 +119,9 @@ This can be achieved efficiently using gradient optimization, requiring exact or
 
 In many cases of interest, an analytic form of the gradient $g$ is not known, and so an estimator $\mcGrad{}$ is required, such as the Monte Carlo estimator $\mcGrad{}\approx \sum_{i=1}^n\hat{g}(b_i) / n$ where $b_i\sim \discreteDist{}$ and $n$ is the number of samples. 
 
-\subsection{REINFORCE}
 
+\subsection{The REINFORCE gradient estimator}
 % REINFORCE: baseline, doesn't work well without variance reduction
-
 The REINFORCE gradient estimator~\citep{williams1992simple} expands $g$ as $\expectedLossLogTrick{}$, and uses exactly a Monte Carlo estimation scheme. 
 However, the derivative of the log-likelihood w.r.t. its parameters (known as the score function in statistics) has high variance under Monte Carlo estimation, and so variance-reduction techniques such as control variates or Rao-Blackwellization are usually applied to improve the speed of convergence to a good solution.
 
@@ -150,7 +142,10 @@ Another approach to estimating gradients through discrete random variables is a 
 \subsection{REBAR estimator}
 % REBAR: unbiased estimator that combines REINFORCE with CONCRETE.
 
-The REBAR gradient estimator develops a lower-variance gradient estimator that outperforms one based on a Concrete relaxation. REBAR relies on a carefully designed control variate, so we begin with a review of this theory.
+%the recently-developed REBAR method \citep{tucker2017rebar} reduces the variance of the REINFORCE gradient estimator by adding a control variate based on the concrete relaxation \citep{maddison2016concrete, jang2016categorical}.
+
+The REBAR gradient estimator develops a lower-variance gradient estimator that outperforms one based on a Concrete relaxation.
+REBAR relies on a carefully designed control variate, so we begin with a review of this theory.
 
 \subsubsection{Control Variates for Variance Reduction}
 For an unbiased estimator $f(b)$, a control variate is a function $\tilde{f}$ with a known or estimatable mean $\mathbb{E}[\tilde{f}]$. Since the mean of the function can be subtracted from the expectation, $f(b) - \eta (\tilde{f}-\mathbb{E}[\tilde{f}])$ remains an unbiased estimator.
@@ -277,32 +272,14 @@ NEXT: OPTIMAL RELAXATION FOR TOY PROBLEM
 NEXT: ELABORATE ON DEPENDENCE ON THETA
 
 
-**TODO NEW EXPERIMENT: HALFWAY THROUGH A VAE TRAINING STOP, AND OPTIMIZE THE VARINACE OF \relaxed{} AND OF REBAR WRT TEMP AND ETA AND COMPARE GRADIENTS
+%**TODO NEW EXPERIMENT: HALFWAY THROUGH A VAE TRAINING STOP, AND OPTIMIZE THE VARINACE OF \relaxed{} AND OF REBAR WRT TEMP AND ETA AND COMPARE GRADIENTS
 
 \subsection{Toy Experiment}
 We seek to minimize $\mathbb{E}_{b \sim p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where $p(b|\theta) = \mathtt{Bern}(b|\theta)$. \cite{tucker2017rebar} set the target $t = .45$. Here, we focus on the more challenging case where $t = .499$. With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the true solution of $\theta = 0$.
 
 The fixed Concrete relaxation of REBAR is unable to produce a gradient who's signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE. Figure \ref{fig:toy_var} plots the learned relaxations for a fixed value of $\theta$. It can be seen that RELAX learns a relaxation who's derivative points in the direction of decreased loss for all values of reparameterization noise $u$ whereas REBAR's fixed relaxation  only does for values of $u > t$. (NEED TO VERIFY THIS IS RIGHT)
 
-[pictures, variances graphs]
-\begin{figure}
-\begin{center}
-\includegraphics[scale=.33]{figures/losses}
-\includegraphics[scale=.33]{figures/theta}
-\end{center}
-\label{fig:toy_loss}
-\caption{Estimator loss (left) and estimated $\theta$ values (right). Estimators with fixed (or no relaxation) struggle to converge to the optimal value}
-\end{figure}
 
-\begin{figure}
-\begin{center}
-\includegraphics[scale=.33]{figures/variance_no_opt}
-\includegraphics[scale=.33]{figures/learned_r}
-\label{fig:toy_var}
-\end{center}
-\caption{Left: Estimator variance. Right: Learned relaxation function for fixed $\theta$}
-\end{figure}
-[head to head comparisons] 
 
 \subsection{Discrete Variational Autoencoder}
 As in \citep{tucker2017rebar}, we benchmark the RELAX estimator on the task of training a variational autoencoder \cite{VAE} where all random variables are Bernoulli taking values in $\{-1, 1\}$. As in \cite{tucker2017rebar}, we compare training the variational lower-bound across the MNIST \cite{MNIST} and Omniglot \cite{OMNIGLOT} datasets. As in \cite{tucker2017rebar} we test models with 1 and 2 of Bernoulli random variables with linear mappings between them and a model with 1 layer of Bernoulli random variables with non-linear mappings between layers.
@@ -439,6 +416,24 @@ One limitation of the concrete distribution is that it is a biased estimator exc
 In other words, a small amount of bias is present for a non-zero temperature.
 
 
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=.33]{figures/losses}
+\includegraphics[scale=.33]{figures/theta}
+\end{center}
+\label{fig:toy_loss}
+\caption{Estimator loss (left) and estimated $\theta$ values (right). Estimators with fixed (or no relaxation) struggle to converge to the optimal value}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+\includegraphics[scale=.33]{figures/variance_no_opt}
+\includegraphics[scale=.33]{figures/learned_r}
+\label{fig:toy_var}
+\end{center}
+\caption{Left: Estimator variance. Right: Learned relaxation function for fixed $\theta$}
+\end{figure}
 
 
 
