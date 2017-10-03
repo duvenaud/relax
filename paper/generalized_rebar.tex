@@ -55,22 +55,22 @@ We also demonstrate this framework for training discrete latent-variable models.
 
 \section{Introduction}
 Gradient-based optimization has been key to most recent advances in machine learning and deep reinforcement learning.
-The back-propagation algorithm \citep{rumelhart1985learning}, also known as reverse-mode automatic differentiation [cite] computes exact gradients of deterministic, differentiable objective functions with a time cost comparable to evaluating the objective.
-%Recent advancements such as stochastic variational inference \citep{hoffman2013stochastic} and 
-The reparameterization trick \citep{kingma2013autoencoding, rezende2014stochastic} enabled the use of backpropagation to give unbiased, low-variance gradients estimates of expectations.
-This has allowed the use of stochastic gradient-based fitting of large probabilistic latent-variable models.
+The back-propagation algorithm \citep{rumelhart1986learning}, also known as reverse-mode automatic differentiation~\citep{speelpenning1980compiling, rall1981automatic} computes exact gradients of deterministic, differentiable objective functions.
+% with a time cost comparable to evaluating the objective.
+The reparameterization trick \citep{kingma2013autoencoding, rezende2014stochastic} enables backpropagation to give unbiased, low-variance estimates of gradients of expectations on continuous random variables.
+This has allowed effective stochastic optimization of large probabilistic latent-variable models.
 
 Unfortunately, backpropagation cannot be straightforwardly applied to problems involving discrete random variables, or when the function being optimized is a black box~\citep{schulman2015gradient}.
 This is the case in most reinforcement learning settings, or when fitting probabilistic models with discrete latent variables.
 Much recent work has been devoted to constructing gradient estimators for these situations.
-In reinforcement learning, advantage actor-critic methods~\citep{mnih2016asynchronous} and deep deterministic policy gradients~\citep{lillicrap2015continuous} give low-variance but biased gradient estimates by jointly optimizing policy parameters as well as baselines or control variates.
-In discrete latent-variable models, low-variance but biased gradient estimates can be given by continuous relaxations of discrete values~\citep{maddison2016concrete, jang2016categorical}.
+In reinforcement learning, advantage actor-critic methods~\citep{mnih2016asynchronous} and deep deterministic policy gradients~\citep{lillicrap2015continuous} give low-variance but biased gradient estimates by jointly optimizing policy parameters together with baselines.
+In discrete latent-variable models, low-variance but biased gradient estimates can be given by continuous relaxations of discrete variables~\citep{maddison2016concrete, jang2016categorical}.
 
 A recent advance by \citet{tucker2017rebar} used low-variance but biased baselines given by continuous relaxations to construct unbiased, low-variance gradient estimates.
 Furthermore, \citet{tucker2017rebar} showed how to tune the free parameters of these relaxations to minimize their variance during training.
 
 %\paragraph{Contributions}
-In this paper, we simplify and generalize the method of \citet{tucker2017rebar} to learn a free-form control variate parameterized by a neural network, which gives lower-variance gradient estimates.
+In this paper, we simplify and generalize the method of \citet{tucker2017rebar} to learn a free-form control variate parameterized by a neural network, giving lower-variance, unbiased gradient estimates.
 Importantly, our method is applicable even when no continuous relaxation is available, as in reinforcement learning.
 We derive improved variants of popular reinforcement learning methods with unbiased gradients and more stable training dynamics.
 
@@ -115,7 +115,7 @@ We derive improved variants of popular reinforcement learning methods with unbia
 
 
 \section{Background: Gradient estimators}
-In this section we formalize the problem we are trying to solve and review important past work upon which we are building.
+%In this section we formalize the problem we are trying to solve and review important past work upon which we are building.
 
 % problem formulation: simple stochastic system with discrete latent variable 
 For simplicity of exposition, consider a simple stochastic model that has a discrete latent variable $b$ with probability $\discreteDist{}$ and loss function $\loss{}$.
