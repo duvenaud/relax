@@ -33,7 +33,7 @@
 
 
 
-\title{Backpropagate through anything:\\ Reparameterization through learned control variates}
+\title{Backpropagating through anything by\\ optimizing differentiable control variates}
 
 \author{
   David S.~Hippocampus\thanks{Use footnote for providing further
@@ -88,23 +88,15 @@ We summarize our contributions below.
 
 
 
-[TODO: motivate necessity for this type of optimizing]
-
-(check)gradient based optimization is dope af
-
-(check)discrete latent structure is dope
-
-(check)can?t fit because:
-
-(check)discrete sampling keeps us from applying reparamaterization gradients 
-
-(check)reinforce doesn?t get this info
-
-(check)pay homage to rebar
-
-introduces conditional reparam
-
-(check)introduces gradient signal for minimizing variance
+%[TODO: motivate necessity for this type of optimizing]
+%(check)gradient based optimization is dope af
+%(check)discrete latent structure is dope
+%(check)can?t fit because:
+%(check)discrete sampling keeps us from applying reparamaterization gradients 
+%(check)reinforce doesn?t get this info
+%(check)pay homage to rebar
+%introduces conditional reparam
+%(check)introduces gradient signal for minimizing variance
 
 
 
@@ -143,29 +135,18 @@ In many cases of interest, an analytic form of the gradient $g$ is not known, an
 
 % REINFORCE: baseline, doesn't work well without variance reduction
 
-The REINFORCE gradient \cite{williams1992simple} expands $g$ as $\expectedLossLogTrick{}$ using the log-derivative trick \cite{LOG DERIVITIVE TRICK}, and uses exactly a Monte Carlo estimation scheme. 
+The REINFORCE gradient estimator~\citep{williams1992simple} expands $g$ as $\expectedLossLogTrick{}$, and uses exactly a Monte Carlo estimation scheme. 
 However, the derivative of the log-likelihood w.r.t. its parameters (known as the score function in statistics) has high variance under Monte Carlo estimation, and so variance-reduction techniques such as control variates or Rao-Blackwellization are usually applied to improve the speed of convergence to a good solution.
 
-\subsection{Concrete estimator}
-% CONCRETE: relaxation, following level of detail in Tucker et al. 2017. Biased estimator.
+\subsection{Concrete relaxation}
+Another approach to estimating gradients through discrete random variables is a continuous relaxation. 
+\cite{maddison2016concrete} and \cite{jang2016categorical} developed a differentiable relaxation of the categorical distribution using the Gumbel-Max trick for sampling from a discrete distribution.
 
-Another approach to estimating the gradient of a loss that involves discrete random variables is a continuous relaxation. 
-\cite{maddison2016concrete} and \cite{jang2016categorical} developed in parallel a reparameterization of a categorical distribution using the Gumbel-Max trick for sampling from a discrete distribution.
+%The reparameterization is intuitive to understand when considering each point in discrete distribution as one-hot vector.
+%Since we want the gradient to be defined at all points, we can extend the distribution over one-hot vectors to allow it to take values in its convex hull, so that the support is maintained of the discrete points in the support of the distribution.
+%The convex hull is the d-1 dimensional probability simplex in $\mathbb{R}^k$, where $k$ is the dimension of the discrete distribution.
 
-The reparameterization is intuitive to understand when considering each point in discrete distribution as one-hot vector.
-Since we want the gradient to be defined at all points, we can extend the distribution over one-hot vectors to allow it to take values in its convex hull, so that the support is maintained of the discrete points in the support of the distribution.
-The convex hull is the d-1 dimensional probability simplex in $\mathbb{R}^k$, where $k$ is the dimension of the discrete distribution.
 
-Let $G_{1:k} = -\log-\log(U_{i:k})$ be samples from the Gumbel distribution, and learnable parameters $(\alpha_1, \dots, \alpha_k)$ be interpreted as some unnormalized parameterization of the discrete distribution under consideration.
-Then, consider the following sampling procedure: for each k, find the k that maximizes $\log \alpha_k - G_k$, and then set $D_k=1$ and $D_{i \neq k} = 0$. The Gumbel-Max trick states that sampling from the discrete distribution is equivalent to taking this argmax, that is, $p(D_k = 1) = \alpha_k / \sum_{i=1}^n \alpha_i$.
-
-Since taking an argmax is still a discontinuous operation, \cite{maddison2016concrete} and \cite{jang2016categorical} proposed further relaxing the argmax operator through the softmax function with an additional temperature parameter $\lambda$:
-\begin{equation}
-x_k = \frac{\exp\{( \log \alpha_k+ G_k) / \lambda\}}{\sum_{i=1}^n\exp\{( \log \alpha_i+ G_i) / \lambda\}}
-\end{equation}
-This relaxation allows values within the simplex, but in the low temperature limit, it becomes exactly the discrete argmax.
-One limitation of the concrete distribution is that it is a biased estimator except in limiting temperature.
-In other words, a small amount of bias is present for a non-zero temperature.
 
 %** Note for next revision: tie this into the REBAR estimator by using the Logistic random variable used by \cite{tucker2017rebar} from the appendix of \cite{maddison2016concrete}.
 
@@ -366,6 +347,11 @@ In \citep{tucker2017rebar}, a separate REBAR estimator was used to estimate the 
 \section{Related Work}
 \label{related work}
 
+\citet{miller2017reducing} further reduce the variance of reparameterization gradients in an orthogonal way.
+
+As gradient estimators become more complex, checking their unbiasedness numerically becomes difficult.
+The automatic theorem-proving-based unbiasedness checker developed by \citet{selsam2017developing} may become relevant to this line of research.
+
 NVIL, VIMCO, things like that
 
 \par{Generalized Reparameterization Gradients}
@@ -436,6 +422,18 @@ show decomposition of expected gradient into reparameterization and correction t
 
 
 
+\section{Appendix B: Categorical variables}
+
+Let $G_{1:k} = -\log-\log(U_{i:k})$ be samples from the Gumbel distribution, and learnable parameters $(\alpha_1, \dots, \alpha_k)$ be interpreted as some unnormalized parameterization of the discrete distribution under consideration.
+Then, consider the following sampling procedure: for each k, find the k that maximizes $\log \alpha_k - G_k$, and then set $D_k=1$ and $D_{i \neq k} = 0$. The Gumbel-Max trick states that sampling from the discrete distribution is equivalent to taking this argmax, that is, $p(D_k = 1) = \alpha_k / \sum_{i=1}^n \alpha_i$.
+
+Since taking an argmax is still a discontinuous operation, \cite{maddison2016concrete} and \cite{jang2016categorical} proposed further relaxing the argmax operator through the softmax function with an additional temperature parameter $\lambda$:
+\begin{equation}
+x_k = \frac{\exp\{( \log \alpha_k+ G_k) / \lambda\}}{\sum_{i=1}^n\exp\{( \log \alpha_i+ G_i) / \lambda\}}
+\end{equation}
+This relaxation allows values within the simplex, but in the low temperature limit, it becomes exactly the discrete argmax.
+One limitation of the concrete distribution is that it is a biased estimator except in limiting temperature.
+In other words, a small amount of bias is present for a non-zero temperature.
 
 
 
