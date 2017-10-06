@@ -562,7 +562,7 @@ if __name__ == "__main__":
     parser.add_argument("--Q_wd", type=float, default=0.0)
     FLAGS = parser.parse_args()
 
-    td = "/ais/gobi5/wgrathwohl/rebar_experiments/{}/{}/{}/lr_{}_var_lr_scale_{}_Q_depth_{}_Q_wd_{}_iters_{}".format(
+    td = "/ais/gobi5/wgrathwohl/rebar_experiments/{}/{}/{}/lr_{}_var_lr_scale_{}_Q_depth_{}_Q_wd_{}_iters_{}_SQ_LOSS".format(
         FLAGS.dataset, FLAGS.model, FLAGS.relaxation,
         str(FLAGS.lr).replace('.', 'p'), str(FLAGS.var_lr_scale).replace('.', 'p'),
         FLAGS.Q_depth, str(FLAGS.Q_wd).replace('.', 'p'),
