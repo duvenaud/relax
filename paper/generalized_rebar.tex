@@ -230,16 +230,11 @@ The generalized REBAR estimator replaces the loss function evaluations in the co
 \end{align}
 Where the second equality comes from the fact that for all $\phi$, the RELAX estimator is unbiased and therefore $\frac{\partial}{\partial\phi}\mathbb{E}[r(\phi)]^2 = 0$.
 
-% This small change to the REBAR control variate yields a 
-% dramatic % lets make sure we have the data to back that up
-% reduction in variance on the same benchmark tests used by \cite{tucker2017rebar}.
 
-% I think this section should go next
 %\section{Properties of Optimal Relaxations}
-% maybe we should change the name of this section to "Questioning the Concrete Relaxation" in which case maybe  it should go before the above section???
-In \cite{tucker2017rebar} the concrete distribution \cite{maddison2016concrete} is used in the control variate due to its similarity to the Bernoulli distribution and assumed correlation with the target function (**TODO EXPAND THIS).
+In \cite{tucker2017rebar} the concrete distribution \cite{maddison2016concrete} is used in the control variate due to its similarity to the Bernoulli distribution.
 
-NEXT: PROVE THAT CONCRETE IS NOT THE OPTIMAL RELAXATION TO USE (SHOULD BE EASY TO PROVE BUT WE NEED TO DO IT)
+%NEXT: PROVE THAT CONCRETE IS NOT THE OPTIMAL RELAXATION TO USE (SHOULD BE EASY TO PROVE BUT WE NEED TO DO IT)
 
 
 %Using variational calculus, we can examine the form of the optimal relaxation $\relaxed{}$
@@ -271,54 +266,55 @@ Also: \citep{levine2016end}
 
 
 \section{Experiments}
+\label{experiments}
 We demonstrate the effectiveness of our estimator on a number of challenging optimization problems. Following \cite{tucker2017rebar} we begin with a simple toy example to illuminate the potential of our method and then continue to the more relevant problems of optimize binary VAE's and reinforcement learning (OR GRAPH STRUCTURE LEARNING).
 
 
-NEXT: OPTIMAL RELAXATION FOR TOY PROBLEM
-NEXT: ELABORATE ON DEPENDENCE ON THETA
-
-
-%**TODO NEW EXPERIMENT: HALFWAY THROUGH A VAE TRAINING STOP, AND OPTIMIZE THE VARINACE OF \relaxed{} AND OF REBAR WRT TEMP AND ETA AND COMPARE GRADIENTS
-
 \subsection{Toy Experiment}
-We seek to minimize $\mathbb{E}_{b \sim p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where $p(b|\theta) = \mathtt{Bern}(b|\theta)$. \cite{tucker2017rebar} set the target $t = .45$. Here, we focus on the more challenging case where $t = .499$. With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the true solution of $\theta = 0$.
+We seek to minimize $\mathbb{E}_{b \sim p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where $p(b|\theta) = \mathtt{Bern}(b|\theta)$. \cite{tucker2017rebar} set the target $t = .45$.
+We focus on the more challenging case where $t = .499$.
+With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the optimal solution $\theta = 0$.
 
-The fixed Concrete relaxation of REBAR is unable to produce a gradient who's signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE. Figure \ref{fig:toy_var} plots the learned relaxations for a fixed value of $\theta$. It can be seen that RELAX learns a relaxation who's derivative points in the direction of decreased loss for all values of reparameterization noise $u$ whereas REBAR's fixed relaxation  only does for values of $u > t$. (NEED TO VERIFY THIS IS RIGHT)
-
+%The fixed Concrete relaxation of REBAR is unable to produce a gradient whose signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE.
+Figure \ref{fig:toy_var} plots the learned relaxations for a fixed value of $\theta$.
+It can be seen that RELAX learns a relaxation whose derivative points in the direction of decreased loss for all values of reparameterization noise $u$, whereas REBAR's fixed relaxation only does so for values of $u > t$.
 
 
 \subsection{Discrete Variational Autoencoder}
-As in \citep{tucker2017rebar}, we benchmark the RELAX estimator on the task of training a variational autoencoder \cite{VAE} where all random variables are Bernoulli taking values in $\{-1, 1\}$. As in \cite{tucker2017rebar}, we compare training the variational lower-bound across the MNIST \cite{MNIST} and Omniglot \cite{OMNIGLOT} datasets. As in \cite{tucker2017rebar} we test models with 1 and 2 of Bernoulli random variables with linear mappings between them and a model with 1 layer of Bernoulli random variables with non-linear mappings between layers.
+As in \citep{tucker2017rebar}, we benchmark the RELAX estimator on the task of training a variational autoencoder \citep{kingma2013autoencoding, rezende2014stochastic} where all random variables are Bernoulli taking values in $\{-1, 1\}$.
+As in \cite{tucker2017rebar}, we compare training the variational lower-bound across the MNIST and Omniglot~\citep{lake2015human} datasets.
+As in \cite{tucker2017rebar} we test models with 1 and 2 of Bernoulli random variables with linear mappings between them and a model with 1 layer of Bernoulli random variables with non-linear mappings between layers.
 
-We found that due to the complicated structure of the loss function, the RELAX estimator performed worse than REBAR. Instead we add a learned relaxation to REBAR's control variate which we denote relaxed-REBAR. Our estimator takes the form of \ref{eq:RELAX} with $$\bar \relaxed(z) = \relaxed(z) + f(\sigma_\lambda(z))$$ where $\relaxed(z)$ is a learned neural network and $f(\sigma_\lambda(z))$ is the Concrete relaxation of REBAR with temperature parameter $\lambda$. In all experiments, adding the learned $\relaxed(z)$ reduced the variance of the gradients and improved the final results. 
+We found that due to the complicated structure of the loss function, the RELAX estimator performed worse than REBAR. Instead we add a learned relaxation to REBAR's control variate which we denote relaxed-REBAR.
+Our estimator takes the form of \eqref{eq:RELAX} with $$\bar \relaxed(z) = \relaxed(z) + f(\sigma_\lambda(z))$$ where $\relaxed(z)$ is a learned neural network and $f(\sigma_\lambda(z))$ is the Concrete relaxation of REBAR with temperature parameter $\lambda$.
+In all experiments, adding the learned $\relaxed(z)$ reduced the variance of the gradients and improved the final results. 
 
-In \citep{tucker2017rebar}, a separate REBAR estimator was used to estimate the gradients of each model parameter (each weight matrix and bias vector). To apply our estimator to this formulation, we would need to learn a separate relaxation for each model parameter. To get around this, we instead place one gradient estimator on each activation that parameterizes a layer of Bernoulli variables. We then back-propagate this gradient estimate to produce a gradient estimate for each model parameter. To provide a fair comparison, we re-implemented REBAR in this way (denoted REBAR-ours in table \ref{tab:vae}). We believe this explains the large difference in performance between our implementation and that of \citep{tucker2017rebar} for the nonlinear models since there are 3 layers of parameters that all share the same gradient estimator. In the linear models, each layer has its own gradient estimator making our implementation closer to that of \citep{tucker2017rebar}.
-
-
-
-
-
-
-\begin{table}
+\begin{table}[h]
 \begin{center}
- \begin{tabular}{l c c c c c} 
- & NVIL & MuProp & REBAR & REBAR & RELAX \\
- \textbf{MNIST} & & & \citet{tucker2017rebar} & ours & \\
- \midrule
-  Nonlinear        & $-102.2$ & $-101.5$ & -101.1  &  -83.02 &  \textbf{-79.49} \\
- Linear 1 layer   & $-112.5$ & $-111.7$ & -111.6 & -111.66 & \textbf{-111.22} \\ 
- Linear 2 Layer  & $-99.6$ & $-99.07$ & -98.8  & -98.23 & \textbf{-98.04} \\
- \\
- \textbf{Omniglot} &&&&&\\
- \midrule
- Nonlinear        & $-110.4$ & $-109.58$ & -108.72  & -62.28 & \textbf{-58.55} \\
- Linear 1 layer  & $-117.44$ & $-117.09$ & -116.83  & -116.75 & \textbf{-116.62} \\ 
- Linear 2 Layer & $-109.98$ & $-109.55$ & -108.99  & -108.74 & \textbf{-108.59}
+\begin{tabular}{l c c c c c} 
+& NVIL & MuProp & REBAR & REBAR & RELAX \\
+\textbf{MNIST} & & & \citet{tucker2017rebar} & ours & \\\midrule
+Nonlinear      & $-102.2$ & $-101.5$ & -101.1  &  -83.02 &  \textbf{-79.49} \\
+Linear 1 layer  & $-112.5$ & $-111.7$ & -111.6 & -111.66 & \textbf{-111.22} \\ 
+Linear 2 Layer  & $-99.6$ & $-99.07$ & -98.8  & -98.23 & \textbf{-98.04} \\\\
+\textbf{Omniglot}\\ \midrule
+Nonlinear      & $-110.4$  & $-109.58$ & -108.72  & -62.28 & \textbf{-58.55} \\
+Linear 1 layer & $-117.44$ & $-117.09$ & -116.83  & -116.75 & \textbf{-116.62} \\ 
+Linear 2 Layer & $-109.98$ & $-109.55$ & -108.99  & -108.74 & \textbf{-108.59}
 \end{tabular}
 \end{center}
 \label{tab:vae}
 \caption{Training variational lower bound after training.}
 \end{table}
+
+In \citep{tucker2017rebar}, a separate REBAR estimator was used to estimate the gradients of each model parameter (each weight matrix and bias vector).
+To apply our estimator to this formulation, we would need to learn a separate relaxation for each model parameter.
+To get around this, we instead place one gradient estimator on each activation that parameterizes a layer of Bernoulli variables.
+We then back-propagate this gradient estimate to produce a gradient estimate for each model parameter.
+To provide a fair comparison, we re-implemented REBAR in this way (denoted REBAR-ours in table \ref{tab:vae}).
+We believe this explains the large difference in performance between our implementation and that of \citep{tucker2017rebar} for the nonlinear models since there are 3 layers of parameters that all share the same gradient estimator.
+In the linear models, each layer has its own gradient estimator making our implementation closer to that of \citep{tucker2017rebar}.
+
 
 
 \subsection{Atari}
@@ -373,13 +369,14 @@ GANs \citep{goodfellow2014generative} that generate text or other discrete objec
 
 Learning to parse \citep{kusner2017grammar}
 
+VAEs with continuous latent variables but non-differentiable likelihood functions.
+
 
 \section*{Acknowledgements}
-We thank Tian Qi Chen for helpful discussions.
+We thank Tian Qi Chen and Yuhuai Wu for helpful discussions.
 
 \bibliography{bibliography}
 \bibliographystyle{iclr2018_conference}
-
 
 
 
@@ -388,17 +385,12 @@ We thank Tian Qi Chen for helpful discussions.
 % basic definitions following level of detail in Tucker 2017
 
 
-%\section{Understanding the REBAR estimator through the Generalized Reparameterization Gradient}
-
 % ** Questions to answer: 
 % (1) is z-tilde a clever way of using Rao-Blackwellization for a part of the reparameterization gradient? This would mean that the reparameterization z-tilde is related to the sufficient statistic of the estimator...
 % (1) also maybe: the Q function has the opportunity to learn an estimator based on the sufficient statistics of the model, which by Rao-Blackwell-Kolmogorov is lower variance
 % (2) What's a better notation to keep the dependence of z on $\theta$ in view?
 % (3) is the REBAR control variate really using the reparameterization gradient in a meaningful way? Or, is it best viewed as just another f + control variate where control variate is cleverly designed with lower variance? 
 
-
-
-%\subsection{Combining score function and reparameterization gradients}
 
 \par{Generalizing the reparameterization trick}
 
@@ -430,27 +422,5 @@ x_k = \frac{\exp\{( \log \alpha_k+ G_k) / \lambda\}}{\sum_{i=1}^n\exp\{( \log \a
 This relaxation allows values within the simplex, but in the low temperature limit, it becomes exactly the discrete argmax.
 One limitation of the concrete distribution is that it is a biased estimator except in limiting temperature.
 In other words, a small amount of bias is present for a non-zero temperature.
-
-
-
-\begin{figure}
-\begin{center}
-\includegraphics[scale=.33]{figures/losses}
-\includegraphics[scale=.33]{figures/theta}
-\end{center}
-\label{fig:toy_loss}
-\caption{Estimator loss (left) and estimated $\theta$ values (right). Estimators with fixed (or no relaxation) struggle to converge to the optimal value}
-\end{figure}
-
-\begin{figure}
-\begin{center}
-\includegraphics[scale=.33]{figures/variance_no_opt}
-\includegraphics[scale=.33]{figures/learned_r}
-\label{fig:toy_var}
-\end{center}
-\caption{Left: Estimator variance. Right: Learned relaxation function for fixed $\theta$}
-\end{figure}
-
-
 
 \end{document}
