@@ -19,13 +19,16 @@
 
 \newcommand{\vtheta}{\mathbf{\theta}}
 \newcommand{\relaxed}{r}
+\newcommand{\controlf}{\hat f}  % Control variate for functions
+\newcommand{\controlg}{\hat g}  % Control variate for gradients
 \newcommand{\discreteDist}{p_{\theta}(b)}
 \newcommand{\loss}{f(b)}
 \newcommand{\lossGrad}{\loss{} \frac{\partial}{\partial \theta }\log \discreteDist{}}
 \newcommand{\mcGrad}{\hat{g}}
-\newcommand{\expectedLoss}{\mathbb{E}_{\discreteDist{}}\left[ \loss{} \right]}
-\newcommand{\expectedLossLogTrick}{\mathbb{E}_{\discreteDist{}} \left[ \lossGrad{} \right]}
-\newcommand{\var}{\text{Var}}
+\newcommand{\expectedLoss}{\mathbb{E}_{\discreteDist{}} \! \left[ \, \loss{} \right]}
+\newcommand{\expectedLossLogTrick}{\mathbb{E}_{\discreteDist{}} \! \left[ \, \lossGrad{} \right]}
+\newcommand{\var}{\mathbb{V}}
+\newcommand{\vu}{\mathbf{u}}
 
 
 
@@ -56,7 +59,6 @@ We also demonstrate this framework for training discrete latent-variable models.
 \section{Introduction}
 Gradient-based optimization has been key to most recent advances in machine learning and deep reinforcement learning.
 The back-propagation algorithm \citep{rumelhart1986learning}, also known as reverse-mode automatic differentiation~\citep{speelpenning1980compiling, rall1981automatic} computes exact gradients of deterministic, differentiable objective functions.
-% with a time cost comparable to evaluating the objective.
 The reparameterization trick \citep{williams1992simple, kingma2013autoencoding, rezende2014stochastic} allows backpropagation to give unbiased, low-variance estimates of gradients of expectations of continuous random variables.
 This has allowed effective stochastic optimization of large probabilistic latent-variable models.
 
@@ -74,17 +76,6 @@ We generalize the method of \citet{tucker2017rebar} to learn a free-form control
 Importantly, our method is applicable even when no continuous relaxation is available, as in reinforcement learning.
 We derive improved variants of popular reinforcement learning methods with unbiased gradients and more stable training dynamics.
 
-%Discrete structure is prevalent in nature and can often much more efficiently represent the semantic information in high dimensional input so tractable approaches to learning in model with discrete latent variables is very appealing.
-%Unfortunately, training models with discrete random variables requires discontinuous sampling operations which keep us from utilizing low-variance reparameterization gradients explicitly.
-%Earlier approaches for dealing with this issue involve high-variance or biased gradient estimates, making learning slow and challenging for large probabilistic models.
-%The recently proposed REBAR estimator deals with this by combining the REINFORCE gradient estimator with a control variate based on a continuous relaxation of the discrete loss function which allows for unbiased and lower-variance gradient estimates.
-%The REBAR estimator also finds a functional form for the variance of the estimator which allows tuning of the estimator parameters via gradient decent to minimize the estimator variance. 
-
-%(check)discrete sampling keeps us from applying reparamaterization gradients 
-%(check)reinforce doesn?t get this info
-%introduces conditional reparam
-%(check)introduces gradient signal for minimizing variance
-
 %\paragraph{Contributions}
 %\begin{itemize}
 %\item we keep conditional reparam from rebar while exploring and expanding on gradient signal for minimizing variance of estimator
@@ -93,7 +84,7 @@ We derive improved variants of popular reinforcement learning methods with unbia
 %\item we combine these insights into a new family of estimators that generalizes rebar
 %\end{itemize}
 
-\begin{figure}
+\begin{figure}[h]
 \begin{center}
 \includegraphics[width=.3\textwidth]{figures/losses}
 \includegraphics[width=.3\textwidth]{figures/variance_no_opt}
@@ -109,72 +100,78 @@ We derive improved variants of popular reinforcement learning methods with unbia
 
 
 \section{Background: Gradient estimators}
-% problem formulation: simple stochastic system with discrete latent variable 
-Consider the problem of choosing parameters of a distribution to maximize an expectation.
+How to choose the parameters of a distribution to maximize an expectation?
 This problem comes up in reinforcement learning, where we must choose a policy $\pi$ on actions $a$ to maximize the expected reward $\mathbb{E}_{p(a|\pi)} \left[ r(a) \right]$.
-It also comes up in fitting latent-variable models, when we wish to maximize the marginal probability $p(x|\theta) = \sum p(x|z) p(z|\theta) = \mathbb{E}_{p(z|\theta)} \left[ p(x|z) \right]$.
-
-In this paper, we'll consider the general problem of optimizing $\mathcal{L}(\theta)=\expectedLoss{}$.
+It also comes up in fitting latent-variable models, when we wish to maximize the marginal probability ${p(x|\theta) = \sum p(x|z) p(z|\theta) = \mathbb{E}_{p(z|\theta)} \left[ p(x|z) \right]}$.
+In this paper, we'll consider the general problem of optimizing
+%
+\begin{align}
+\mathcal{L}(\theta)=\expectedLoss{}.
+\end{align}
+%
 Later, we will discuss the case when $\loss{}$ depends directly on $\theta$.
+
 When the parameters $\theta$ are high-dimensional, gradient-based optimization is a appealing because it provides information about how to adjust each parameter individually.
+Stochastic optimization is essential for large problems, but is only guaranteed to converge to a fixed point of the original objective~\citep{robbins1951stochastic} when the stochastic gradients $\hat g$ are unbiased, i.e. ${\mathbb{E} \left[ \hat g \right] = \nabla_\theta \mathbb{E}_{p(b|\theta)} \left[ f(b) \right]}$.
+
+\paragraph{The score-function gradient estimator}
+One of the most generally-applicable gradient estimators is known as the score-function estimaor, or REINFORCE~\citep{williams1992simple}:
+%
+\begin{align}
+\hat g_\textnormal{reinforce} =  f \left( b \right) \nabla_\theta \log p(b | \theta), \qquad b \sim p(b | \theta)
+\end{align}
+%
+This estimator is unbiased [todo: give conditions], but in general has high variance.
+Intuitively, this estimator is limited by the fact that it doesn't use any information about how $f$ depends on $b$, only on the final outcome of evaluating $f(b)$.
 
 \paragraph{The reparameterization trick}
-When the latent variables $b$ are continuous, the reparameterization trick can be used to create a low-variance, unbiased gradient estimator by making the dependence of $b$ on $\theta$ explicit:
+When $f$ is continuous and differentiable, and the latent variables $b$ can be written as a deterministic, differentiable function of a random draw from a fixed distribution, the reparameterization trick \citep{williams1992simple, kingma2013autoencoding, rezende2014stochastic} creates a low-variance, unbiased gradient estimator by making the dependence of $b$ on $\theta$ explicit:
+%
 \begin{align}
-\hat g = 
+%\hat g_\textnormal{reparam} = \frac{\partial f \left( b(\theta, \epsilon) \right)}{\partial \theta}, \qquad \epsilon \sim p(\epsilon)
+\hat g_\textnormal{reparam} = \nabla_\theta f \left( b(\theta, \epsilon) \right), \qquad \epsilon \sim p(\epsilon)
 \end{align}
-
-This can be achieved efficiently using gradient optimization, requiring exact or approximate computation of $g=\partial\mathcal{L} / {\partial \theta}$.
-
-In many cases of interest, an analytic form of the gradient $g$ is not known, and so an estimator $\mcGrad{}$ is required, such as the Monte Carlo estimator $\mcGrad{}\approx \sum_{i=1}^n\hat{g}(b_i) / n$ where $b_i\sim \discreteDist{}$ and $n$ is the number of samples. 
-
-
-\paragraph{The REINFORCE gradient estimator}
-% REINFORCE: baseline, doesn't work well without variance reduction
-The REINFORCE gradient estimator~\citep{williams1992simple} expands $g$ as $\expectedLossLogTrick{}$, and uses exactly a Monte Carlo estimation scheme. 
-However, the derivative of the log-likelihood w.r.t. its parameters (known as the score function in statistics) has high variance under Monte Carlo estimation, and so variance-reduction techniques such as control variates or Rao-Blackwellization are usually applied to improve the speed of convergence to a good solution.
+%
+This gradient estimator is used when training high-dimensional, continuous latent-variable models, such as variational autoencoders or GANs.
+One intuition for why this gradient estimator is preferable to REINFORCE is that it depends on $\partial f / \partial b$, which directly exposes the dependence of $f$ on $b$.
 
 \paragraph{Concrete relaxation}
-Another approach to estimating gradients through discrete random variables is a continuous relaxation. 
-\cite{maddison2016concrete} and \cite{jang2016categorical} developed a differentiable relaxation of the categorical distribution using the Gumbel-Max trick for sampling from a discrete distribution.
+When $b$ is discrete and $f$ is known, one general approach is to differentiate a continuous relaxation of the discrete random variables.
+\cite{maddison2016concrete} and \cite{jang2016categorical} developed a differentiable relaxation of the categorical distribution, called the concrete distribution:
+%
+\begin{align}
+\hat g_\textnormal{concrete} = \nabla_\theta f \left( \sigma( \log \theta - \log(-\log(\vu))) \right), \qquad \vu \sim \textnormal{uniform}[0, 1] 
+\end{align}
+%
+where $\sigma_\lambda$ is the softmax function with temperature $\lambda$.
+This gradient estimator is fairly effective in practice, but produces biased gradients.
+Additionally, it is not clear how to choose or anneal the temperature $\lambda$.
 
-%The reparameterization is intuitive to understand when considering each point in discrete distribution as one-hot vector.
-%Since we want the gradient to be defined at all points, we can extend the distribution over one-hot vectors to allow it to take values in its convex hull, so that the support is maintained of the discrete points in the support of the distribution.
-%The convex hull is the d-1 dimensional probability simplex in $\mathbb{R}^k$, where $k$ is the dimension of the discrete distribution.
 
 
-
-
-\subsection{REBAR estimator}
-% REBAR: unbiased estimator that combines REINFORCE with CONCRETE.
-
+%\subsection{REBAR estimator}
 %the recently-developed REBAR method \citep{tucker2017rebar} reduces the variance of the REINFORCE gradient estimator by adding a control variate based on the concrete relaxation \citep{maddison2016concrete, jang2016categorical}.
 
-The REBAR gradient estimator develops a lower-variance gradient estimator that outperforms one based on a Concrete relaxation.
-REBAR relies on a carefully designed control variate, so we begin with a review of this theory.
-
-\subsubsection{Control Variates for Variance Reduction}
-For an unbiased estimator $f(b)$, a control variate is a function $\tilde{f}$ with a known or estimatable mean $\mathbb{E}[\tilde{f}]$. Since the mean of the function can be subtracted from the expectation, $f(b) - \eta (\tilde{f}-\mathbb{E}[\tilde{f}])$ remains an unbiased estimator.
-A control variate is scaled by a constant $\eta$.
-Note that we can write $\text{Var}(f(b)+\eta(\tilde{f}-\mathbb{E}[\tilde{f}]))$ as
+\paragraph{Control variates}
+Control variates are a general trick for reducing the variance of a Monte Carlo estimator.
+Given an estimator $f(b)$, a control variate is a function $\controlf(b)$ with a known mean $\mathbb{E}_{p(b)} \left[ \controlf \right]$.
+Subtracting the control variate from our estimator and adding its mean gives us a new estimator:
+%
 \begin{align}
-    \text{Var}(f(b)+\eta \tilde{f}) = \text{Var}(X) + \eta^2\var(\tilde{f}) + 2 \eta \text{Cov}(f(b),\tilde{f}),
+\hat f_\textnormal{new}(b) = f(b) - \controlf(b) + \mathbb{E}_{p(b)}[\controlf(b)]
 \end{align}
-which, evaluating the first derivative w.r.t. $\eta$ and solving for zero yields:
+%
+This new estimator has the same expectation as the old one:
+%
 \begin{align}
-    \eta = -\frac{Cov(f(b), \tilde{f})}{Var(\tilde{f})}.
+\mathbb{E}_{p(b)}\left[ f_\textnormal{new} \right] 
+= \mathbb{E}_{p(b)}\left[f(b) - \controlf(b) + \mathbb{E}_{p(b)} \left[ \controlf(b) \right] \right]
+%= \mathbb{E}_{p(b)}\left[f(b) \right] - \mathbb{E}_{p(b)} \left[ \controlf(b) \right] + \mathbb{E}_{p(b)} \left[ \controlf(b) \right]
+= \mathbb{E}_{p(b)}\left[ f(b) \right]
 \end{align}
-The variance reduction effect of a control variate is induced by the high correlation of the control variate with the original estimator.
-The intuition behind this is as follows.
-When $f(b)$ and $\tilde{f}$ are positively correlated, then this means $\tilde(f)$ is large when $f(b)$ is large.
-So, if in some minibatch $\tilde{f}$ is greater than its known mean, then with high probability $f(b)$ is also greater than its true mean.
-That means this minibatch would contribute variance to the overall estimation algorithm, since the values we're estimating of $f(b)$ are with high probability greater than the true mean (the true gradient, in the case of REBAR). 
-With positive correlation, $\text{Cov}(f(b), \tilde{f})) > 0$, and so $\eta$ is negative. 
-Then, the effect of the control variate in such a minibatch is to reduce the REINFORCE estimate by subtracting the quantity $\eta(\tilde{f} - \mathbb{E}[\tilde{f}]$.
+%
+Importantly, the new estimator has lower variance than $f(b)$ if $\controlf(b)$ is positively correlated with $f(b)$.
 
-%Hence, a suitably scaled control variate with high correlation to the original estimator dampens or amplifies the value of the overall estimator towards the true mean per minibatch.
-%The same explanation applies to the case where the correlation is negative by swapping the terms "lesser" for "greater" and "reducing" by "increasing".
-%This is why high correlation of $f(b)$ with $\tilde{f}$ is desirable: it renders the control variate effective in drawing down the effect of high variability in a stochastic estimator by a magnitude commensurate with the difference of a highly correlated function and its known mean.
 
 \subsubsection{Reducing gradient variance through control variates}
 The core of the REBAR estimator is a REINFORCE-style estimate of a non-differentiable reparameterization of the discrete latent variable as $b=H(z)$, where $H$ is the hard-threshold function an
