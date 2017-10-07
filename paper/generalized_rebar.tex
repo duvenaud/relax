@@ -296,28 +296,29 @@ In \citep{tucker2017rebar}, a separate REBAR estimator was used to estimate the 
 
 
 
-[VAE, results, variances]
-\begin{figure}
+
+
+
+\begin{table}
 \begin{center}
- \begin{tabular}{|c|c c c||} 
- \hline
- \textbf{MNIST gen.} & REBAR \citep{tucker2017rebar} & REBAR-ours & relaxed-REBAR \\ [0.5ex] 
- \hline
-  Nonlinear         & -101.1  &  -83.02 &  \textbf{-79.49} \\
- Linear 1 layer   & -111.6 & -111.66 & \textbf{-111.22} \\ 
- Linear 2 Layer & -98.8  & -98.23 & \textbf{-98.04} \\
- \hline\hline
- \textbf{Omniglot gen.} &&&\\
- \hline
- Nonlinear         & -108.72  & -62.28 & \textbf{-58.55} \\
- Linear 1 layer   & -116.83  & -116.75 & \textbf{-116.62} \\ 
- Linear 2 Layer & -108.99  & -108.74 & \textbf{-108.59} \\
- \hline
+ \begin{tabular}{l c c c c c} 
+ & NVIL & MuProp & REBAR & REBAR & RELAX \\
+ \textbf{MNIST} & & & \citet{tucker2017rebar} & ours & \\
+ \midrule
+  Nonlinear        & $-102.2$ & $-101.5$ & -101.1  &  -83.02 &  \textbf{-79.49} \\
+ Linear 1 layer   & $-112.5$ & $-111.7$ & -111.6 & -111.66 & \textbf{-111.22} \\ 
+ Linear 2 Layer  & $-99.6$ & $-99.07$ & -98.8  & -98.23 & \textbf{-98.04} \\
+ \\
+ \textbf{Omniglot} &&&&&\\
+ \midrule
+ Nonlinear        & $-110.4$ & $-109.58$ & -108.72  & -62.28 & \textbf{-58.55} \\
+ Linear 1 layer  & $-117.44$ & $-117.09$ & -116.83  & -116.75 & \textbf{-116.62} \\ 
+ Linear 2 Layer & $-109.98$ & $-109.55$ & -108.99  & -108.74 & \textbf{-108.59}
 \end{tabular}
 \end{center}
 \label{tab:vae}
 \caption{Training variational lower bound after training.}
-\end{figure}
+\end{table}
 
 
 \subsection{Atari}
@@ -338,10 +339,12 @@ In \citep{tucker2017rebar}, a separate REBAR estimator was used to estimate the 
 As gradient estimators become more complex, checking their unbiasedness numerically becomes difficult.
 The automatic theorem-proving-based unbiasedness checker developed by \citet{selsam2017developing} may become relevant to this line of research.
 
-NVIL, VIMCO, things like that
+NVIL~\citep{mnih2014neural}, VIMCO~\citep{mnih2016variational}
 
 \citet{staines2012variational} address the general problem of developing gradient estimators for deterministic black-box functions or discrete optimization.
 They introduce a sampling distribution, and optimize an objective similar to ours. 
+
+\citet{wierstra2014natural} also introduce a sampling distribution to build a gradient estimator, and consider optimizing the sampling distribution.
 
 \citet{asadi2017mean} reduce the variance of actor-critic gradient estimates by simply summing over all possible actions.
 
