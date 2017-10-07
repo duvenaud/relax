@@ -9,7 +9,8 @@ from autograd.util import nd
 
 from rebar import simple_mc_reinforce, concrete,\
     simple_mc_rebar, simple_mc_rebar_grads_var, simple_mc_simple_rebar,\
-    simple_mc_generalized_rebar, init_nn_params, obj_rebar_estgrad_var
+    simple_mc_generalized_rebar, init_nn_params, obj_rebar_estgrad_var,\
+    simple_mc_bar
 
 if __name__ == '__main__':
     rs = npr.RandomState(0)
@@ -37,6 +38,10 @@ if __name__ == '__main__':
     print("Rebar, temp = 1    : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (np.log(1.0),  np.log(0.3)), n, rs.rand(num_samples, D), o))))
     print("Rebar, temp = 10   : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (np.log(10.0), np.log(0.3)), n, rs.rand(num_samples, D), o))))
     print("Rebar, eta = 0     : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (np.log(1.0),  np.log(0.0)), n, rs.rand(num_samples, D), o))))
+    print("bar, temp = 0    : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_bar(p, (np.log(0.001), np.log(0.3)), n, o))))
+    print("bar, temp = 1    : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_bar(p, (np.log(1.0),  np.log(0.3)), n, o))))
+    print("bar, temp = 10   : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_bar(p, (np.log(10.0), np.log(0.3)), n, o))))
+    print("bar, eta = 0     : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_bar(p, (np.log(1.0),  np.log(0.0)), n, o))))
     print("Simple Rebar       : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_simple_rebar(p, n, rs.rand(num_samples, D), o))))
     nn_params = init_nn_params(0.1, [D, 5, 1])
     print("Generalized Rebar  : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_generalized_rebar(p, (0, 0, 0, nn_params), n, rs.rand(num_samples, D), o))))

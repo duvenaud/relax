@@ -70,6 +70,17 @@ def grad_of_var_of_grads(grads):
     return 2 * grads / grads.shape[0]
 
 
+############### BAR ######################
+
+def bar(model_params, est_params, noise_u, f):
+    log_temperature, log_eta = est_params
+    eta = np.exp(log_eta)
+
+    f_conc, grad_concrete = value_and_grad(concrete)(model_params, log_temperature, noise_u, f)  # d_f(z) / d_theta
+    controlled_f = lambda params, samples: f(params, samples) - eta * f_conc
+
+    return reinforce(model_params, noise_u, controlled_f) + eta * grad_concrete
+
 
 ############## Hooks into autograd ##############
 
@@ -93,6 +104,16 @@ def rebar_vjp(g, ans, vs, gvs, *args):
     return g * rebar(*args)
 simple_mc_rebar.defvjp(rebar_vjp, argnum=0)
 #simple_mc_rebar.defvjp_is_zero(argnums=(1,))
+
+@primitive
+def simple_mc_bar(model_params, est_params, noise_u, f):
+    samples = bernoulli_sample(model_params, noise_u)
+    return f(model_params, samples)
+
+def bar_vjp(g, ans, vs, gvs, *args):
+    return g * bar(*args)
+simple_mc_bar.defvjp(bar_vjp, argnum=0)
+
 
 def rebar_v_vjp(g, ans, vs, gvs, *args):
     # Unbiased estimator of grad of variance of rebar.
@@ -262,3 +283,6 @@ def gen_rebar_var_vjp(g, ans, vs, gvs, *args):
     return est_params_vjp(grad_est)
 gen_rebar_grads_var.defvjp(rebar_obj_vjp, argnum=0)
 gen_rebar_grads_var.defvjp(gen_rebar_var_vjp, argnum=1)
+
+
+
