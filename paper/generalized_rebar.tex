@@ -57,7 +57,7 @@ We also demonstrate this framework for training discrete latent-variable models.
 Gradient-based optimization has been key to most recent advances in machine learning and deep reinforcement learning.
 The back-propagation algorithm \citep{rumelhart1986learning}, also known as reverse-mode automatic differentiation~\citep{speelpenning1980compiling, rall1981automatic} computes exact gradients of deterministic, differentiable objective functions.
 % with a time cost comparable to evaluating the objective.
-The reparameterization trick \citep{kingma2013autoencoding, rezende2014stochastic} enables backpropagation to give unbiased, low-variance estimates of gradients of expectations on continuous random variables.
+The reparameterization trick \citep{williams1992simple, kingma2013autoencoding, rezende2014stochastic} allows backpropagation to give unbiased, low-variance estimates of gradients of expectations of continuous random variables.
 This has allowed effective stochastic optimization of large probabilistic latent-variable models.
 
 Unfortunately, backpropagation cannot be straightforwardly applied to problems involving discrete random variables, or when the function being optimized is a black box~\citep{schulman2015gradient}.
@@ -339,6 +339,9 @@ As gradient estimators become more complex, checking their unbiasedness numerica
 The automatic theorem-proving-based unbiasedness checker developed by \citet{selsam2017developing} may become relevant to this line of research.
 
 NVIL, VIMCO, things like that
+
+\citet{staines2012variational} address the general problem of developing gradient estimators for deterministic black-box functions or discrete optimization.
+They introduce a sampling distribution, and optimize an objective similar to ours. 
 
 \citet{asadi2017mean} reduce the variance of actor-critic gradient estimates by simply summing over all possible actions.
 
