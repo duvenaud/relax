@@ -145,7 +145,7 @@ When $b$ is discrete and $f$ is known, one general approach is to differentiate 
 %
 where $\sigma_\lambda$ is the softmax function with temperature $\lambda$.
 This gradient estimator is fairly effective in practice, but produces biased gradients.
-Additionally, it is not clear how to choose or anneal the temperature $\lambda$.
+Additionally, it is not clear how to set the temperature $\lambda$.
 
 
 
@@ -174,27 +174,27 @@ Importantly, the new estimator has lower variance than $f(b)$ if $\controlf(b)$ 
 
 
 \subsubsection{Reducing gradient variance through control variates}
-The core of the REBAR estimator is a REINFORCE-style estimate of a non-differentiable reparameterization of the discrete latent variable as $b=H(z)$, where $H$ is the hard-threshold function an
-\begin{align}
-z := g(u, \theta) := \log\frac{\theta}{1-\theta} + \log\frac{u}{1-u}, u \sim \text{Unif}[0,1]
-\end{align}
-While $z$ is a reparameterization that renders the parameters of $b$ learnable by gradient-based methods, $H$ introduces a new discontinuity in the loss.
-Instead of relaxing the hard threshold as in \cite{maddison2016concrete}, \cite{tucker2017rebar} uses a REINFORCE estimator for the gradient reparameterized with $H(z)$:
-\begin{align}
-    \frac{\partial}{\partial \theta} \mathbb{E}_{p(b)}[f(b)] = \frac{\partial}{\partial \theta} \mathbb{E}_{p(u)}[f(H(z))] = \mathbb{E}_{p(u)}[f(H(z))\frac{\partial}{\partial \theta}\log p(z)]
-\end{align}
-This allows the parameters $\theta$ to be learned using gradient information, but the loss is still non-differentiable due to the hard threshold.
-Since this uses a REINFORCE estimator, it also has high variance.
+%The core of the REBAR estimator is a REINFORCE-style estimate of a non-differentiable reparameterization of the discrete latent variable as $b=H(z)$, where $H$ is the hard-threshold function an
+%\begin{align}
+%z := g(u, \theta) := \log\frac{\theta}{1-\theta} + \log\frac{u}{1-u}, u \sim \text{Unif}[0,1]
+%\end{align}
+%While $z$ is a reparameterization that renders the parameters of $b$ learnable by gradient-based methods, $H$ introduces a new discontinuity in the loss.
+%Instead of relaxing the hard threshold as in \cite{maddison2016concrete}, \cite{tucker2017rebar} uses a REINFORCE estimator for the gradient reparameterized with $H(z)$:
+%\begin{align}
+%    \frac{\partial}{\partial \theta} \mathbb{E}_{p(b)}[f(b)] = \frac{\partial}{\partial \theta} \mathbb{E}_{p(u)}[f(H(z))] = \mathbb{E}_{p(u)}[f(H(z))\frac{\partial}{\partial \theta}\log p(z)]
+%\end{align}
+%This allows the parameters $\theta$ to be learned using gradient information, but the loss is still non-differentiable due to the hard threshold.
+%Since this uses a REINFORCE estimator, it also has high variance.
 
-Hence, \cite{tucker2017rebar} develop a control variate. A natural continuous relaxation of the hard threshold function is the sigmoid function, leading \cite{tucker2017rebar} to choose a $H(z) \approx \sigma_\lambda(z) := \sigma(z / \lambda) = (1+\exp( - z / \lambda))^{-1}$.
-This relaxation leads to the following control variate summed with its expectation:
+%Hence, \cite{tucker2017rebar} develop a control variate. A natural continuous relaxation of the hard threshold function is the sigmoid function, leading \cite{tucker2017rebar} to choose a $H(z) \approx \sigma_\lambda(z) := \sigma(z / \lambda) = (1+\exp( - z / \lambda))^{-1}$.
+%This relaxation leads to the following control variate summed with its expectation:
 \begin{align}
     \frac{\partial}{\partial \theta} \mathbb{E}_{p(z)}[f(\sigma_\lambda(z))] =  \mathbb{E}_{p(z)}[f(\sigma_\lambda(z))\frac{\partial}{\partial \theta}\log p(z)].
 \end{align}
-Unfortunately, simply applying this control variate was found to be ineffective. 
-The author's key insight was to derive a low-variance form of this control variate that takes advantage of a conditional marginalization of the reparameterized $z$ given a particular choice of discrete $b$.
+%Unfortunately, simply applying this control variate was found to be ineffective. 
+%The author's key insight was to derive a low-variance form of this control variate that takes advantage of a conditional marginalization of the reparameterized $z$ given a particular choice of discrete $b$.
 This introduces a second reparameterization $\tilde{z}$ of $p(z|b)$, which depends on another sample $v\sim \text{Unif}[0,1]$.
-See \cite{tucker2017rebar} for details of the derivation.
+%See \cite{tucker2017rebar} for details of the derivation.
 
 
 The control variate has the following form:
@@ -229,20 +229,20 @@ Where the second equality comes from the fact that for all $\phi$, the RELAX est
 
 
 %\section{Properties of Optimal Relaxations}
-In \cite{tucker2017rebar} the concrete distribution \cite{maddison2016concrete} is used in the control variate due to its similarity to the Bernoulli distribution.
+%In \cite{tucker2017rebar} the concrete distribution \cite{maddison2016concrete} is used in the control variate due to its similarity to the Bernoulli distribution.
 
 %NEXT: PROVE THAT CONCRETE IS NOT THE OPTIMAL RELAXATION TO USE (SHOULD BE EASY TO PROVE BUT WE NEED TO DO IT)
 
 
 %Using variational calculus, we can examine the form of the optimal relaxation $\relaxed{}$
 
-Relaxing Assumptions
+%Relaxing Assumptions
 
-identifying assumptions other estimators in the past made
+%identifying assumptions other estimators in the past made
 
-demonstrate (proof?) that those assumptions are not optimal
+%demonstrate (proof?) that those assumptions are not optimal
 
-and that the optimum is a function of {f, theta}
+%and that the optimum is a function of {f, theta}
 
 
 \section{Scope and Limitations}
