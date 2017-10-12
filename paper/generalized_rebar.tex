@@ -65,7 +65,7 @@ This has allowed effective stochastic optimization of large probabilistic latent
 Unfortunately, backpropagation cannot be straightforwardly applied to problems involving discrete random variables, or when the function being optimized is a black box~\citep{schulman2015gradient}.
 This is the case in most reinforcement learning settings, or when fitting probabilistic models with discrete latent variables.
 Much recent work has been devoted to constructing gradient estimators for these situations.
-In reinforcement learning, advantage actor-critic methods~\citep{mnih2016asynchronous} and deep deterministic policy gradients~\citep{lillicrap2015continuous} give low-variance but biased gradient estimates by jointly optimizing policy parameters together with baselines.
+In reinforcement learning, advantage actor-critic methods~\citep{mnih2016asynchronous} and deep deterministic policy gradients~\citep{lillicrap2015continuous} give low-variance but biased(MAY NEED TO CLARIFY THIS, a2s is not biased) gradient estimates by jointly optimizing policy parameters together with baselines.
 In discrete latent-variable models, low-variance but biased gradient estimates can be given by continuous relaxations of discrete variables~\citep{maddison2016concrete, jang2016categorical}.
 
 A recent advance by \citet{tucker2017rebar} used low-variance but biased gradients from continuous relaxations to construct unbiased, low-variance gradient estimates.
@@ -121,7 +121,7 @@ One of the most generally-applicable gradient estimators is known as the score-f
 \hat g_\textnormal{reinforce} =  f \left( b \right) \nabla_\theta \log p(b | \theta), \qquad b \sim p(b | \theta)
 \end{align}
 %
-This estimator is unbiased [todo: give conditions], but in general has high variance.
+This estimator is unbiased [todo: give conditions], but in general has high variance (CAN ME MAKE THAT CLAIM?).
 Intuitively, this estimator is limited by the fact that it doesn't use any information about how $f$ depends on $b$, only on the final outcome of evaluating $f(b)$.
 
 \paragraph{The reparameterization trick}
@@ -314,7 +314,16 @@ In the linear models, each layer has its own gradient estimator making our imple
 
 
 
-\subsection{Atari}
+\subsection{Reinforcement Learning}
+Reinforcement learning is strong motivating problem for methods similar to ours. In reinforcement learning we seek to optimize the paremters of a policy distribution $\pi(a|s;\phi)$ to maximize the (often discounted) sum of future rewards given that policy $\mathbb{E}_{\pi(\phi)}[\sum_{t=1}^{\infty} r_t]$. We can view the sum of future rewards as a black-box function of our policy's actions $f(a)$. Thus, as before we have reduced the problem to that of estimating $\frac{\partial \mathbb{E}_{\pi(a|\phi)}[f(a)]}{\partial \phi}$ which is the standard policy gradient algorithm \cite{POLICY GRADIENT}. 
+
+We test our approach on simple reinforcement learning environments with discrete actions. We use the RELAX estimator and compare with the advantage actor critic algorithm (A2C \cite{A2C}) as a baseline. In all experiments we utilized the same learning rate for the policy network for RELAX and A2C to so differences in performance depended solely on the control variate used. 
+
+To compare these approaches in the most illustrative setting possible we run these algorithms on one environment at a time, running each episode to completion. After completion, we generate the discounted reward for each timestep, treat the episode as a single batch of data, and perform one step of gradient decent. We test our alrgorithm on the Cart-Pole and Lunar-Lander environments from the OpenAI Gym \cite{gym}. 
+
+
+%We can estimate this value with the REINFORCE gradient estimator as $$\frac{\partial \mathbb{E}_{\pi(a|\phi)}[f(a)]}{\partial \phi} = \mathbb{E}[f(a)\frac{\partial \log p(a)}{\partial \phi}]$$ but the variance of this estimator can be very high thus making our model very sample-inefficient. We can subtract a control variate $r(\rho)\frac{\partial \log p(a(\rho))}{\partial \phi}$ where $\rho$ is sampled from some distribution which is a function of $\phi$ and $a(\rho)$ is a deterministic function of such that $a \sim \pi(a|\phi)$.
+
 
 \citet{mnih-dqn-2015}
 
