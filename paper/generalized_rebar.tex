@@ -212,7 +212,8 @@ gives us the REBAR gradient estimator: \begin{align}
 The special form of $\tilde{z}$ yields a lower-variance gradient estimate because a number of the random variables are conditionally marginalized out of the estimator.
 Two features of this control variate make it particularly effective: its high correlation with the REINFORCE gradient, and a low-variance, reparameterized form of certain terms in the estimator.
 
-\section{RELAX: The generalized REBAR estimator}
+%\section{RELAX: The generalized REBAR estimator}
+\section{A General Family of Gradient Estimators}
 The REBAR estimator uses a control variate that evaluates the original loss function at relaxed inputs, reparameterized both unconditionally (denoted $z$, and conditionally, denoted $\tilde{z}$).
 The central result of this paper is that learning the function in the control variate leads to even better convergence properties.
 Specifically, we generalize the conditional marginalization and control variate of REBAR to the following form:
@@ -319,8 +320,38 @@ Reinforcement learning is strong motivating problem for methods similar to ours.
 
 We test our approach on simple reinforcement learning environments with discrete actions. We use the RELAX estimator and compare with the advantage actor critic algorithm (A2C \cite{A2C}) as a baseline. In all experiments we utilized the same learning rate for the policy network for RELAX and A2C to so differences in performance depended solely on the control variate used. 
 
-To compare these approaches in the most illustrative setting possible we run these algorithms on one environment at a time, running each episode to completion. After completion, we generate the discounted reward for each timestep, treat the episode as a single batch of data, and perform one step of gradient decent. We test our alrgorithm on the Cart-Pole and Lunar-Lander environments from the OpenAI Gym \cite{gym}. 
+To compare these approaches in the most illustrative setting possible we run these algorithms on one environment at a time, running each episode to completion. After completion, we generate the discounted reward for each timestep, treat the episode as a single batch of data, and perform one step of gradient decent. We test our alrgorithm on the Cart-Pole and Lunar-Lander environments from the OpenAI Gym \cite{gym}. We run the Cart-Pole and Lunar-Lander environments for 250 and 1000 episodes, respectively and plot reward and the log-variance of the policy gradients in figure X.
 
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\LL}[1]{\frac{\log \pi(a_{#1}| s_{#1}, \theta)}{\partial \theta}}
+\subsection{RL Introduction}
+We seek to compute $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E\Big[\sum_{t=1}^T \LL{t} \sum_{t'=t}^T r_t\Big]$$ but the estimator on the right hand side can have potentially high variance. Instead, we typically compute $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau\Big[\sum_{t=1}^T \LL{t} [(\sum_{t'=t}^T r_{t'}) - b(s_t)]\Big]$$
+
+This is unbiased because
+\begin{align}
+\\E_{a_{1:T},s_{1:T}}\Big[\LL{t}\cdot b(s_t)\Big] &= E_{a_{1:t-1},s_{1:t}}\Big[ E_{a_{t:T},s_{t+1:T}} \Big[\LL{t}\cdot b(s_t)\Big]\Big]\\
+&= E_{a_{1:t-1},s_{1:t}}\Big[b(s_t)\cdot E_{a_{t:T},s_{t+1:T}} \Big[\LL{t}\Big]\Big]\\
+&= E_{a_{1:t-1},s_{1:t}}\Big[b(s_t)\cdot \frac{\partial}{\partial \theta} E_{a_{t:T},s_{t+1:T}} [1]\Big]\\
+&= 0
+\end{align}
+
+Where $b(s_t)$ is trained to minimize $(b(s_t) - \sum_{i=t}^T r_t)^2.$ This is unbiased for any choice of $b$ since $b$ does not depend on $a_t$. We are interested in replacing $b(s_t)$ with a function $m(a_t, s_t)$ which is a function of both actions and states.
+
+This changes the first equation to $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau\Big[\sum_{t=1}^T \LL{t} [(\sum_{t'=t}^T r_{t'}) - m(a_t, s_t)]\Big]$$ but this makes the estimator biased as $\E_\tau [\LL{t}m(a_t, s_t)] \neq 0$. Because of the dependence on $a_t$ we cannot pull this out of the expectation as we could in line 2 of the above equation.
+
+Instead we subtract out a term who's expectation should be the same as the score function version of the control variate changing our estimator to  $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau\Big[\sum_{t=1}^T \LL{t} [(\sum_{t'=t}^T r_{t'}) - m(a_t, s_t)] + \frac{\partial m(a_t, s_t)}{\partial\theta}\Big].$$ 
+
+For this estimator to be unbiased, we must have $$\E_\tau\Big[\sum_{t=1}^T \LL{t} m(a_t, s_t) - \frac{\partial m(a_t, s_t)}{\partial\theta}\Big] = 0$$ and we claim that $\forall t$, we have $$\E_\tau\Big[\LL{t} m(a_t, s_t) - \frac{\partial m(a_t, s_t)}{\partial\theta}\Big] = 0$$
+
+We begin with 
+\begin{align}
+\E_\tau\Big[\frac{\partial m(a_t, s_t)}{\partial\theta}\Big] &= \E_{a_{1:t-1},s_{1:t}}\Big[E_{a_{t:T},s_{t+1:T}}\Big[\frac{\partial m(a_t, s_t)}{\partial\theta}\Big]\Big]\\
+&= \E_{a_{1:t-1},s_{1:t}}\Big[E_{a_t}\Big[\frac{\partial m(a_t, s_t)}{\partial\theta}\Big]\Big]\\
+&=  \E_{a_{1:t-1},s_{1:t}}\Big[\frac{\partial{E_{a_t}[m(a_t, s_t)]}}{\partial \theta}\Big]\\
+&= \E_{a_{1:t-1},s_{1:t}}\Big[E_{a_t}\Big[\LL{t} m(a_t, s_t)\Big]\Big]\\
+&= E_\tau\Big[\LL{t} m(a_t, s_t)\Big]
+\end{align}
+which completes our proof.
 
 %We can estimate this value with the REINFORCE gradient estimator as $$\frac{\partial \mathbb{E}_{\pi(a|\phi)}[f(a)]}{\partial \phi} = \mathbb{E}[f(a)\frac{\partial \log p(a)}{\partial \phi}]$$ but the variance of this estimator can be very high thus making our model very sample-inefficient. We can subtract a control variate $r(\rho)\frac{\partial \log p(a(\rho))}{\partial \phi}$ where $\rho$ is sampled from some distribution which is a function of $\phi$ and $a(\rho)$ is a deterministic function of such that $a \sim \pi(a|\phi)$.
 
