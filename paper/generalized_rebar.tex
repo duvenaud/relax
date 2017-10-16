@@ -32,6 +32,7 @@
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\LL}[1]{\frac{\log \pi(a_{#1}| s_{#1}, \theta)}{\partial \theta}}
 \newcommand{\PT}{\frac{\partial}{\partial \theta}}
+\newcommand{\PP}[1]{\frac{\partial}{\partial #1}}
 \newcommand{\PPH}{\frac{\partial}{\partial \phi}}
 \newcommand{\LP}[1]{\PT \log p(#1)}
 \newcommand{\LZ}[1]{\frac{\log \pi(z_{#1}| s_{#1}, \theta)}{\partial \theta}}
@@ -362,8 +363,12 @@ Linear 2 Layer & $-109.98$ & $-109.55$ & -108.99  & -108.74 & \textbf{-108.59}
 
 In \citep{tucker2017rebar}, a separate REBAR estimator was used to estimate the gradients of each model parameter (each weight matrix and bias vector).
 To apply our estimator to this formulation, we would need to learn a separate relaxation for each model parameter.
-To get around this, we instead place one gradient estimator on each activation that parameterizes a layer of Bernoulli variables.
-We then back-propagate this gradient estimate to produce a gradient estimate for each model parameter.
+To get around this, we use our gradient estimator for approximate $g_\phi \approx \PT \E_{q(b|\theta)}[f(b)]$ where $x\cdot W = \theta$ is the parameters of the Bernouli latent variables, $W$ is our layer's weight matrix. We then obtain an estimate of $\PP{W} \E_{q(b|\theta)}[f(b)] = g_\phi\cdot \frac{\partial \theta}{\partial W}$. We note this gives us unbiased gradients because 
+\begin{align}
+\E_\epsilon[g_\phi(\epsilon) \cdot \frac{\partial \theta}{\partial W}] = \E_\epsilon[g_\phi(\epsilon)] \cdot \frac{\partial \theta}{\partial W} =  \PT \E_{q(b|\theta)}[f(b)] \cdot \frac{\partial \theta}{\partial W} = 
+\frac{\partial}{\partial W} \E_{q(b|\theta)}[f(b)]
+\end{align} 
+
 To provide a fair comparison, we re-implemented REBAR in this way (denoted REBAR-ours in table \ref{tab:vae}).
 We believe this explains the large difference in performance between our implementation and that of \citep{tucker2017rebar} for the nonlinear models since there are 3 layers of parameters that all share the same gradient estimator.
 In the linear models, each layer has its own gradient estimator making our implementation closer to that of \citep{tucker2017rebar}.
