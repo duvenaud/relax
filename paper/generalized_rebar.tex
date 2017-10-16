@@ -39,7 +39,7 @@
 
 
 
-\title{Backpropagating through anything by\\ optimizing differentiable control variates}
+\title{Backpropagating through the Void:\\ Optimizing Differentiable Control Variates}
 
 \author{
   David S.~Hippocampus\thanks{Use footnote for providing further
@@ -161,7 +161,7 @@ When $b$ is discrete and $f$ is known, one general approach is to differentiate 
 \cite{maddison2016concrete} and \cite{jang2016categorical} developed a differentiable relaxation of the categorical distribution, called the concrete distribution:
 %
 \begin{align}
-\hat g_\textnormal{concrete} = \nabla_\theta f \left( \sigma( \log \theta - \log(-\log(\vu))) \right), \qquad \vu \sim \textnormal{uniform}[0, 1] 
+\hat g_\textnormal{concrete} = \nabla_\theta f \left( \sigma( \log \theta - \log(-\log \vu)) \right), \qquad \vu \sim \textnormal{uniform}[0, 1] 
 \end{align}
 %
 where $\sigma_\lambda$ is the softmax function with temperature $\lambda$.
@@ -175,7 +175,7 @@ Additionally, it is not clear how to set the temperature $\lambda$.
 
 \paragraph{Control variates}
 Control variates are a general trick for reducing the variance of a Monte Carlo estimator.
-Given an estimator $f(b)$, a control variate is a function $\controlf(b)$ with a known mean $\mathbb{E}_{p(b)} \left[ \controlf \right]$.
+Given an estimator $f(b)$, a control variate is a function $\controlf(b)$ with a known mean $\mathbb{E}_{p(b)} [ \controlf ]$.
 Subtracting the control variate from our estimator and adding its mean gives us a new estimator:
 %
 \begin{align}
