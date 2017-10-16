@@ -161,10 +161,10 @@ When $b$ is discrete and $f$ is known, one general approach is to differentiate 
 \cite{maddison2016concrete} and \cite{jang2016categorical} developed a differentiable relaxation of the categorical distribution, called the concrete distribution:
 %
 \begin{align}
-\hat g_\textnormal{concrete} = \nabla_\theta f \left( \sigma( \log \theta - \log(-\log \vu)) \right), \qquad \vu \sim \textnormal{uniform}[0, 1] 
+\hat g_\textnormal{concrete} = \nabla_\theta f \left( \sigma_\lambda ( \log \theta - \log(-\log \vu)) \right), \qquad \vu \sim \textnormal{uniform}[0, 1] 
 \end{align}
 %
-where $\sigma_\lambda$ is the softmax function with temperature $\lambda$.
+where $\sigma_\lambda$ is the softmax function with temperature $\lambda$ [TODO: Reference this in appendix].
 This gradient estimator is fairly effective in practice, but produces biased gradients.
 Additionally, it is not clear how to set the temperature $\lambda$.
 
@@ -258,7 +258,7 @@ We wish to compute $\PT\E_{p_\theta(b)}[f(b)]$ where $p_\theta(b)$ is a distribu
 
 \begin{align}
 \PT\E_{p_\theta(b)}[f(b)] \approx g_\phi(\epsilon) &= \Big[f(b) - r_\phi(b)\Big]\cdot\LP{b} + \PT r(b)\\
-&= \Big[f(T(\epsilon, \theta)) - r_\phi(T(\epsilon, \theta))\Big]\cdot\LP{b} + \PT r(T(\epsilon, \theta))\\
+&= \Big[f(T(\epsilon, \theta)) - r_\phi(T(\epsilon, \theta))\Big]\cdot\LP{b} + \PT r(T(\epsilon, \theta))
 \end{align}
 
 We note that our estimator is unbiased for all choices of $r_\phi$, i.e $\E_\epsilon[g_\phi(\epsilon)] = \PT\E_{p_\theta(b)}[f(b)]$. A proof can be found in the appendix. 
@@ -271,7 +271,7 @@ The estimator is based on a 2-step monte-carlo procedure. First we sample $\epsi
 \begin{align}
 \PT\E_{p_\theta(b)}[f(b)] \approx g_\phi(\epsilon,\hat{\epsilon}) &= \Big[f(b) - r_\phi(\hat{z})\Big]\cdot\LP{b} + \PT r(z) - \PT r(\hat{z})\\
 &= \Big[f(H(T(\epsilon, \theta))) - r_\phi(\hat{T}(\epsilon, H(T(\epsilon, \theta)), \theta))\Big]\cdot\LP{b}\\ 
-&+ \PT r(T(\epsilon, \theta)) - \PT r_\phi(\hat{T}(\epsilon, H(T(\epsilon, \theta)), \theta))\\
+&+ \PT r(T(\epsilon, \theta)) - \PT r_\phi(\hat{T}(\epsilon, H(T(\epsilon, \theta)), \theta))
 \end{align}
 
 This estimator is also unbiased i.e $E_{\epsilon, \hat{\epsilon}}[g_\phi(\epsilon, \hat{\epsilon})] = \PT\E_{p_\theta(b)}[f(b)]$.
@@ -279,12 +279,13 @@ This estimator is also unbiased i.e $E_{\epsilon, \hat{\epsilon}}[g_\phi(\epsilo
 \subsection{Optimizing The Control Variate}
 For both estimators, we would like to optimize the parameters $\phi$ to produce the lowest variance. Following \cite{tucker2017rebar}, we note that for any unbiased estimator $g_\phi$ we have 
 \begin{align}
-\PPH \text{Var}(g_\phi) &= \PPH \E[g_\phi^2] - \PPH \E[g_\phi]^2\\
-&= \PPH \E[g_\phi^2] - \PPH \E_{p_\theta(b)}[f(b)]\\
-& = \PPH \E[g_\phi^2]  = \E[\PPH g_\phi^2].
+\PPH \text{Var}(g_\phi) = \PPH \E[g_\phi^2] - \PPH \E[g_\phi]^2
+= \PPH \E[g_\phi^2] - \PPH \E_{p_\theta(b)}[f(b)]
+= \PPH \E[g_\phi^2] = \E \left[ \PPH g_\phi^2 \right].
 \end{align}
 
-Therefore, we can minimize the variance of the estimator by training to minimize the square of the gradients it produces. 
+Therefore, we can minimize the variance of the estimator by training to minimize the square of the gradients it produces.
+[TODO: talk about how this is probably better than minimizing the squared prediction error]
 
 
 %The REBAR estimator uses a control variate that evaluates the original loss function at relaxed inputs, reparameterized both unconditionally (denoted $z$, and conditionally, denoted $\tilde{z}$).
@@ -499,8 +500,8 @@ Learning to parse \citep{kusner2017grammar}
 VAEs with continuous latent variables but non-differentiable likelihood functions.
 
 
-\section*{Acknowledgements}
-We thank Tian Qi Chen and Yuhuai Wu for helpful discussions.
+%\section*{Acknowledgements}  % Uncomment for arxiv
+%We thank Tian Qi Chen for helpful discussions.
 
 \bibliography{bibliography}
 \bibliographystyle{iclr2018_conference}
