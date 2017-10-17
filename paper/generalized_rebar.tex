@@ -42,13 +42,13 @@
 \title{Backpropagating through the Void:\\ Optimizing Differentiable Control Variates}
 
 \author{
-  David S.~Hippocampus\thanks{Use footnote for providing further
+  Will S. Grathwohl\thanks{Use footnote for providing further
     information about author (webpage, alternative
     address)---\emph{not} for acknowledging funding agencies.} \\
-  Department of Computer Science\\
-  Cranberry-Lemon University\\
-  Pittsburgh, PA 15213 \\
-  \texttt{hippo@cs.cranberry-lemon.edu} \\
+  University of Toronto\\
+  Vector Institute\\
+  Toronto, ON \\
+  \texttt{wgrathwohl@cs.toronto.edu} \\
 }
 
 \begin{document}
@@ -69,20 +69,20 @@ The back-propagation algorithm \citep{rumelhart1986learning}, also known as reve
 The reparameterization trick \citep{williams1992simple, kingma2013autoencoding, rezende2014stochastic} allows backpropagation to give unbiased, low-variance estimates of gradients of expectations of continuous random variables.
 This has allowed effective stochastic optimization of large probabilistic latent-variable models.
 
-Unfortunately, backpropagation cannot be straightforwardly applied to problems involving discrete random variables, or when the function being optimized is a black box~\citep{schulman2015gradient}.
+Unfortunately, backpropagation cannot be easily applied to problems involving discrete random variables, or when the function being optimized is a black box~\citep{schulman2015gradient}.
 This is the case in most reinforcement learning settings, or when fitting probabilistic models with discrete latent variables.
 Much recent work has been devoted to constructing gradient estimators for these situations.
-In reinforcement learning, advantage actor-critic methods~\citep{mnih2016asynchronous} give unbiased gradient estimates with reduced variance obtained by jointly optimizing the policy parameters together with an estimate of the value function.
+In reinforcement learning, advantage actor-critic methods~\citep{mnih2016asynchronous} give unbiased gradient estimates with reduced variance obtained by jointly optimizing the policy parameters with an estimate of the value function.
 In discrete latent-variable models, low-variance but biased gradient estimates can be given by continuous relaxations of discrete variables~\citep{maddison2016concrete, jang2016categorical}.
 
-A recent advance by \citet{tucker2017rebar} used a continuous relaxation to construct a control variate \cite{paisley} for functions of discrete variables. Low-variance estimates of the expectation of the control variate can be computed using the reparameterization trick to produce an unbiased estimator with lower variance.
+A recent advance by \citet{tucker2017rebar} used a continuous relaxation to construct a control variate \cite{paisley} for functions of discrete random variables. Low-variance estimates of the expectation of the control variate can be computed using the reparameterization trick to produce an unbiased estimator with lower variance than previous methods.
 
 Furthermore, \citet{tucker2017rebar} showed how to tune the free parameters of these relaxations to minimize their variance during training.
 
 %\paragraph{Contributions}
 We generalize the method of \citet{tucker2017rebar} to learn a free-form control variate parameterized by a neural network, giving a lower-variance, unbiased gradient estimator which can be applied to a wider variety of problems with greater flexibility.
  
-Most notably, our method is applicable even when no continuous relaxation is available, as in reinforcement learning.
+Most notably, our method is applicable even when no continuous relaxation is available, as in reinforcement learning or black box function optimizing.
 
 We derive improved variants of popular reinforcement learning methods with unbiased gradients and more stable training dynamics.
 
@@ -444,6 +444,19 @@ Thus due to the markov property of the MDP, then we can wrap all of these expect
 
 %We can estimate this value with the REINFORCE gradient estimator as $$\frac{\partial \mathbb{E}_{\pi(a|\phi)}[f(a)]}{\partial \phi} = \mathbb{E}[f(a)\frac{\partial \log p(a)}{\partial \phi}]$$ but the variance of this estimator can be very high thus making our model very sample-inefficient. We can subtract a control variate $r(\rho)\frac{\partial \log p(a(\rho))}{\partial \phi}$ where $\rho$ is sampled from some distribution which is a function of $\phi$ and $a(\rho)$ is a deterministic function of such that $a \sim \pi(a|\phi)$.
 
+\subsubsection{Experiments}
+We run experiments on some small reinforcement learning tasks with both discrete and continuous actions. We compare our method against a baseline of advantage actor-critic.
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=.4\textwidth]{figures/cartpole_rewards}
+\includegraphics[width=.4\textwidth]{figures/cartpole_var}
+\label{first figure}
+\end{center}
+\caption{Cartpole Experiments.
+\emph{Left:} Rewards
+\emph{Right:} Log Variances.
+}
+\end{figure}
 
 \citet{mnih-dqn-2015}
 
