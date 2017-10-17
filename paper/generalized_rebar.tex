@@ -446,6 +446,8 @@ Thus due to the markov property of the MDP, then we can wrap all of these expect
 
 \subsubsection{Experiments}
 We run experiments on some small reinforcement learning tasks with both discrete and continuous actions. We compare our method against a baseline of advantage actor-critic. We do not bootstrap the rewards with the value function. We estimate the policy gradient using a single monte-carlo sample produced from a one episode roll-out of the current policy. We note that improved performance could be achieved by using more samples, but we intended to test our model in the highest-possible variance setting. In all experiments the model architectures were identical between our model and the baseline and the learning rates were also constant across tests making it that all improvements derive from having a lower variance estimate of the policy gradient. 
+
+We test our approach in the discrete action domains of the CartPole and LunarLander problems as provided by the OpenAI gym \cite{gym}.
 \begin{figure}[h]
 \begin{center}
 \includegraphics[width=.4\textwidth]{figures/cartpole_rewards}
