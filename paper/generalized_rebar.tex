@@ -214,7 +214,7 @@ where $\sigma_\lambda$ is the sigmoid function with temperature $\lambda$. The R
 \hat g_\textnormal{REBAR} = \left(f(b) - f(\sigma_\lambda(z)\right)\PT \log p(b|\theta) + \PT f(\sigma_\lambda(z)) - \PT f(\sigma_\lambda(\tilde{z}))\nonumber\\
 z \sim p(z|\theta), \tilde{z} \sim p(z|b, \theta), b = \mathbb{I}(z>0)\nonumber
 \end{align}
-Details of how to sample from $p(z|b, \theta)$ as well as an extension to categorical random variables can be found in the Appendix. 
+Details of how to sample from $p(z|b, \theta)$ as well as an extension to categorical random variables can be found in the Appendix. \cite{tucker2017rebar} also introduced a way to optimize the temperature parameter $\lambda$ via gradient decent to minimize the variance of the estimator. 
 
 
 
@@ -259,12 +259,11 @@ Details of how to sample from $p(z|b, \theta)$ as well as an extension to catego
 
 \section{Scope and Limitations}
 \label{limitations}
-One major limitation of the REBAR estimator and the concrete relaxation is that they requires the function being optimized, whose input is only defined at discrete inputs, to also accept continuous inputs, and to be differentiable w.r.t. those inputs.
-This makes REBAR and the concrete relaxation inapplicable for optimizing black-box functions, as in reinforcement learning settings where the reward is an unknown function of the environment.
+While the above approaches have greatly broadened the scope of functions whose derivatives we can approximate, there still exist a number of factors limiting their application to many problems of interest.
 
-Following \cite{tucker2017rebar}, the following overview focuses on a single discrete Bernoulli random variable.
-However, the generalization to categorial variables is straightforward.
-(LETS ADD THE REST OF OUR CRITICISMS GRIEVANCES HERE)
+The bias induced by the concrete relaxation can lead to convergence at unsuitable optima or no convergence at all. REBAR alleviates these issues by using the relaxation as a control variate for the estimator instead of the estimator itself. Unfortunately, REBAR requires the function being optimized, whose input is only defined at discrete inputs, to also accept continuous inputs, be differentiable w.r.t. those inputs, and behave predictably with respect to those continuous inputs. While often true, these are strong assumptions to make. Furthermore, REBAR and the concrete relaxation require that the function being optimized is known. 
+
+This makes REBAR and the concrete relaxation inapplicable for optimizing black-box functions, as in reinforcement learning settings where the reward is an unknown function of the environment.
 
 
 \section{A General Family of Gradient Estimators}
