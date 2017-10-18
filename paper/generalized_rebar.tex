@@ -19,9 +19,9 @@
 
 \newcommand{\vtheta}{\mathbf{\theta}}
 \newcommand{\relaxed}{r}
-\newcommand{\controlf}{\hat f}  % Control variate for functions
+\newcommand{\controlf}{\hat g}  % Control variate for functions
 \newcommand{\controlg}{\hat g}  % Control variate for gradients
-\newcommand{\discreteDist}{p_{\theta}(b)}
+\newcommand{\discreteDist}{p(b|\theta)}
 \newcommand{\loss}{f(b)}
 \newcommand{\lossGrad}{\loss{} \frac{\partial}{\partial \theta }\log \discreteDist{}}
 \newcommand{\mcGrad}{\hat{g}}
@@ -64,13 +64,14 @@ We also demonstrate this framework for training discrete latent-variable models.
 
 
 \section{Introduction}
-Gradient-based optimization has been key to most recent advances in machine learning and deep reinforcement learning.
+Gradient-based optimization has been key to most recent advances in machine learning and reinforcement learning.
 The back-propagation algorithm \citep{rumelhart1986learning}, also known as reverse-mode automatic differentiation~\citep{speelpenning1980compiling, rall1981automatic} computes exact gradients of deterministic, differentiable objective functions.
 The reparameterization trick \citep{williams1992simple, kingma2013autoencoding, rezende2014stochastic} allows backpropagation to give unbiased, low-variance estimates of gradients of expectations of continuous random variables.
 This has allowed effective stochastic optimization of large probabilistic latent-variable models.
 
-Unfortunately, backpropagation cannot be easily applied to problems involving discrete random variables, or when the function being optimized is a black box~\citep{schulman2015gradient}.
-This is the case in most reinforcement learning settings, or when fitting probabilistic models with discrete latent variables.
+%Unfortunately, backpropagation cannot be easily applied to problems involving discrete random variables, or when the function being optimized is a black box~\citep{schulman2015gradient}.
+Unfortunately, there are many objective functions relevant to the machine learning community for which backpropagation cannot be applied. In reinforcement learning, for example, the function being optimized is unknown to the agent and is treated as a black box~\citep{schulman2015gradient}. Similarly, when fitting probabilistic models with discrete latent variables, discrete sampling operations create discontinuities giving the objective function zero gradient with respect to its parameters.
+%This is the case in most reinforcement learning settings, or when fitting probabilistic models with discrete latent variables.
 Much recent work has been devoted to constructing gradient estimators for these situations.
 In reinforcement learning, advantage actor-critic methods~\citep{mnih2016asynchronous} give unbiased gradient estimates with reduced variance obtained by jointly optimizing the policy parameters with an estimate of the value function.
 In discrete latent-variable models, low-variance but biased gradient estimates can be given by continuous relaxations of discrete variables~\citep{maddison2016concrete, jang2016categorical}.
@@ -80,11 +81,11 @@ A recent advance by \citet{tucker2017rebar} used a continuous relaxation to cons
 Furthermore, \citet{tucker2017rebar} showed how to tune the free parameters of these relaxations to minimize their variance during training.
 
 %\paragraph{Contributions}
-We generalize the method of \citet{tucker2017rebar} to learn a free-form control variate parameterized by a neural network, giving a lower-variance, unbiased gradient estimator which can be applied to a wider variety of problems with greater flexibility.
+In this work we generalize the method of \citet{tucker2017rebar} to learn a free-form control variate parameterized by a neural network, giving a lower-variance, unbiased gradient estimator which can be applied to a wider variety of problems with greater flexibility.
  
-Most notably, our method is applicable even when no continuous relaxation is available, as in reinforcement learning or black box function optimizing.
+Most notably, our method is applicable even when no continuous relaxation is available, as in reinforcement learning or black box function optimization.
 
-We derive improved variants of popular reinforcement learning methods with unbiased gradients and more stable training dynamics.
+Furthermore, we derive improved variants of popular reinforcement learning methods with unbiased gradient estimates, lower variance, and more stable training dynamics.
 
 %\paragraph{Contributions}
 %\begin{itemize}
@@ -108,24 +109,24 @@ We derive improved variants of popular reinforcement learning methods with unbia
 }
 \end{figure}
 
-\section{Motivation}
-(WE SHOULD BREAK THIS UP INTO MOTIVATION AND BACKGROUND)
-IE 	WHY DO WE WANT THIS, RL, DISCRETE RANDOM VARIABLE MODELS, YADDA, YADDA, YADDA
+%\section{Motivation}
+%(WE SHOULD BREAK THIS UP INTO MOTIVATION AND BACKGROUND)
+%IE 	WHY DO WE WANT THIS, RL, DISCRETE RANDOM VARIABLE MODELS, YADDA, YADDA, YADDA
 
-THEN HOW HAS IT BEEN DONE IN THE PAST
+%THEN HOW HAS IT BEEN DONE IN THE PAST
 
-THEN WHATS WRONG WITH THAT, LIMITATIONS, SHIT LIKE THAT
-\subsection{optimizing continuous black-box functions}
-\label{continuous}
-Deep deterministic policy gradients \citep{lillicrap2015continuous}
+%THEN WHATS WRONG WITH THAT, LIMITATIONS, SHIT LIKE THAT
+%\subsection{optimizing continuous black-box functions}
+%\label{continuous}
+%Deep deterministic policy gradients \citep{lillicrap2015continuous}
 
-Also: \citep{levine2016end}
+%Also: \citep{levine2016end}
 
 \section{Background: Gradient estimators}
 
 
 How can we choose the parameters of a distribution to maximize an expectation?
-This problem comes up in reinforcement learning, where we must choose a policy $\pi$ on actions $a$ to maximize the expected reward $\mathbb{E}_{p(a|\pi)} \left[ r(a) \right]$.
+This problem comes up in reinforcement learning, where we must choose the parameters $\theta$ of a policy distribution $\pi(a|s, \theta)$ to maximize the expected reward $\mathbb{E}_{\tau \sim \pi} \left[ R \right]$ over state-action trajectories $\tau$.
 It also comes up in fitting latent-variable models, when we wish to maximize the marginal probability ${p(x|\theta) = \sum p(x|z) p(z|\theta) = \mathbb{E}_{p(z|\theta)} \left[ p(x|z) \right]}$.
 In this paper, we'll consider the general problem of optimizing
 %
@@ -133,16 +134,18 @@ In this paper, we'll consider the general problem of optimizing
 \mathcal{L}(\theta)=\expectedLoss{}.
 \end{align}
 %
-Later, we will discuss the case when $\loss{}$ depends directly on $\theta$.
+%Later, we will discuss the case when $\loss{}$ depends directly on $\theta$.
 
 When the parameters $\theta$ are high-dimensional, gradient-based optimization is a appealing because it provides information about how to adjust each parameter individually.
-Stochastic optimization is essential for large problems, but is only guaranteed to converge to a fixed point of the original objective~\citep{robbins1951stochastic} when the stochastic gradients $\hat g$ are unbiased, i.e. ${\mathbb{E} \left[ \hat g \right] = \nabla_\theta \mathbb{E}_{p(b|\theta)} \left[ f(b) \right]}$.
+Stochastic optimization is essential for large problems, but is only guaranteed to converge to a fixed point of the original objective~\citep{robbins1951stochastic} when the stochastic gradients $\hat g$ are unbiased, i.e. ${\mathbb{E} \left[ \hat g \right] = \PT \mathbb{E}_{p(b|\theta)} \left[ f(b) \right]}$.
+
+Below we review past work in gradient estimation.
 
 \paragraph{The score-function gradient estimator}
 One of the most generally-applicable gradient estimators is known as the score-function estimaor, or REINFORCE~\citep{williams1992simple}:
 %
 \begin{align}
-\hat g_\textnormal{reinforce} =  f \left( b \right) \nabla_\theta \log p(b | \theta), \qquad b \sim p(b | \theta)
+\hat g_\textnormal{reinforce} =  f \left( b \right) \PT \log p(b | \theta), \qquad b \sim p(b | \theta)
 \end{align}
 %
 This estimator is unbiased, but in general has high variance.
@@ -153,10 +156,10 @@ When $f$ is continuous and differentiable, and the latent variables $b$ can be w
 %
 \begin{align}
 %\hat g_\textnormal{reparam} = \frac{\partial f \left( b(\theta, \epsilon) \right)}{\partial \theta}, \qquad \epsilon \sim p(\epsilon)
-\hat g_\textnormal{reparam} = \nabla_\theta f \left( b(\theta, \epsilon) \right), \qquad \epsilon \sim p(\epsilon)
+\hat g_\textnormal{reparam} = \PT f \left( b(\theta, \epsilon) \right), \qquad \epsilon \sim p(\epsilon)
 \end{align}
 %
-This gradient estimator is used when training high-dimensional, continuous latent-variable models, such as variational autoencoders or GANs.
+This gradient estimator is often used when training high-dimensional, continuous latent-variable models, such as variational autoencoders or GANs.
 One intuition for why this gradient estimator is preferable to REINFORCE is that it depends on $\partial f / \partial b$, which directly exposes the dependence of $f$ on $b$.
 
 \paragraph{Concrete relaxation}
@@ -164,36 +167,56 @@ When $b$ is discrete and $f$ is known, one general approach is to differentiate 
 \cite{maddison2016concrete} and \cite{jang2016categorical} developed a differentiable relaxation of the categorical distribution, called the concrete distribution:
 %
 \begin{align}
-\hat g_\textnormal{concrete} = \nabla_\theta f \left( \sigma_\lambda ( \log \theta - \log(-\log \vu)) \right), \qquad \vu \sim \textnormal{uniform}[0, 1] 
+\hat g_\textnormal{concrete} = \PT f \left( \sigma_\lambda ( \log \theta - \log(-\log u)) \right), \qquad u \sim \textnormal{uniform}[0, 1] 
 \end{align}
 %
-where $\sigma_\lambda$ is the softmax function with temperature $\lambda$ [TODO: Reference this in appendix].
-This gradient estimator is fairly effective in practice, but produces biased gradients.
-Additionally, it is not clear how to set the temperature $\lambda$.
+where $\sigma_\lambda$ is the softmax function with temperature $\lambda$. A similar relaxation for the Bernoulli distribution has been developed as well (see Appendix for details)
+This gradient estimator is fairly effective in practice, but produces biased gradients, hindering its usage.
+Additionally, it is not clear how to set the temperature $\lambda$ and it is often treated as a hyperparameter.
 
 \paragraph{Control variates}
-Control variates are a general trick for reducing the variance of a Monte Carlo estimator.
-Given an estimator $f(b)$, a control variate is a function $\controlf(b)$ with a known mean $\mathbb{E}_{p(b)} [ \controlf ]$.
+Control variates are a general method for reducing the variance of a Monte Carlo estimator.
+Given an estimator $g(b)$, a control variate is a function $\controlf(b)$ with a known mean $\mathbb{E}_{p(b)} [ \controlf ]$.
 Subtracting the control variate from our estimator and adding its mean gives us a new estimator:
 %
 \begin{align}
-\hat f_\textnormal{new}(b) = f(b) - \controlf(b) + \mathbb{E}_{p(b)}[\controlf(b)]
+\hat g_\textnormal{new}(b) = g(b) - \controlf(b) + \mathbb{E}_{p(b)}[\controlf(b)]
 \end{align}
 %
 This new estimator has the same expectation as the old one:
 %
 \begin{align}
-\mathbb{E}_{p(b)}\left[ f_\textnormal{new} \right] 
-= \mathbb{E}_{p(b)}\left[f(b) - \controlf(b) + \mathbb{E}_{p(b)} \left[ \controlf(b) \right] \right]
+\mathbb{E}_{p(b)}\left[ g_\textnormal{new}(b) \right] 
+= \mathbb{E}_{p(b)}\left[g(b) - \controlf(b) + \mathbb{E}_{p(b)} \left[ \controlf(b) \right] \right]
 %= \mathbb{E}_{p(b)}\left[f(b) \right] - \mathbb{E}_{p(b)} \left[ \controlf(b) \right] + \mathbb{E}_{p(b)} \left[ \controlf(b) \right]
-= \mathbb{E}_{p(b)}\left[ f(b) \right]
+= \mathbb{E}_{p(b)}\left[ g(b) \right]
 \end{align}
 %
-Importantly, the new estimator has lower variance than $f(b)$ if $\controlf(b)$ is positively correlated with $f(b)$.
+Importantly, the new estimator has lower variance than $g(b)$ if $\controlf(b)$ is positively correlated with $f(b)$.
 
 \paragraph{REBAR}
-The recently-developed REBAR method \citep{tucker2017rebar} reduces the variance of the REINFORCE gradient estimator for functions of discrete random variables by adding a control variate based on the concrete relaxation \citep{maddison2016concrete, jang2016categorical}.
-ALL THIS STUFF I HAVE COMMENTED OUT SHOULD BE CUT DOWN AND PLACED HERE
+The recently-developed REBAR method \citep{tucker2017rebar} estimates the gradient of expectations of functions of Bernoulli random variables. This method uses the REINFORCE estimator with a control variate. The control variate is derived from the original loss function evaluated at continuously-relaxed inputs \citep{maddison2016concrete, jang2016categorical}. The expectation of this control variate is estimated with low variance via the reparameterization trick. 
+
+The authors restrict their analysis to the case wehre $p(b|\theta) = \text{Bern}(b|\theta)$. Samples are drawn from $p(b|\theta)$ with a determanistic function of a continuous, reparameterizable random variable $z$. 
+\begin{align}
+z &:= g(u, \theta) = \log\frac{\theta}{1-\theta} + \log\frac{u}{1-u}, \qquad u \sim \text{uniform}[0,1]\nonumber\\
+b &:= \mathbb{I}(z>0)\nonumber
+\end{align}
+Thus, we can think of $p(b|\theta)$ as $\int p(b|z, \theta)p(z|\theta)dz$. The REBAR estimator is derived from this realization, noting:
+\begin{align}
+\PT \expectedLoss{} &= \PT \E_{p(b|\theta)}\left[ f(b) \right] - \E_{p(z|\theta)}\left[ f(\sigma_\lambda(z) \right] + \E_{p(z|\theta)}\left[ f(\sigma_\lambda(z) \right]\nonumber\\
+&= \PT \E_{p(b|\theta)}\left[ f(b) - \E_{p(z|b, \theta)}\left[ f(\sigma_\lambda(z) \right]  \right] + \E_{p(z|\theta)}\left[ f(\sigma_\lambda(z) \right]\nonumber\\
+&= \E_{p(b|\theta)}\left[\left( f(b) - \E_{p(z|b, \theta)}\left[ f(\sigma_\lambda(z) \right] \right)\PT \log p(b|\theta)  - \PT \E_{p(z|b, \theta)}\left[ f(\sigma_\lambda(z) \right] \right]\nonumber\\
+&\qquad + \E_{p(z|\theta)}\left[ f(\sigma_\lambda(z) \right]\nonumber
+\end{align}
+where $\sigma_\lambda$ is the sigmoid function with temperature $\lambda$. The REBAR estimator is the single-sample monte-carlo estimator derived from the last line above. The REBAR estimator is computed as:
+\begin{align}
+\hat g_\textnormal{REBAR} = \left(f(b) - f(\sigma_\lambda(z)\right)\PT \log p(b|\theta) + \PT f(\sigma_\lambda(z)) - \PT f(\sigma_\lambda(\tilde{z}))\nonumber\\
+z \sim p(z|\theta), \tilde{z} \sim p(z|b, \theta), b = \mathbb{I}(z>0)\nonumber
+\end{align}
+Details of how to sample from $p(z|b, \theta)$ as well as an extension to categorical random variables can be found in the Appendix. 
+
+
 
 %\subsubsection{Reducing gradient variance through control variates}
 %The core of the REBAR estimator is a REINFORCE-style estimate of a non-differentiable reparameterization of the discrete latent variable as $b=H(z)$, where $H$ is the hard-threshold function an
