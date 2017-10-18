@@ -76,7 +76,7 @@ Much recent work has been devoted to constructing gradient estimators for these 
 In reinforcement learning, advantage actor-critic methods~\citep{mnih2016asynchronous} give unbiased gradient estimates with reduced variance obtained by jointly optimizing the policy parameters with an estimate of the value function.
 In discrete latent-variable models, low-variance but biased gradient estimates can be given by continuous relaxations of discrete variables~\citep{maddison2016concrete, jang2016categorical}.
 
-A recent advance by \citet{tucker2017rebar} used a continuous relaxation to construct a control variate \cite{paisley} for functions of discrete random variables. Low-variance estimates of the expectation of the control variate can be computed using the reparameterization trick to produce an unbiased estimator with lower variance than previous methods.
+A recent advance by \citet{tucker2017rebar} used a continuous relaxation to construct a control variate for functions of discrete random variables. Low-variance estimates of the expectation of the control variate can be computed using the reparameterization trick to produce an unbiased estimator with lower variance than previous methods.
 
 Furthermore, \citet{tucker2017rebar} showed how to tune the free parameters of these relaxations to minimize their variance during training.
 
@@ -197,17 +197,17 @@ Importantly, the new estimator has lower variance than $g(b)$ if $\controlf(b)$ 
 \paragraph{REBAR}
 The recently-developed REBAR method \citep{tucker2017rebar} estimates the gradient of expectations of functions of Bernoulli random variables. This method uses the REINFORCE estimator with a control variate. The control variate is derived from the original loss function evaluated at continuously-relaxed inputs \citep{maddison2016concrete, jang2016categorical}. The expectation of this control variate is estimated with low variance via the reparameterization trick. 
 
-The authors restrict their analysis to the case wehre $p(b|\theta) = \text{Bern}(b|\theta)$. Samples are drawn from $p(b|\theta)$ with a determanistic function of a continuous, reparameterizable random variable $z$. 
+Samples are drawn from $p(b|\theta)$ with a determanistic function of a continuous, reparameterizable random variable $z$. 
 \begin{align}
 z &:= g(u, \theta) = \log\frac{\theta}{1-\theta} + \log\frac{u}{1-u}, \qquad u \sim \text{uniform}[0,1]\nonumber\\
 b &:= \mathbb{I}(z>0)\nonumber
 \end{align}
 Thus, we can think of $p(b|\theta)$ as $\int p(b|z, \theta)p(z|\theta)dz$. The REBAR estimator is derived from this realization, noting:
 \begin{align}
-\PT \expectedLoss{} &= \PT \E_{p(b|\theta)}\left[ f(b) \right] - \E_{p(z|\theta)}\left[ f(\sigma_\lambda(z) \right] + \E_{p(z|\theta)}\left[ f(\sigma_\lambda(z) \right]\nonumber\\
-&= \PT \E_{p(b|\theta)}\left[ f(b) - \E_{p(z|b, \theta)}\left[ f(\sigma_\lambda(z) \right]  \right] + \E_{p(z|\theta)}\left[ f(\sigma_\lambda(z) \right]\nonumber\\
+\PT \expectedLoss{} &= \PT \E_{p(b|\theta)}\left[ f(b) \right] - \PT\E_{p(z|\theta)}\left[ f(\sigma_\lambda(z) \right] + \PT\E_{p(z|\theta)}\left[ f(\sigma_\lambda(z) \right]\nonumber\\
+&= \PT \E_{p(b|\theta)}\left[ f(b) - \PT\E_{p(z|b, \theta)}\left[ f(\sigma_\lambda(z) \right]  \right] + \PT\E_{p(z|\theta)}\left[ f(\sigma_\lambda(z) \right]\nonumber\\
 &= \E_{p(b|\theta)}\left[\left( f(b) - \E_{p(z|b, \theta)}\left[ f(\sigma_\lambda(z) \right] \right)\PT \log p(b|\theta)  - \PT \E_{p(z|b, \theta)}\left[ f(\sigma_\lambda(z) \right] \right]\nonumber\\
-&\qquad + \E_{p(z|\theta)}\left[ f(\sigma_\lambda(z) \right]\nonumber
+&\qquad + \PT\E_{p(z|\theta)}\left[ f(\sigma_\lambda(z) \right]\nonumber
 \end{align}
 where $\sigma_\lambda$ is the sigmoid function with temperature $\lambda$. The REBAR estimator is the single-sample monte-carlo estimator derived from the last line above. The REBAR estimator is computed as:
 \begin{align}
@@ -261,52 +261,72 @@ Details of how to sample from $p(z|b, \theta)$ as well as an extension to catego
 \label{limitations}
 While the above approaches have greatly broadened the scope of functions whose derivatives we can approximate, there still exist a number of factors limiting their application to many problems of interest.
 
-The bias induced by the concrete relaxation can lead to convergence at unsuitable optima or no convergence at all. REBAR alleviates these issues by using the relaxation as a control variate for the estimator instead of the estimator itself. Unfortunately, REBAR requires the function being optimized, whose input is only defined at discrete inputs, to also accept continuous inputs, be differentiable w.r.t. those inputs, and behave predictably with respect to those continuous inputs. While often true, these are strong assumptions to make. Furthermore, REBAR and the concrete relaxation require that the function being optimized is known. 
+The bias induced by the concrete relaxation can lead to convergence at unsuitable optima or no convergence at all. REBAR alleviates these issues by using the relaxation as a control variate for the estimator instead of using it as the estimator itself. Unfortunately, REBAR and concrete require the function being optimized, whose input is only defined at discrete inputs, to also accept continuous inputs, be differentiable w.r.t. those inputs, and behave predictably with respect to those continuous inputs. While often true, these are strong assumptions to make. Furthermore, REBAR and concrete require that the function being optimized is known. 
 
 This makes REBAR and the concrete relaxation inapplicable for optimizing black-box functions, as in reinforcement learning settings where the reward is an unknown function of the environment.
 
 
 \section{A General Family of Gradient Estimators}
-In this work, we seek to synthesize and generalize the approaches introduced above. Mainly, we desire a simple and generic gradient estimator that can be applied to expectations of known or black-box functions of discrete or random variables. We would like these approaches to be simple to implement and add minimal computational overhead. 
+In this work, we seek to synthesize and generalize the approaches introduced above. Mainly, we desire a simple and generic gradient estimator that can be applied to expectations of known or black-box functions of discrete or continuous random variables. We would like these approaches to be simple to implement and add minimal computational overhead. 
 
 The foundation of our approach is the score function gradient estimator with a control variate who's expectation can be estimated with low variance using the reparameterization trick. This control variate is neural network which is trained directly to minimize the variance of the estimated gradients. The central result of this paper is that learning the function in the control variate leads to even better convergence properties and lower variance gradient estimates. 
 
-We first outline the algorithm when we are optimizing $E_{p_\theta(b)}[f(b)]$ where $b$ is a continuous random variable and then when $b$ is discrete.
+We first outline the algorithm when we are optimizing $E_{p(b|\theta)}[f(b)]$ where $b$ is a continuous random variable and then when $b$ is discrete.
 
 \subsection{Continuous Variables}
-We wish to compute $\PT\E_{p_\theta(b)}[f(b)]$ where $p_\theta(b)$ is a distribution with continuous support that admits a reparameterization $T$ such that $T(\theta, \epsilon) = b \sim p_\theta(b)$ where $\epsilon \sim p(\epsilon)$. We assume that $f$ is a black-box or involves operations such that $\PT f = 0$ almost everywhere or is not computable.  Given the reparameerization, we can re-write this as an expectation over $\epsilon$ as  $\PT\E_{p(\epsilon)}[f(T(\epsilon, \theta)]$. We introduce a new, differentiable function $r_\phi$ and define our estimator below.
+We wish to compute $\PT\E_{p(b|\theta)}[f(b)]$ where $p(b|\theta)$ is a distribution with continuous support that admits a reparameterization $T$ such that $T(\theta, \epsilon) = b \sim p(b|\theta)$ where $\epsilon \sim p(\epsilon)$. We assume that $f$ is a black-box or involves operations such that $\PT f = 0$ almost everywhere or is not computable.  Given the reparameerization, we can re-write this objective as an expectation over $\epsilon$ as  $\PT\E_{p(\epsilon)}[f(T(\epsilon, \theta)]$. We introduce a new, differentiable function $r_\phi$ and note that:
 
 \begin{align}
-\PT\E_{p_\theta(b)}[f(b)] \approx g_\phi(\epsilon) &= \Big[f(b) - r_\phi(b)\Big]\cdot\LP{b} + \PT r(b)\\
-&= \Big[f(T(\epsilon, \theta)) - r_\phi(T(\epsilon, \theta))\Big]\cdot\LP{b} + \PT r(T(\epsilon, \theta))
+\PT\E_{p(b|\theta)}[f(b)] &= \E_{p(b|\theta)}\left[ \left[f(b) - r_\phi(b)\right]\cdot\LP{b} + \PT r_\phi(b) \right]\nonumber\\
+&= \E_{p(\epsilon)} \left[ \left[f(T(\epsilon, \theta)) - r_\phi(T(\epsilon, \theta))\right]\cdot\LP{b} + \PT r(T(\epsilon, \theta))\right]\nonumber
 \end{align}
+Which allows us to define our estimator below as: 
 
-We note that our estimator is unbiased for all choices of $r_\phi$, i.e $\E_\epsilon[g_\phi(\epsilon)] = \PT\E_{p_\theta(b)}[f(b)]$. A proof can be found in the appendix. 
+\begin{align}
+\label{eq:cont_est}
+\hat g_\textnormal{RELAX} = \left(f(b) -r_\phi(b)\right)\PT \log p(b|\theta) + \PT r_\phi(b) \qquad b = T(\epsilon, \theta), \epsilon \sim p(\epsilon).
+\end{align}
+We note that our estimator is unbiased for all choices of $r_\phi$, i.e $\E_\epsilon[g_\phi] = \PT\E_{p(b|\theta)}[f(b)]$. 
+%A proof can be found in the appendix. 
 
 \subsection{Discrete Variables}
-In the case where $p_\theta(b)$ is a distribution over discrete variables, we introduce some notation. We assume there exist a continuous distribution $p_\theta(z)$ and a determanistic mapping $H$ such that $H(z) = b \sim p_\theta(b)$. If $p(b)$ is Bernoulli then $p_\theta(z) = \text{Logistic}(z|\theta)$ and $H(z) = \mathbb{I}(z>0)$. If $b$ is Categorical, then $p_\theta(z) = \text{Softmax}(z|\theta)$. We also assume that $p_\theta(z)$ is reparameterizable. Moreover, we assume the distribution $p_\theta(z|b)$ is also reparameterizable meaning there exists $\hat{T}$ such that $\hat{T}(\hat{\epsilon}, b, \theta) = \hat{z} \sim p_\theta(\hat{z}|b)$ (see Appendix for details).  
-
-The estimator is based on a 2-step monte-carlo procedure. First we sample $\epsilon \sim p(\epsilon)$ from which we produce $z = T(\theta, \epsilon)$ and $b = H(z)$. We then sample $\hat{\epsilon} \sim p(\hat{\epsilon})$ and produce $\hat{z} = \hat{T}(\hat{\epsilon}, b, \theta)$. We use these values to produce our estimator below.
-
+In the case where $p(b|\theta)$ is a distribution over discrete variables, a few more details arise. We assume there exist a continuous distribution $p(z|\theta)$ and a determanistic mapping $H$ such that $H(z) = b \sim p(b|\theta)$. If $p(b)$ is Bernoulli then $p(z|\theta) = \text{Logistic}(z|\theta)$ and $H(z) = \mathbb{I}(z>0)$. If $b$ is Categorical, then $p(z|\theta) = \text{Softmax}(z|\theta)$ and $H(z) = \text{argmax}(z)$. We also assume that $p(z|\theta)$ is reparameterizable. Moreover, we assume the distribution $p(z|b, \theta)$ is also reparameterizable meaning there exists $\hat{T}$ such that $\hat{T}(\hat{\epsilon}, b, \theta) = \hat{z} \sim p(z|b, \theta)$ (see Appendix for details). Introducing the parametric function $r_\phi$, we derive our estimator similarly to \cite{tucker2017rebar} with
 \begin{align}
-\PT\E_{p_\theta(b)}[f(b)] \approx g_\phi(\epsilon,\hat{\epsilon}) &= \Big[f(b) - r_\phi(\hat{z})\Big]\cdot\LP{b} + \PT r(z) - \PT r(\hat{z})\\
-&= \Big[f(H(T(\epsilon, \theta))) - r_\phi(\hat{T}(\epsilon, H(T(\epsilon, \theta)), \theta))\Big]\cdot\LP{b}\\ 
-&+ \PT r(T(\epsilon, \theta)) - \PT r_\phi(\hat{T}(\epsilon, H(T(\epsilon, \theta)), \theta))
+\PT \expectedLoss{} &= \PT \E_{p(b|\theta)}\left[ f(b) \right] - \E_{p(z|\theta)}\left[ r_\phi(z) \right] + \PT\E_{p(z|\theta)}\left[ r_\phi(z) \right]\nonumber\\
+&= \PT \E_{p(b|\theta)}\left[ f(b) - \E_{p(z|b, \theta)}\left[ r_\phi(z) \right]  \right] + \PT\E_{p(z|\theta)}\left[ r_\phi(z) \right]\nonumber\\
+&= \E_{p(b|\theta)}\left[\left( f(b) - \E_{p(z|b, \theta)}\left[r_\phi(z) \right] \right)\PT \log p(b|\theta)  - \PT \E_{p(z|b, \theta)}\left[r_\phi(z) \right] \right]\nonumber\\
+&\qquad + \PT\E_{p(z|\theta)}\left[ r_\phi(z) \right]\nonumber\\
+&= \E_{p(\epsilon, \hat{\epsilon})}\Big[\left( f(H(T(\epsilon, \theta))) - r_\phi(T(\epsilon, \theta))  \right) \PT \log p(H(T(\epsilon, \theta))|\theta) \nonumber\\
+&\qquad\qquad\qquad - \PT r_\phi(\hat{T}(\hat{\epsilon}, H(T(\epsilon, \theta)), \theta)) \Big]\nonumber\\
+&\qquad + \PT\E_{p(\epsilon)}\left[ r_\phi(T(\epsilon, \theta)) \right]\nonumber
+\end{align}
+which allows us to define our estimator as
+\begin{align}
+\hat g_\textnormal{RELAX} = \left(f(b) -r_\phi(\hat{z})\right)\PT \log p(b|\theta) + \PT r_\phi(z) - \PT r_\phi (\tilde{z})\nonumber\\
+\qquad b = H(z), z \sim p(z|\theta), \tilde{z} \sim p(z|b, \theta)
 \end{align}
 
-This estimator is also unbiased i.e $E_{\epsilon, \hat{\epsilon}}[g_\phi(\epsilon, \hat{\epsilon})] = \PT\E_{p_\theta(b)}[f(b)]$.
+%The estimator is based on a 2-step monte-carlo procedure. First we sample $\epsilon \sim p(\epsilon)$ from which we produce $z = T(\theta, \epsilon)$ and $b = H(z)$. We then sample $\hat{\epsilon} \sim p(\hat{\epsilon})$ and produce $\hat{z} = \hat{T}(\hat{\epsilon}, b, \theta)$. We use these values to produce our estimator below.
+
+%\begin{align}
+%\PT\E_{p(b|\theta)}[f(b)] \approx g_\phi(\epsilon,\hat{\epsilon}) &= \Big[f(b) - r_\phi(\hat{z})\Big]\cdot\LP{b} + \PT r_\phi(z) - \PT r(\hat{z})\\
+%&= \Big[f(H(T(\epsilon, \theta))) - r_\phi(\hat{T}(\epsilon, H(T(\epsilon, \theta)), \theta))\Big]\cdot\LP{b}\\ 
+%&+ \PT r(T(\epsilon, \theta)) - \PT r_\phi(\hat{T}(\epsilon, H(T(\epsilon, \theta)), \theta)).
+%\end{align}
+
+This estimator is also unbiased i.e $E_{\epsilon, \hat{\epsilon}}[g_\phi] = \PT\E_{p(b|\theta)}[f(b)]$.
 
 \subsection{Optimizing The Control Variate}
-For both estimators, we would like to optimize the parameters $\phi$ to produce the lowest variance. Following \cite{tucker2017rebar}, we note that for any unbiased estimator $g_\phi$ we have 
+For both of the above estimators, we would like to optimize the parameters $\phi$ to produce estimates with the lowest possible variance. Following \cite{tucker2017rebar}, we note that for any unbiased estimator $g_\phi$ we have 
 \begin{align}
 \PPH \text{Var}(g_\phi) = \PPH \E[g_\phi^2] - \PPH \E[g_\phi]^2
-= \PPH \E[g_\phi^2] - \PPH \E_{p_\theta(b)}[f(b)]
+= \PPH \E[g_\phi^2] - \PPH \E_{p(b|\theta)}[f(b)]
 = \PPH \E[g_\phi^2] = \E \left[ \PPH g_\phi^2 \right].
 \end{align}
 
-Therefore, we can minimize the variance of the estimator by training to minimize the square of the gradients it produces.
-[TODO: talk about how this is probably better than minimizing the squared prediction error]
+Therefore, we can minimize the variance of the estimator by training to minimize the square of the gradients it produces. Previous approaches involving a learned control variate have trained the control variate to minimize the squared error $(f(b) - r(b))^2$. From inspection of the square of the estimator in equation \ref{eq:cont_est} we can see that this loss also encourages $r(b)$ to approximate $f(b)$ but with a weighting based on $\PT\log p(b)$. Moreover, as $r \rightarrow f$ then $\hat g_\textnormal{RELAX} \rightarrow \PT r$. Thus, optimization in this way encourages a balance between the variance of the reparameterization estimate and the variance of the REINFORCE estimator. 
 
+[MAY NEED A BIT MORE DETAILING ABOUT THIS BUT ITS SOMETHING]
 
 %The REBAR estimator uses a control variate that evaluates the original loss function at relaxed inputs, reparameterized both unconditionally (denoted $z$, and conditionally, denoted $\tilde{z}$).
 %The central result of this paper is that learning the function in the control variate leads to even better convergence properties.
@@ -342,7 +362,7 @@ Therefore, we can minimize the variance of the estimator by training to minimize
 
 \section{Applications}
 \label{Applications}
-We demonstrate the effectiveness of our estimator on a number of challenging optimization problems. Following \cite{tucker2017rebar} we begin with a simple toy example to illuminate the potential of our method and then continue to the more relevant problems of optimize binary VAE's and reinforcement learning.
+We demonstrate the effectiveness of our estimator on a number of challenging optimization problems. Following \cite{tucker2017rebar} we begin with a simple toy example to illuminate the potential of our method and then continue to the more relevant problems of optimizing binary VAE's and reinforcement learning.
 
 \subsection{Toy Experiment}
 We seek to minimize $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where $p(b|\theta) = \mathtt{Bern}(b|\theta)$. \cite{tucker2017rebar} set the target $t = .45$.
@@ -397,11 +417,11 @@ In the linear models, each layer has its own gradient estimator making our imple
 
 
 \subsection{Reinforcement Learning}
-Reinforcement learning is strong motivating problem for methods similar to ours. In reinforcement learning we seek to optimize the paremters of a policy distribution $\pi(a|s;\phi)$ to maximize the (often discounted) sum of future rewards given that policy $\mathbb{E}_{\pi(\phi)}[\sum_{t=1}^{\infty} r_t]$. We can view the sum of future rewards as a black-box function of our policy's actions $f(a)$. Thus, as before we have reduced the problem to that of estimating $\frac{\partial \mathbb{E}_{\pi(a|\phi)}[f(a)]}{\partial \phi}$ which is the standard policy gradient algorithm \cite{POLICY GRADIENT}. 
+Reinforcement learning is strong motivating problem for methods similar to ours. In reinforcement learning we seek to optimize the paremters of a policy distribution $\pi(a|s;\phi)$ to maximize the (often discounted) sum of future rewards given that policy $\mathbb{E}_{\pi(\phi)}[\sum_{t=1}^{\infty} r_t]$. We can view the sum of future rewards as a black-box function of our policy's actions $f(a)$. Thus, as before we have reduced the problem to that of estimating $\frac{\partial \mathbb{E}_{\pi(a|\phi)}[f(a)]}{\partial \phi}$ which is the standard policy gradient algorithm \cite{sutton2000policy}. 
 
-We test our approach on simple reinforcement learning environments with discrete actions. We use the RELAX estimator and compare with the advantage actor critic algorithm (A2C \cite{A2C}) as a baseline. In all experiments we utilized the same learning rate for the policy network for RELAX and A2C to so differences in performance depended solely on the control variate used. 
+We test our approach on simple reinforcement learning environments with discrete actions. We use the RELAX estimator and compare with the advantage actor critic algorithm \cite{sutton2000policy} as a baseline. In all experiments we utilized the same learning rate for the policy network for RELAX and A2C to so differences in performance depended solely on the control variate used. 
 
-To compare these approaches in the most illustrative setting possible we run these algorithms on one environment at a time, running each episode to completion. After completion, we generate the discounted reward for each timestep, treat the episode as a single batch of data, and perform one step of gradient decent. We test our alrgorithm on the Cart-Pole and Lunar-Lander environments from the OpenAI Gym \cite{gym}. We run the Cart-Pole and Lunar-Lander environments for 250 and 1000 episodes, respectively and plot reward and the log-variance of the policy gradients in figure X.
+To compare these approaches in the most illustrative setting possible we run these algorithms on one environment at a time, running each episode to completion. After completion, we generate the discounted reward for each timestep, treat the episode as a single batch of data, and perform one step of gradient decent. We test our alrgorithm on the Cart-Pole and Lunar-Lander environments from the OpenAI Gym \cite{1606.01540}. We run the Cart-Pole and Lunar-Lander environments for 250 and 1000 episodes, respectively and plot reward and the log-variance of the policy gradients in figure X.
 
 \subsection{RL Introduction}
 We seek to compute $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E\Big[\sum_{t=1}^T \LL{t} \sum_{t'=t}^T r_t\Big]$$ but the estimator on the right hand side can have potentially high variance. Instead, we typically compute $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau\Big[\sum_{t=1}^T \LL{t} [(\sum_{t'=t}^T r_{t'}) - b(s_t)]\Big]$$
@@ -469,7 +489,7 @@ Thus due to the markov property of the MDP, then we can wrap all of these expect
 \subsubsection{Experiments}
 We run experiments on some small reinforcement learning tasks with both discrete and continuous actions. We compare our method against a baseline of advantage actor-critic. We do not bootstrap the rewards with the value function. We estimate the policy gradient using a single monte-carlo sample produced from a one episode roll-out of the current policy. We note that improved performance could be achieved by using more samples, but we intended to test our model in the highest-possible variance setting. In all experiments the model architectures were identical between our model and the baseline and the learning rates were also constant across tests making it that all improvements derive from having a lower variance estimate of the policy gradient. 
 
-We test our approach in the discrete action domains of the CartPole and LunarLander problems as provided by the OpenAI gym \cite{gym}.
+We test our approach in the discrete action domains of the CartPole and LunarLander problems as provided by the OpenAI gym \cite{1606.01540}.
 \begin{figure}[h]
 \begin{center}
 \includegraphics[width=.4\textwidth]{figures/cartpole_rewards}
