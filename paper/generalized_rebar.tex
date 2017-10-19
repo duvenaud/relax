@@ -17,6 +17,21 @@
     filecolor=mydarkblue,
     urlcolor=mydarkblue}
 
+\usepackage{graphicx}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{wrapfig} % for side-by
+\usepackage{cancel}
+
+\usepackage{algorithm}
+\usepackage{subcaption}% http://ctan.org/pkg/subcaption
+\usepackage{algpseudocode}
+\captionsetup{compatibility=false}
+
+\DeclareCaptionSubType*{algorithm}
+\renewcommand\thesubalgorithm{\thetable\alph{subalgorithm}}
+
 \newcommand{\vtheta}{\mathbf{\theta}}
 \newcommand{\relaxed}{r}
 \newcommand{\controlf}{\hat g}  % Control variate for functions
@@ -323,6 +338,23 @@ For both of the above estimators, we would like to optimize the parameters $\phi
 = \PPH \E[g_\phi^2] - \PPH \E_{p(b|\theta)}[f(b)]
 = \PPH \E[g_\phi^2] = \E \left[ \PPH g_\phi^2 \right].
 \end{align}
+
+\begin{algorithm}[H]
+	\caption{IWAE ELBO Gradient}
+	\label{algo4}
+	\begin{algorithmic}
+		\Require ATest
+		\State is
+		\State this
+		\Function{f}{algo)}
+		\State{woop}
+		\State \textbf{return} NADA
+		\EndFunction
+		
+		\Ensure 
+		\vspace{1.5mm}
+	\end{algorithmic}
+\end{algorithm}
 
 Therefore, we can minimize the variance of the estimator by training to minimize the square of the gradients it produces. Previous approaches involving a learned control variate have trained the control variate to minimize the squared error $(f(b) - r(b))^2$. From inspection of the square of the estimator in equation \ref{eq:cont_est} we can see that this loss also encourages $r(b)$ to approximate $f(b)$ but with a weighting based on $\PT\log p(b)$. Moreover, as $r \rightarrow f$ then $\hat g_\textnormal{RELAX} \rightarrow \PT r$. Thus, optimization in this way encourages a balance between the variance of the reparameterization estimate and the variance of the REINFORCE estimator. 
 
