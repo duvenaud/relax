@@ -32,6 +32,12 @@
 \DeclareCaptionSubType*{algorithm}
 \renewcommand\thesubalgorithm{\thetable\alph{subalgorithm}}
 
+\floatname{algorithm}{Alg. }
+%\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{return}}
+\renewcommand{\algorithmicfunction}{\textbf{def}}
+%\algtext*{EndFunction}\dfrac{num}{den}
+
 \newcommand{\vtheta}{\mathbf{\theta}}
 \newcommand{\relaxed}{r}
 \newcommand{\controlf}{\hat g}  % Control variate for functions
@@ -50,6 +56,7 @@
 \newcommand{\PP}[1]{\frac{\partial}{\partial #1}}
 \newcommand{\PPH}{\frac{\partial}{\partial \phi}}
 \newcommand{\LP}[1]{\PT \log p(#1)}
+\newcommand{\LPT}[1]{\PT \log p(#1|\theta)}
 \newcommand{\LZ}[1]{\frac{\log \pi(z_{#1}| s_{#1}, \theta)}{\partial \theta}}
 
 
@@ -212,7 +219,7 @@ Importantly, the new estimator has lower variance than $g(b)$ if $\controlf(b)$ 
 \paragraph{REBAR}
 The recently-developed REBAR method \citep{tucker2017rebar} estimates the gradient of expectations of functions of Bernoulli random variables. This method uses the REINFORCE estimator with a control variate. The control variate is derived from the original loss function evaluated at continuously-relaxed inputs \citep{maddison2016concrete, jang2016categorical}. The expectation of this control variate is estimated with low variance via the reparameterization trick. 
 
-Samples are drawn from $p(b|\theta)$ with a determanistic function of a continuous, reparameterizable random variable $z$. 
+Samples are drawn from $p(b|\theta)$ with a deterministic function of a continuous, reparameterizable random variable $z$. 
 \begin{align}
 z &:= g(u, \theta) = \log\frac{\theta}{1-\theta} + \log\frac{u}{1-u}, \qquad u \sim \text{uniform}[0,1]\nonumber\\
 b &:= \mathbb{I}(z>0)\nonumber
@@ -288,18 +295,38 @@ The foundation of our approach is the score function gradient estimator with a c
 
 We first outline the algorithm when we are optimizing $E_{p(b|\theta)}[f(b)]$ where $b$ is a continuous random variable and then when $b$ is discrete.
 
-\subsection{Continuous Variables}
-We wish to compute $\PT\E_{p(b|\theta)}[f(b)]$ where $p(b|\theta)$ is a distribution with continuous support that admits a reparameterization $T$ such that $T(\theta, \epsilon) = b \sim p(b|\theta)$ where $\epsilon \sim p(\epsilon)$. We assume that $f$ is a black-box or involves operations such that $\PT f = 0$ almost everywhere or is not computable.  Given the reparameerization, we can re-write this objective as an expectation over $\epsilon$ as  $\PT\E_{p(\epsilon)}[f(T(\epsilon, \theta)]$. We introduce a new, differentiable function $r_\phi$ and note that:
+\begin{algorithm}[H]
+	\caption{RELAX Gradient Estimator for Continuous Random Variables}
+	\label{discrete-relax}
+	\begin{algorithmic}
+		\Require function $f(\cdot)$, log-likelihood $\log p(\cdot; \theta)$, differentiable function approximator $r_\phi(\cdot)$,\\
+		\hspace{3em} sampler $s(\epsilon)$, reparameterization $T(\cdot; \theta)$ 
+ 	% sample s \sim p(s)
+		\Function{$\hat{\mathcal{G}_i}$}{$\theta$}:
+		\State $\epsilon_{i} \sim s(\epsilon)$
+		\State $b_i \leftarrow T(\epsilon_i, \theta)$
+		\State $\nabla_\theta \log p \leftarrow \texttt{autodiff}(\log p(b_i| \theta), \theta)$ 
+		\State $\nabla_\theta r \leftarrow \texttt{autodiff}(r_\phi(b_i), \theta)$ 
+		\State \textbf{return} $(f(b_i) - r_{\phi}(b_i))\times \nabla_\theta \log p + \nabla_\theta r$
+		\EndFunction
+		
+		\Ensure $\frac{1}{K} \sum_{j=1}^K \hat{\mathcal{G}}_j(\theta)$
+		\vspace{1.5mm}
+	\end{algorithmic}
+\end{algorithm}
 
+
+\subsection{Continuous Variables}
+We wish to compute $\PT\E_{p(b|\theta)}[f(b)]$ where $p(b|\theta)$ is a distribution with continuous support that admits a reparameterization $T$ such that $T(\theta, \epsilon) = b \sim p(b|\theta)$ where $\epsilon \sim s(\epsilon)$. We assume that $f$ is a black-box or involves operations such that $\PT f = 0$ almost everywhere or is not computable.  Given the reparameterization, we can re-write this objective as an expectation over $\epsilon$ as  $\PT\E_{p(\epsilon)}[f(T(\epsilon, \theta)]$. We introduce an auxiliary, differentiable function approximator $r_\phi$ and note that:
 \begin{align}
-\PT\E_{p(b|\theta)}[f(b)] &= \E_{p(b|\theta)}\left[ \left[f(b) - r_\phi(b)\right]\cdot\LP{b} + \PT r_\phi(b) \right]\nonumber\\
-&= \E_{p(\epsilon)} \left[ \left[f(T(\epsilon, \theta)) - r_\phi(T(\epsilon, \theta))\right]\cdot\LP{b} + \PT r(T(\epsilon, \theta))\right]\nonumber
+\PT\E_{p(b|\theta)}[f(b)] &= \E_{p(b|\theta)}\left[ \left[f(b) - r_\phi(b)\right]\cdot\LPT{b} + \PT r_\phi(b) \right]\nonumber\\
+&= \E_{s(\epsilon)} \left[ \left[f(T(\epsilon, \theta)) - r_\phi(T(\epsilon, \theta))\right]\cdot\LPT{T(\epsilon, \theta)} + \PT r_{\phi}(T(\epsilon, \theta))\right]\nonumber
 \end{align}
 Which allows us to define our estimator below as: 
 
 \begin{align}
 \label{eq:cont_est}
-\hat g_\textnormal{RELAX} = \left(f(b) -r_\phi(b)\right)\PT \log p(b|\theta) + \PT r_\phi(b) \qquad b = T(\epsilon, \theta), \epsilon \sim p(\epsilon).
+\hat g_\textnormal{RELAX} = \left(f(b) -r_\phi(b)\right) \LPT{b} + \PT r_\phi(b) \qquad b = T(\epsilon, \theta), \epsilon \sim s(\epsilon).
 \end{align}
 We note that our estimator is unbiased for all choices of $r_\phi$, i.e $\E_\epsilon[g_\phi] = \PT\E_{p(b|\theta)}[f(b)]$. 
 %A proof can be found in the appendix. 
@@ -339,22 +366,6 @@ For both of the above estimators, we would like to optimize the parameters $\phi
 = \PPH \E[g_\phi^2] = \E \left[ \PPH g_\phi^2 \right].
 \end{align}
 
-\begin{algorithm}[H]
-	\caption{IWAE ELBO Gradient}
-	\label{algo4}
-	\begin{algorithmic}
-		\Require ATest
-		\State is
-		\State this
-		\Function{f}{algo)}
-		\State{woop}
-		\State \textbf{return} NADA
-		\EndFunction
-		
-		\Ensure 
-		\vspace{1.5mm}
-	\end{algorithmic}
-\end{algorithm}
 
 Therefore, we can minimize the variance of the estimator by training to minimize the square of the gradients it produces. Previous approaches involving a learned control variate have trained the control variate to minimize the squared error $(f(b) - r(b))^2$. From inspection of the square of the estimator in equation \ref{eq:cont_est} we can see that this loss also encourages $r(b)$ to approximate $f(b)$ but with a weighting based on $\PT\log p(b)$. Moreover, as $r \rightarrow f$ then $\hat g_\textnormal{RELAX} \rightarrow \PT r$. Thus, optimization in this way encourages a balance between the variance of the reparameterization estimate and the variance of the REINFORCE estimator. 
 
