@@ -9,6 +9,15 @@
 \usepackage{amsmath}
 \usepackage{hyperref}
 \usepackage{graphicx}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+\usepackage{subcaption}% http://ctan.org/pkg/subcaption
+\usepackage{algpseudocode}
+
+% rename algorithmic labels
+\renewcommand{\algorithmicensure}{\textbf{return}}
+\renewcommand{\algorithmicfunction}{\textbf{def}}
 
 \definecolor{mydarkblue}{rgb}{0,0.08,0.45}
 \hypersetup{colorlinks=true,
@@ -277,6 +286,25 @@ The foundation of our approach is the score function gradient estimator with a c
 We first outline the algorithm when we are optimizing $E_{p(b|\theta)}[f(b)]$ where $b$ is a continuous random variable and then when $b$ is discrete.
 
 \subsection{Continuous Variables}
+\begin{algorithm}[t]
+	\caption{LAX Gradient Estimator for Continuous Random Variables}
+	\label{discrete-relax}
+	\begin{algorithmic}
+		\Require function $f(\cdot)$, log-likelihood $\log p(\cdot; \theta)$, differentiable function approximator $r_\phi(\cdot)$,\\
+		\hspace{3em} sampler $s(\epsilon)$, reparameterization $T(\cdot; \theta)$ 
+		% sample s \sim p(s)
+		\Function{$\hat{\mathcal{G}_i}$}{$\theta$}:
+		\State $\epsilon_{i} \sim s(\epsilon)$
+		\State $b_i \leftarrow T(\epsilon_i, \theta)$
+		\State $\nabla_\theta \log p \leftarrow \texttt{autodiff}(\log p(b_i| \theta), \theta)$ 
+		\State $\nabla_\theta r \leftarrow \texttt{autodiff}(r_\phi(b_i), \theta)$ 
+		\State \textbf{return} $(f(b_i) - r_{\phi}(b_i))\times \nabla_\theta \log p + \nabla_\theta r$
+		\EndFunction
+		
+		\Ensure $\frac{1}{K} \sum_{j=1}^K \hat{\mathcal{G}}_j(\theta)$
+		\vspace{1.5mm}
+	\end{algorithmic}
+\end{algorithm}
 We wish to compute $\PT\E_{p(b|\theta)}[f(b)]$ where $p(b|\theta)$ is a distribution with continuous support that admits a reparameterization $T$ such that $T(\theta, \epsilon) = b \sim p(b|\theta)$ where $\epsilon \sim p(\epsilon)$. We assume that $f$ is a black-box or involves operations such that $\PT f = 0$ almost everywhere or is not computable.  Given the reparameerization, we can re-write this objective as an expectation over $\epsilon$ as  $\PT\E_{p(\epsilon)}[f(T(\epsilon, \theta)]$. We introduce a new, differentiable function $r_\phi$ and note that:
 %
 \begin{align}
