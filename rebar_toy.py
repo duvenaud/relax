@@ -25,7 +25,7 @@ for i in range(len(tableau20)):
     tableau20[i] = (r / 255., g / 255., b / 255.)
 
 
-ITERS = 20000
+ITERS = 5000
 RESOLUTION = 1
 
 """ Helper Functions """
@@ -231,6 +231,7 @@ def main(t=0.499, use_reinforce=False, relaxed=False, visualize=False,
         batch_eta = tf.expand_dims(eta, 0)
         batch_f_b = tf.expand_dims(f_b, 1)
         batch_f_z_tilde = tf.expand_dims(f_z_tilde, 1)
+        # do one of LAX, BAR, relaxed-REBAR, or REBAR
         if LAX or BAR:
             batch_f_z = tf.expand_dims(f_z, 1)
             rebar = batch_f_b*d_log_pb_d_log_alpha - batch_eta*batch_f_z*d_log_pz_d_log_alpha + batch_eta*d_f_z_d_log_alpha
@@ -404,6 +405,7 @@ def main(t=0.499, use_reinforce=False, relaxed=False, visualize=False,
 
 
 if __name__ == "__main__":
+    t = 0.45
 #    thetas = []
 #    for i in range(1):
 #        tf.reset_default_graph()
@@ -467,32 +469,32 @@ if __name__ == "__main__":
 #        plt.savefig('/home/damichoi/ml/relaxed-rebar/toy_problem/test'+str(i)+'.png', bbox_inches='tight')
 #        plt.show()
 
-
+    file_name = "toy_losses_{}_{}".format(ITERS, t)
     try:
-        with open("toy_losses.pkl", 'r') as f:
+        with open(file_name+'.pkl', 'r') as f:
             ext_losses, reinf_losses, rebar_losses, relax_losses, lax_losses = pickle.load(f)
     except IOError:
-        _,ext_thetas, ext_losses, ext_variances,__,___ = main(use_reinforce=False, relaxed=False, visualize=None, force_same=True, test_bias=False, use_exact_gradient=True)
+        _,ext_thetas, ext_losses, ext_variances,__,___ = main(t=t, use_reinforce=False, relaxed=False, visualize=None, force_same=True, test_bias=False, use_exact_gradient=True)
         tf.reset_default_graph()
-        _,reinf_thetas, reinf_losses, reinf_variances,__,___ = main(use_reinforce=True, relaxed=False, visualize=None, force_same=True, test_bias=False)
+        _,reinf_thetas, reinf_losses, reinf_variances,__,___ = main(t=t, use_reinforce=True, relaxed=False, visualize=None, force_same=True, test_bias=False)
         tf.reset_default_graph()
-        _,rebar_thetas, rebar_losses, rebar_variances,__,___ = main(relaxed=False, visualize=None, force_same=True, test_bias=False)
+        _,rebar_thetas, rebar_losses, rebar_variances,__,___ = main(t=t, relaxed=False, visualize=None, force_same=True, test_bias=False)
         tf.reset_default_graph()
     #    _,rebar_thetas_ttc, rebar_losses_ttc, rebar_variances_ttc,__,___ = main(relaxed=False, visualize=None, force_same=True, test_bias=False, train_to_completion=True)
     #    tf.reset_default_graph()
-        _,relax_thetas, relax_losses, relax_variances,__,___ = main(relaxed="super", visualize=None, force_same=True, test_bias=False)
+        _,relax_thetas, relax_losses, relax_variances,__,___ = main(t=t, relaxed="super", visualize=None, force_same=True, test_bias=False)
         tf.reset_default_graph()
     #    _,relax_thetas_ttc, relax_losses_ttc, relax_variances_ttc,__,___ = main(relaxed="super", visualize=None, force_same=True, test_bias=False, train_to_completion=True)
         tf.reset_default_graph()
-        _,lax_thetas, lax_losses, lax_variances,__,___ = main(relaxed="super", visualize=None, force_same=True, test_bias=False, train_to_completion=False, LAX=True)
-        tf.reset_default_graph()
+        _,lax_thetas, lax_losses, lax_variances,__,___ = main(t=t, relaxed="super", visualize=None, force_same=True, test_bias=False, train_to_completion=False, LAX=True)
+        # tf.reset_default_graph()
     #    _,lax_thetas_ttc, lax_losses_ttc, lax_variances_ttc,__,___ = main(relaxed="super", visualize=None, force_same=True, test_bias=False, train_to_completion=True, LAX=True)
-        tf.reset_default_graph()
+    #     tf.reset_default_graph()
     #    _,bar_thetas, bar_losses, bar_variances,__,___ = main(relaxed=False, visualize=None, force_same=True, test_bias=False, train_to_completion=False, BAR=True)
-        tf.reset_default_graph()
+    #     tf.reset_default_graph()
     #    _,bar_thetas_ttc, bar_losses_ttc, bar_variances_ttc,__,___ = main(relaxed=False, visualize=None, force_same=True, test_bias=False, train_to_completion=True, BAR=True)
 
-        with open("toy_losses.pkl", 'w') as f:
+        with open(file_name+'.pkl', 'w') as f:
             pickle.dump([ext_losses, reinf_losses, rebar_losses, relax_losses, lax_losses], f)
     x = np.arange(0, ITERS, RESOLUTION) #len(rebar_losses))
     print("rebar_losses {}".format(len(rebar_losses)))
@@ -501,13 +503,22 @@ if __name__ == "__main__":
     plt.figure(1)
     plt.xlim(0,ITERS)
     alpha=0.7
-    plt.plot(x, ext_losses, color=tableau20[0], ls='-.', label="exact gradient", alpha=alpha)
+    plt.plot(x, ext_losses, color='black', ls='-.', label="Autodiff gradient", alpha=0.5)
     plt.plot(x, reinf_losses, color=tableau20[1],label="REINFORCE", alpha=alpha)
-    plt.plot(x, rebar_losses,color=tableau20[2], label="REBAR", alpha=alpha)
+    plt.plot(x, rebar_losses,color=tableau20[3], label="REBAR", alpha=alpha)
 #    plt.plot(x, rebar_losses_ttc, 'orange', label="REBAR trained to completion")
-    plt.plot(x, relax_losses, color=tableau20[3],label="RELAX", alpha=alpha)
+    plt.plot(x, relax_losses, color=tableau20[2],label="RELAX (ours)", alpha=alpha)
 #    plt.plot(x, relax_losses_ttc, 'purple', label="RELAX trained to completion")
-    plt.plot(x, lax_losses,color=tableau20[4], label="LAX", alpha=alpha)
+    plt.plot(x, lax_losses,color=tableau20[5], label="LAX", alpha=alpha)
+
+    fill_alpha=0.25
+    plt.fill_between(x, reinf_losses, lax_losses, where=np.array(lax_losses) >= np.array(reinf_losses),
+                     color=tableau20[5], alpha=fill_alpha, interpolate=True)
+    plt.fill_between(x, relax_losses, rebar_losses, facecolor=tableau20[3], alpha=fill_alpha)
+    # plt.fill_between(x, relax_losses, ext_losses, facecolor=tableau20[2], alpha=fill_alpha)
+    plt.fill_between(x, reinf_losses, rebar_losses,  where=np.array(reinf_losses) >= np.array(rebar_losses),
+                     facecolor=tableau20[1], alpha=fill_alpha)
+
 #    plt.plot(x, lax_losses_ttc, 'black', label="LAX trained to completion")
 #    plt.plot(x, bar_losses, 'pink', label="BAR")
 #    plt.plot(x, bar_losses_ttc, 'yellow', label="BAR trained to completion")
@@ -517,7 +528,7 @@ if __name__ == "__main__":
     plt.ylabel("Loss")
     plt.xlabel("Iteration")
     sns.despine()
-    plt.savefig('toy_problem/losses.pdf', format='pdf', bbox_inches='tight')
+    plt.savefig(os.path.join('toy_problem', file_name + '.pdf'), format='pdf', bbox_inches='tight')
 #    
 #    plt.figure(2)
 #    plt.xlim(0,10000)
