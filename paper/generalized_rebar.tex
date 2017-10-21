@@ -254,23 +254,20 @@ This method of directly minimizing the variance of the gradient estimator stands
 
 
 \begin{algorithm}[t]
-	\caption{LAX Gradient Estimator for Continuous Random Variables}
-	\label{discrete-relax}
-	\begin{algorithmic}
-		\Require function $f(\cdot)$, log-likelihood $\log p(\cdot; \theta)$, differentiable function approximator $r_\phi(\cdot)$,\\
-		\hspace{3em} sampler $s(\epsilon)$, reparameterization $T(\cdot; \theta)$ 
-		% sample s \sim p(s)
-		\Function{$\hat{\mathcal{G}_i}$}{$\theta$}:
-		\State $\epsilon_{i} \sim s(\epsilon)$
-		\State $b_i \leftarrow T(\epsilon_i, \theta)$
-		\State $\nabla_\theta \log p \leftarrow \texttt{autodiff}(\log p(b_i| \theta), \theta)$ 
-		\State $\nabla_\theta r \leftarrow \texttt{autodiff}(r_\phi(b_i), \theta)$ 
-		\State \textbf{return} $(f(b_i) - r_{\phi}(b_i))\times \nabla_\theta \log p + \nabla_\theta r$
-		\EndFunction
-		
-		\Ensure $\frac{1}{K} \sum_{j=1}^K \hat{\mathcal{G}}_j(\theta)$
-		\vspace{1.5mm}
-	\end{algorithmic}
+\caption{Optimizing using \LAX{} for continuous inputs}
+\label{discrete-relax}
+\begin{algorithmic}
+\Require $f(\cdot)$, $\log p(b|\theta)$, reparameterized sampler $b = T(\theta, \epsilon)$, neural network $r_\phi(\cdot)$
+\While {not converged} 
+	\State $\epsilon_{i} \sim p(\epsilon)$ \Comment Sample noise
+	\State $b_i \leftarrow T(\epsilon_i, \theta)$ \Comment Compute input
+	\State  $g_\theta \leftarrow \left[f(b_i) - r_{\phi}(b_i) \right] \nabla_\theta \log p + \nabla_\theta r(b_i)$ \Comment Estimate gradient
+	\State  $g_phi \leftarrow 2 g_\theta \frac{\partial g_\theta}{\partial \phi}$ \Comment Estimate gradient of variance of gradient
+	\State $\theta \leftarrow \theta + \alpha_1 g_theta$ \Comment Update parameters
+	\State $\phi \leftarrow \phi + \alpha_2 g_phi$ \Comment Update control variate
+\EndWhile
+\State \textbf{return} $\theta$ 
+\end{algorithmic}
 \end{algorithm}
 
 
@@ -282,6 +279,7 @@ If $p(b)$ is Bernoulli then $p(z|\theta) = \text{Logistic}(z|\theta)$ and $H(z) 
 If $b$ is categorical, then $p(z|\theta) = \texttt{softmax}(z|\theta)$ and $H(z) = \texttt{argmax}(z)$.
 We also assume that $p(z|\theta)$ is reparameterizable.
 Moreover, we assume the distribution $p(z|b, \theta)$ is also reparameterizable meaning there exists $\hat{T}$ such that $\hat{T}(\hat{\epsilon}, b, \theta) = \hat{z} \sim p(z|b, \theta)$ (see Appendix for details).
+
 
 
 \section{Conditional reparameterization}
