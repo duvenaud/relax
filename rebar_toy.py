@@ -512,12 +512,12 @@ if __name__ == "__main__":
     plt.plot(x, lax_losses,color=tableau20[5], label="LAX", alpha=alpha)
 
     fill_alpha=0.25
-    plt.fill_between(x, reinf_losses, lax_losses, where=np.array(lax_losses) >= np.array(reinf_losses),
-                     color=tableau20[5], alpha=fill_alpha, interpolate=True)
-    plt.fill_between(x, relax_losses, rebar_losses, facecolor=tableau20[3], alpha=fill_alpha)
-    # plt.fill_between(x, relax_losses, ext_losses, facecolor=tableau20[2], alpha=fill_alpha)
-    plt.fill_between(x, reinf_losses, rebar_losses,  where=np.array(reinf_losses) >= np.array(rebar_losses),
-                     facecolor=tableau20[1], alpha=fill_alpha)
+    # plt.fill_between(x, reinf_losses, lax_losses, where=np.array(lax_losses) >= np.array(reinf_losses),
+    #                  color=tableau20[5], alpha=fill_alpha, interpolate=True)
+    # plt.fill_between(x, relax_losses, rebar_losses, facecolor=tableau20[3], alpha=fill_alpha)
+    # # plt.fill_between(x, relax_losses, ext_losses, facecolor=tableau20[2], alpha=fill_alpha)
+    # plt.fill_between(x, reinf_losses, rebar_losses,  where=np.array(reinf_losses) >= np.array(rebar_losses),
+    #                  facecolor=tableau20[1], alpha=fill_alpha)
 
 #    plt.plot(x, lax_losses_ttc, 'black', label="LAX trained to completion")
 #    plt.plot(x, bar_losses, 'pink', label="BAR")
@@ -525,10 +525,11 @@ if __name__ == "__main__":
     plt.legend(bbox_to_anchor=(1.0, 0.75))
     # plt.rc('grid', linestyle="--", color='black')
     # plt.grid(True)
-    plt.ylabel("Loss")
-    plt.xlabel("Iteration")
+    # plt.ylabel("Loss")
+    # plt.xlabel("Iteration")
+    ylims = plt.gca().get_ylim()
     sns.despine()
-    plt.savefig(os.path.join('toy_problem', file_name + '.pdf'), format='pdf', bbox_inches='tight')
+    plt.savefig(os.path.join('toy_problem', file_name +'no_envelope' + '.pdf'), format='pdf', bbox_inches='tight')
 #    
 #    plt.figure(2)
 #    plt.xlim(0,10000)
