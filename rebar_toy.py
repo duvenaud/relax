@@ -25,7 +25,7 @@ for i in range(len(tableau20)):
     tableau20[i] = (r / 255., g / 255., b / 255.)
 
 
-ITERS = 5000
+ITERS = 20000
 RESOLUTION = 1
 
 """ Helper Functions """
@@ -405,7 +405,7 @@ def main(t=0.499, use_reinforce=False, relaxed=False, visualize=False,
 
 
 if __name__ == "__main__":
-    t = 0.45
+    t = 0.499
 #    thetas = []
 #    for i in range(1):
 #        tf.reset_default_graph()
@@ -499,17 +499,17 @@ if __name__ == "__main__":
     x = np.arange(0, ITERS, RESOLUTION) #len(rebar_losses))
     print("rebar_losses {}".format(len(rebar_losses)))
 
-
+    max_plot_iters = 10000
     plt.figure(1)
-    plt.xlim(0,ITERS)
-    alpha=0.7
-    plt.plot(x, ext_losses, color='black', ls='-.', label="Autodiff gradient", alpha=0.5)
-    plt.plot(x, reinf_losses, color=tableau20[1],label="REINFORCE", alpha=alpha)
-    plt.plot(x, rebar_losses,color=tableau20[3], label="REBAR", alpha=alpha)
+    plt.xlim(0,max_plot_iters)
+    alpha=1.0
+    plt.plot(x, ext_losses, color='black', ls='-.', label="Exact gradient", alpha=0.5)
+    plt.plot(x, reinf_losses, color=tableau20[0],label="REINFORCE", alpha=alpha)
+    plt.plot(x, rebar_losses,color=tableau20[4], label="REBAR", alpha=alpha)
 #    plt.plot(x, rebar_losses_ttc, 'orange', label="REBAR trained to completion")
-    plt.plot(x, relax_losses, color=tableau20[2],label="RELAX (ours)", alpha=alpha)
+    plt.plot(x, relax_losses, color=tableau20[6],label="RELAX (ours)", alpha=alpha)
 #    plt.plot(x, relax_losses_ttc, 'purple', label="RELAX trained to completion")
-    plt.plot(x, lax_losses,color=tableau20[5], label="LAX", alpha=alpha)
+#     plt.plot(x, lax_losses,color=tableau20[5], label="LAX", alpha=alpha)
 
     fill_alpha=0.25
     # plt.fill_between(x, reinf_losses, lax_losses, where=np.array(lax_losses) >= np.array(reinf_losses),
@@ -522,7 +522,7 @@ if __name__ == "__main__":
 #    plt.plot(x, lax_losses_ttc, 'black', label="LAX trained to completion")
 #    plt.plot(x, bar_losses, 'pink', label="BAR")
 #    plt.plot(x, bar_losses_ttc, 'yellow', label="BAR trained to completion")
-    plt.legend(bbox_to_anchor=(1.0, 0.75))
+    plt.legend(loc="best")#bbox_to_anchor=(1.0, 0.75))
     # plt.rc('grid', linestyle="--", color='black')
     # plt.grid(True)
     # plt.ylabel("Loss")
