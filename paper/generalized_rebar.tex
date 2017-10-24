@@ -14,7 +14,7 @@
 \usepackage{algorithm}
 \usepackage{subcaption}
 \usepackage{algpseudocode}
-
+\usepackage{bm}
 % rename algorithmic labels
 \renewcommand{\algorithmicensure}{\textbf{return}}
 \renewcommand{\algorithmicfunction}{\textbf{def}}
@@ -88,7 +88,7 @@ This has allowed effective stochastic optimization of large probabilistic latent
 Unfortunately, there are many objective functions relevant to the machine learning community for which backpropagation cannot be applied. In reinforcement learning, for example, the function being optimized is unknown to the agent and is treated as a black box~\citep{schulman2015gradient}. Similarly, when fitting probabilistic models with discrete latent variables, discrete sampling operations create discontinuities giving the objective function zero gradient with respect to its parameters.
 %This is the case in most reinforcement learning settings, or when fitting probabilistic models with discrete latent variables.
 Much recent work has been devoted to constructing gradient estimators for these situations.
-In reinforcement learning, advantage actor-critic methods~\citep{mnih2016asynchronous} give unbiased gradient estimates with reduced variance obtained by jointly optimizing the policy parameters with an estimate of the value function.
+In reinforcement learning, advantage actor-critic methods~\citep{sutton2000policy} give unbiased gradient estimates with reduced variance obtained by jointly optimizing the policy parameters with an estimate of the value function.
 In discrete latent-variable models, low-variance but biased gradient estimates can be given by continuous relaxations of discrete variables~\citep{maddison2016concrete, jang2016categorical}.
 
 A recent advance by \citet{tucker2017rebar} used a continuous relaxation to construct a control variate for functions of discrete random variables. Low-variance estimates of the expectation of the control variate can be computed using the reparameterization trick to produce an unbiased estimator with lower variance than previous methods.
@@ -110,12 +110,12 @@ Furthermore, we derive improved variants of popular reinforcement learning metho
 \begin{figure}[h]
 \begin{center}
 \includegraphics[width=.3\textwidth]{figures/toy_losses_10000_0_499}
-\includegraphics[width=.3\textwidth]{figures/variance_no_opt}
+\includegraphics[width=.3\textwidth]{figures/variance}
 \includegraphics[width=.3\textwidth]{figures/learned_r}
 \label{first figure}
 \end{center}
 \caption{
-\emph{Left:} Training curves using different gradient estimators on a toy problem: {$\mathcal{L}(\theta) = \E_p(b|\theta) [ (b - 0.49)^2 ]$}
+\emph{Left:} Training curves using different gradient estimators on a toy problem: {$\mathcal{L}(\theta) = \E_p(b|\theta) [ (b - 0.499)^2 ]$}
 \emph{Centre:} Variance of each estimator's gradient.
 \emph{Right:} The relaxation being used by REINFORCE (red), REBAR (blue), and the optimal relaxation (green).
 }
@@ -209,7 +209,7 @@ We begin with the score-function gradient estimator:
 \end{align}
 %
 Optimally, we would use the reparameterization trick but we do not assume that $f$ admits this.
-Instead, we build a surrogate \emph{relaxation} of $f$ using a nueral network $r_\phi$, and use the reparameterization trick on $r_\phi$ instead.
+Instead, we build a surrogate \emph{relaxation} of $f$ using a neural network $r_\phi$, and use the reparameterization trick on $r_\phi$ instead.
 Using the fact that the score-function estimator and reparameterization estimator have the same expectation:
 %
 \begin{align}
@@ -289,27 +289,27 @@ which is also unbiased for any $r_\phi$. We note that the distribution $p(z|b,\t
 
 
 \subsection{Optimizing the gradient control variate with gradients}
-Both presented estimators are unbiased for any choice of the function $r_\phi$, so the only remaining problem is to choose a $r_\phi$ that gives low variance to $\hat g_\LAX$.
-How can we find a $\phi$ which gives $\hat g_\LAX$ low variance?
+Both presented estimators are unbiased for any choice of the function $r_\phi$, so the only remaining problem is to choose a $r_\phi$ that gives low variance to $\hat g_\LAX$ and $\hat g_\RELAX{}$.
+How can we find a $\phi$ which gives our estimator low variance?
 We simply optimize $r_\phi$ using stochastic gradient descent, at the same time as we optimize the parameters of our model or policy.
 
 To optimize $r_\phi$, we require the gradient of the variance of our gradient estimator.
 To estimate these gradients, we could simply differentiate through the empirical variance over each mini-batch.
-Or, following \cite{tucker2017rebar}, we can construct an unbiased, single-sample estimator using the fact that our gradient estimator is unbiased. For any unbiased gradient estimator $\hat g_\phi$ with parameters $\phi$:
+Or, following \cite{tucker2017rebar}, we can construct an unbiased, single-sample estimator using the fact that our gradient estimator is unbiased. For any unbiased gradient estimator $\hat g$ with parameters $\phi$:
 %
 \begin{align}
-\PPH \text{Variance}(g_\phi)
-= \PPH \E[g_\phi^2] - \PPH \E[g_\phi]^2
-%= \PPH \E[g_\phi^2] - \PPH \E_{p(b|\theta)}[f(b)]
-= \PPH \E[g_\phi^2]
-= \E \left[ \PPH g_\phi^2 \right]
-= \E \left[ 2 g \frac{\partial g_\phi}{\partial \phi} \right].
+\PPH \text{Variance}(\hat g)
+= \PPH \E[\hat g^2] - \PPH \E[\hat g]^2
+%= \PPH \E[\hat g^2] - \PPH \E_{p(b|\theta)}[f(b)]
+= \PPH \E[\hat g^2]
+= \E \left[ \PPH \hat g^2 \right]
+= \E \left[ 2 \hat g \frac{\partial \hat g}{\partial \phi} \right].
 \end{align}  % Do we need hats on these gs?  Or get rid of them elsewhere.
 %
-Thus, our estimator of the gradient of the variance of $\hat g_\phi$ is given by {$2 g \frac{\partial g\phi}{\partial \phi}$}.
+Thus, our estimator of the gradient of the variance of $\hat g$ is given by {$2 \hat g \frac{\partial \hat g}{\partial \phi}$}.
 
 What is the form of the variance-minimizing $r_\phi$?
-From inspection of the square of the estimator in \eqref{eq:cont_est} we can see that this loss encourages $r(b)$ to approximate $f(b)$, but with a weighting based on $\PT\log p(b)$.  % Todo: reword this awkward sentence.
+From inspection of the square of the estimator in \eqref{eq:cont_est} we can see that this loss encourages $r_\phi(b)$ to approximate $f(b)$, but with a weighting based on $\PT\log p(b)$.  % Todo: reword this awkward sentence.
 Moreover, as $r_\phi \rightarrow f$ then $\hat g_\textnormal{\LAX} \rightarrow \PT r_\phi$.
 Thus, this objective encourages a balance between the variance of the reparameterization estimator and the variance of the REINFORCE estimator. 
 
@@ -413,27 +413,27 @@ If, for example, $f$ is a known, differentiable, function of discrete random var
 
 \section{Reinforcement Learning}
 Reinforcement learning is strong motivating problem for methods similar to ours.
-In reinforcement learning we seek to optimize the parameters of a policy distribution $\pi(a|s;\phi)$ to maximize the discounted sum of future rewards given that policy $\mathbb{E}_{\pi(\phi)}[\sum_{t=1}^{\infty} r_t]$ 
+In reinforcement learning we seek to optimize the parameters of a policy distribution $\pi(a|s;\phi)$ to maximize the discounted sum of future rewards given that policy $\mathbb{E}_{\pi(\phi)}[\sum_{t=1}^{\infty} \gamma^{t-1} r_t]$ 
 %\YW{add discounting factor into the formulation. You can refer to my paper or any standard RL paper and see how these things are defined.}.
-We can view the sum of future rewards as a black-box function of our policy's actions $f(a)$.
-Thus, as before we have reduced the problem to that of estimating $\frac{\partial \mathbb{E}_{\pi(a|\phi)}[f(a)]}{\partial \phi}$ which is the standard policy gradient algorithm \cite{sutton2000policy}. 
+We can view the sum of future rewards as a black-box function of state-action trajectories $\tau$ sampled from our policy.
+Thus, as before we have reduced the problem to that of estimating $\frac{\partial \mathbb{E}_{\tau}[f(\tau)]}{\partial \phi}$ which is the standard policy gradient algorithm \cite{sutton2000policy}. 
 
 We seek to compute $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E\Big[\sum_{t=1}^T \LL{t} \sum_{t'=t}^T r_t\Big]$$ but the estimator on the right hand side can have potentially high variance. Instead, we typically compute
 $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau\Big[\sum_{t=1}^T \LL{t} [(\sum_{t'=t}^T r_{t'}) - b(s_t)]\Big]$$
-Where $b(s_t)$ is an estimate of the state-value function, $b(s) \approx V^\pi(s) = \E_{\tau}[R_t|s_t=s].$
+Where $b(s_t)$ is an estimate of the state-value function, $b(s) \approx V^\pi(s) = \E_{\tau}[R|s_1=s].$
 This is unbiased for any choice of $b$ since $b$ does not depend on $a_t$. 
 
 \subsubsection{Reinforcement learning with \LAX{} and \RELAX{}}
 We now describe how we apply \LAX{} and \RELAX{} estimators in the RL setting.
-In the case of RL, $b$ is $\tau$, which denotes a series of actions and states $[s_1, a_1, s_2, a_2, ..., s_T, a_T]$, and the function $f$ refers to the underlying MDP, which maps $b$ to the sum of discounted reward, $R = \sum_{t=1}^T \gamma^t r_t$ with discount factor $\gamma$. 
+In the case of RL, $b$ is $\tau$, which denotes a series of actions and states $[s_1, a_1, s_2, a_2, ..., s_T, a_T]$, and the function $f$ refers to the underlying MDP, which maps $\tau$ to the sum of discounted reward, $R = \sum_{t=1}^T \gamma^t r_t$ with discount factor $\gamma$. 
 
 We show the continuous case, and leave the discrete case to Appendix.
-We assume $p(a_t|s_t)$ is reparametrizable meaning that we can write $a_t = g_\theta(\epsilon,s_t)$, where $\epsilon$ does not depend on $\theta$.
+We assume $\pi(a_t|s_t)$ is reparametrizable meaning that we can write $a_t = g_\theta(\epsilon,s_t)$, where $\epsilon$ does not depend on $\theta$.
 We again introduce a new differentiable function $r_\phi(a,s)$, and it's a function of the action and the state pair.
-We observe that $\forall t$, we have (see details in Appendix \ref{}) $$\E_{p(\tau)}\Big[\LL{t} r_\phi(a_t, s_t)\Big] = \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(a_t|s_t)}\Big[r_\phi(a_t, s_t)\Big]\Big]$$ 
+We observe that $\forall t$, we have (see details in Appendix \ref{}) $$\E_{p(\tau)}\Big[\LL{t} r_\phi(a_t, s_t)\Big] = \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[r_\phi(a_t, s_t)\Big]\Big]$$ 
 Then by adding and subtracting the same term, we have
 \begin{align*}
-\PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(\tau)}\Big[\LL{t} r_\phi(a_t, s_t)\Big]+\\&\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(a_t|s_t)}\Big[r_\phi(a_t,s_t)\Big]\Big]\nonumber\\
+\PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(\tau)}\Big[\LL{t} r_\phi(a_t, s_t)\Big]+\\&\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[r_\phi(a_t,s_t)\Big]\Big]\nonumber\\
 &= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t)\Big]\Big]\nonumber\\
 &= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t)\right]\nonumber
 \end{align*}
@@ -503,7 +503,7 @@ Unlike our method, their control variate is trained off-policy. While our method
 We demonstrate the effectiveness of our estimator on a number of challenging optimization problems. Following \cite{tucker2017rebar} we begin with a simple toy example to illuminate the potential of our method and then continue to the more relevant problems of optimizing binary VAE's and reinforcement learning.
 
 \subsection{Toy Experiment}
-We seek to minimize $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where $p(b|\theta) = \mathtt{Bern}(b|\theta)$. \cite{tucker2017rebar} set the target $t = .45$.
+We seek to minimize $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where $p(b|\theta) = \mathtt{Bernoulli}(b|\theta)$. \cite{tucker2017rebar} set the target $t = .45$.
 We focus on the more challenging case where $t = .499$.
 With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the optimal solution $\theta = 0$.
 
@@ -618,20 +618,18 @@ Linear 2 Layer & 1027 & \textbf{673}
 
 
 \subsection{Reinforcement Learning}
-We test our approach on simple reinforcement learning environments with discrete actions.
-We use the \RELAX{} estimator and compare with the advantage actor critic algorithm~\cite{sutton2000policy} as a baseline.
-In all experiments we utilized the same learning rate for the policy network for RELAX and A2C to so differences in performance depended solely on the control variate used. 
+We test our approach on a few simple reinforcement learning environments with discrete and continuous actions.
+We use the \RELAX{} and \LAX{} estimators for discerete and continuous actions, respectively. We compare with the advantage actor-critic algorithm~\cite{sutton2000policy} as a baseline.
+In all experiments we utilized the same learning rate for the policy network for RELAX and A2C so differences in performance depended solely on the control variate used. 
 
-To compare these approaches in the most illustrative setting possible we run these algorithms on one environment at a time, running each episode to completion.
-After completion, we generate the discounted reward for each timestep, treat the episode as a single batch of data, and perform one step of gradient decent.
-We test our alrgorithm on the Cart-Pole and Lunar-Lander environments from the OpenAI Gym~\cite{1606.01540}.
-We run the Cart-Pole and Lunar-Lander environments for 250 and 1000 episodes, respectively and plot reward and the log-variance of the policy gradients in figure~X.
+To compare these approaches in the most illustrative setting possible we do not use any reward bootstrapping in either model. After each episode terminates, we generate the discounted reward for each time-step, treat the episode as a single batch of data, and perform one step of gradient decent. We are aware that better results could be obtained with bootstrapping and larger batch sizes but we wanted to work in the highest possible variance setting to demonstrate the variance reduction capabilities of our approach.
+
+%We test our alrgorithm on the Cart-Pole and Lunar-Lander environments from the OpenAI Gym~\cite{1606.01540}.
+%We run the Cart-Pole and Lunar-Lander environments for 250 and 1000 episodes, respectively and plot reward and the log-variance of the policy gradients in figure~X.
 
 \subsubsection{Discrete Experiments}
-We run experiments on some small reinforcement learning tasks with both discrete and continuous actions.
-We compare our method against a baseline of advantage actor-critic.
-We test our approach in the discrete action domains of the CartPole and LunarLander as provided by the OpenAI gym~\cite{1606.01540}.
-In both domains we observe improved performance and sample efficiency using our method. 
+We test our approach in the discrete action domains of the CartPole and LunarLander as provided by the OpenAI gym~\cite{1606.01540}. For all models, the policy and control variate were both neural networks with 2 layers of 10 units using the ReLU nonlinearity. We first tuned the learning rate using the baseline A2C then ran \RELAX{} with the same learning rate. 
+In both domains we observe improved performance and sample efficiency using our method. Again, we are aware that improved results could be obtained by further tuning the learning rate for \RELAX{} but we wanted to illustrate the improvement provided solely by the improved control variate. 
 
 \paragraph{Experimental Details}
 We estimate the policy gradient using a single Monte Carlo sample produced from a one episode roll-out of the current policy.
@@ -642,13 +640,13 @@ In all experiments both the policy and control variate were two layer neural net
 \begin{center}
 \begin{tabular}{l c c} 
 \textbf{CartPole} & A2C & RELAX \\\midrule
-Best Models      & $525.8 \pm 87.6$ & $373.6 \pm 80.4$ \\\\
+Episodes until solve      & $525.8 \pm 87.6$ & $\bm{373.6 \pm 80.4}$ \\\\
 \textbf{LunarLander}\\ \midrule
-Best Models & $WAITING ON RESULTS$ & $5156.8 \pm 794.9$ 
+Episodes until solve & $10703 \pm 4087$ & $\bm{5156.8 \pm 794.9}$ 
 \end{tabular}
 \end{center}
 \label{tab:vae}
-\caption{Mean Episodes to Solve. CartPole is considered solved if the agent receives an average reward over $195$ in the last $100$ Episodes. LunarLander is considered solved if the agent receives an average reward over $200$ in the last $100$ frames. RESULTS FOR FULL SWEEP TO COME BUT THESE ARE THE BEST ONES FOR EACH}
+\caption{Mean Episodes to Solve. CartPole is considered solved if the agent receives an average reward over $195$ in the last $100$ Episodes. LunarLander is considered solved if the agent receives an average reward over $200$ in the last $100$ frames.}
 \end{table}
 % cartpole epsidoes to solve, this result looks better than episodes
 % Best Models      & $81018 \pm 15405$ & $45729 \pm 16294$ \\\\
@@ -674,7 +672,7 @@ Best Models & $WAITING ON RESULTS$ & $5156.8 \pm 794.9$
 \label{conclusion}
 
 In this work, synthesized and generalized many of the standard approaches for constructing gradient estimators.
-We proposed a simple and generic gradient estimator that can be applied to expectations of known or black-box functions of discrete or continuous random variables.
+We proposed a simple and generic gradient estimator that can be applied to expectations of known or black-box functions of discrete or continuous random variables. We also derive a simple extension to apply our method to reinforcement learning in both discrete and continuous action domains. 
 This approach is relatively simple to implement and adds minimal computational overhead. 
 
 The foundation of our approach is the score function gradient estimator with a control variate whose expectation can be estimated with low variance using the reparameterization trick.
