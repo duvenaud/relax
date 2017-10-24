@@ -15,12 +15,16 @@ from rebar import simple_mc_reinforce, concrete,\
 if __name__ == '__main__':
     rs = npr.RandomState(0)
     num_samples = 10000
-    D = 3
+    D = 1
     params = logit(rs.rand(D))
-    targets = rs.randn(D)
+    targets = rs.rand(D)
 
     def objective(params, b):
-        return np.sum((b - targets + expit(params))**2, axis=-1, keepdims=True)
+        #return np.sum((b - targets + expit(params))**2, axis=-1, keepdims=True)
+        return np.sum((b - targets)**2, axis=-1, keepdims=True)
+
+    def exact_objective(params):
+        return expit(-params) * objective(params, 0) + expit(params) * objective(params, 1)
 
     def mc(params, estimator=simple_mc_reinforce):
         rs = npr.RandomState(0)
@@ -30,15 +34,12 @@ if __name__ == '__main__':
         return np.mean(objective_vals)
 
     print("Gradient estimators:")
-    print("Numerical          : {}".format(np.array(nd(mc, params))[0]))
+    print("Exact              : {}".format(grad(exact_objective)(params)))
     print("Reinforce          : {}".format(grad(mc)(params, simple_mc_reinforce)))
-    print("Concrete, temp = 0 : {}".format(grad(mc)(params, lambda p, n, o: concrete(p, np.log(0.001), n, o))))
     print("Concrete, temp = 1 : {}".format(grad(mc)(params, lambda p, n, o: concrete(p, np.log(1.0), n, o))))
-    print("Rebar, temp = 0    : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (np.log(0.001), np.log(0.3)), n, rs.rand(num_samples, D), o))))
     print("Rebar, temp = 1    : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (np.log(1.0),  np.log(0.3)), n, rs.rand(num_samples, D), o))))
     print("Rebar, temp = 10   : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (np.log(10.0), np.log(0.3)), n, rs.rand(num_samples, D), o))))
     print("Rebar, eta = 0     : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (np.log(1.0),  np.log(0.0)), n, rs.rand(num_samples, D), o))))
-    print("bar, temp = 0    : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_bar(p, (np.log(0.001), np.log(0.3)), n, o))))
     print("bar, temp = 1    : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_bar(p, (np.log(1.0),  np.log(0.3)), n, o))))
     print("bar, temp = 10   : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_bar(p, (np.log(10.0), np.log(0.3)), n, o))))
     print("bar, eta = 0     : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_bar(p, (np.log(1.0),  np.log(0.0)), n, o))))
