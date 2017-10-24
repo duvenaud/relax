@@ -244,7 +244,9 @@ def get_variables(tag, arr=None):
 def main(relaxation=None, learn_prior=True, max_iters=None,
          batch_size=24, num_latents=200, model_type=None, lr=None,
          test_bias=False, train_dir=None, iwae_samples=100, dataset="mnist",
-         logf=None, var_lr_scale=10., Q_wd=.0001, Q_depth=-1):
+         logf=None, var_lr_scale=10., Q_wd=.0001, Q_depth=-1, checkpoint_path=None):
+
+    valid_batch_size = 100
 
     if model_type == "L1":
         num_layers = 1
@@ -268,8 +270,8 @@ def main(relaxation=None, learn_prior=True, max_iters=None,
     train_mean = np.mean(X_tr, axis=0, keepdims=True)
     train_output_bias = -np.log(1. / np.clip(train_mean, 0.001, 0.999) - 1.).astype(np.float32)
 
-    x = tf.placeholder(tf.float32, [batch_size, 784])
-    x_im = tf.reshape(x, [batch_size, 28, 28, 1])
+    x = tf.placeholder(tf.float32, [None, 784])
+    x_im = tf.reshape(x, [-1, 28, 28, 1])
     tf.summary.image("x_true", x_im)
 
     # make prior for top b
@@ -288,7 +290,7 @@ def main(relaxation=None, learn_prior=True, max_iters=None,
 
     # random uniform samples
     u = [
-        tf.random_uniform([batch_size, num_latents], dtype=tf.float32)
+        tf.random_uniform([tf.shape(x)[0], num_latents], dtype=tf.float32)
         for l in range(num_layers)
     ]
     # create binary sampler
@@ -477,78 +479,99 @@ def main(relaxation=None, learn_prior=True, max_iters=None,
     # create savers
     train_saver = tf.train.Saver(tf.global_variables(), max_to_keep=1)
     val_saver = tf.train.Saver(tf.global_variables(), max_to_keep=1)
+    iwae_elbo = -(tf.reduce_logsumexp(-f_b) - np.log(valid_batch_size))
 
-    iters_per_epoch = X_tr.shape[0] // batch_size
-    print("Train set has {} examples".format(X_tr.shape[0]))
-    if relaxation != "rebar":
-        print("Pretraining Q network")
-        for i in range(1000):
-            if i % 100 == 0:
-                print(i)
-            idx = np.random.randint(0, iters_per_epoch-1)
-            batch_xs = X_tr[idx * batch_size: (idx + 1) * batch_size]
-            sess.run(variance_train_op, feed_dict={x: batch_xs})
-    t = time.time()
-    best_val_loss = np.inf
-    for epoch in range(10000000):
-        train_losses = []
-        for i in range(iters_per_epoch):
-            cur_iter = epoch * iters_per_epoch + i
-            if cur_iter > max_iters:
-                print("Training Completed")
-                return
-            batch_xs = X_tr[i*batch_size: (i+1) * batch_size]
-            if i % 1000 == 0:
-                loss, _, = sess.run([total_loss, train_op], feed_dict={x: batch_xs})
-                #summary_writer.add_summary(sum_str, cur_iter)
-                time_taken = time.time() - t
-                t = time.time()
-                #print(cur_iter, loss, "{} / batch".format(time_taken / 1000))
-                if test_bias:
-                    rebs = []
-                    refs = []
-                    for _i in range(100000):
-                        if _i % 1000 == 0:
-                            print(_i)
-                        rb, re = sess.run([rebars[3], reinforces[3]], feed_dict={x: batch_xs})
-                        rebs.append(rb[:5])
-                        refs.append(re[:5])
-                    rebs = np.array(rebs)
-                    refs = np.array(refs)
-                    re_var = np.log(refs.var(axis=0))
-                    rb_var = np.log(rebs.var(axis=0))
-                    print("rebar variance     = {}".format(rb_var))
-                    print("reinforce variance = {}".format(re_var))
-                    print("rebar     = {}".format(rebs.mean(axis=0)))
-                    print("reinforce = {}\n".format(refs.mean(axis=0)))
-            else:
-                loss, _ = sess.run([total_loss, train_op], feed_dict={x: batch_xs})
+    if checkpoint_path is None:
+        iters_per_epoch = X_tr.shape[0] // batch_size
+        print("Train set has {} examples".format(X_tr.shape[0]))
+        if relaxation != "rebar":
+            print("Pretraining Q network")
+            for i in range(1000):
+                if i % 100 == 0:
+                    print(i)
+                idx = np.random.randint(0, iters_per_epoch-1)
+                batch_xs = X_tr[idx * batch_size: (idx + 1) * batch_size]
+                sess.run(variance_train_op, feed_dict={x: batch_xs})
+        t = time.time()
+        best_val_loss = np.inf
+        for epoch in range(10000000):
+            train_losses = []
+            for i in range(iters_per_epoch):
+                cur_iter = epoch * iters_per_epoch + i
+                if cur_iter > max_iters:
+                    print("Training Completed")
+                    return
+                batch_xs = X_tr[i*batch_size: (i+1) * batch_size]
+                if i % 1000 == 0:
+                    loss, _, = sess.run([total_loss, train_op], feed_dict={x: batch_xs})
+                    #summary_writer.add_summary(sum_str, cur_iter)
+                    time_taken = time.time() - t
+                    t = time.time()
+                    #print(cur_iter, loss, "{} / batch".format(time_taken / 1000))
+                    if test_bias:
+                        rebs = []
+                        refs = []
+                        for _i in range(100000):
+                            if _i % 1000 == 0:
+                                print(_i)
+                            rb, re = sess.run([rebars[3], reinforces[3]], feed_dict={x: batch_xs})
+                            rebs.append(rb[:5])
+                            refs.append(re[:5])
+                        rebs = np.array(rebs)
+                        refs = np.array(refs)
+                        re_var = np.log(refs.var(axis=0))
+                        rb_var = np.log(rebs.var(axis=0))
+                        print("rebar variance     = {}".format(rb_var))
+                        print("reinforce variance = {}".format(re_var))
+                        print("rebar     = {}".format(rebs.mean(axis=0)))
+                        print("reinforce = {}\n".format(refs.mean(axis=0)))
+                else:
+                    loss, _ = sess.run([total_loss, train_op], feed_dict={x: batch_xs})
 
-            train_losses.append(loss)
+                train_losses.append(loss)
 
-        # epoch over, run test data
-        val_losses = []
-        for _it in range(X_va.shape[0] // batch_size - 1):
-            batch_xs = X_va[_it*batch_size: (_it+1)*batch_size]
-            val_losses.append(sess.run(total_loss, feed_dict={x: batch_xs}))
-        trl = np.mean(train_losses)
-        val = np.mean(val_losses)
-        print("({}) Epoch = {}, Val loss = {}, Train loss = {}".format(train_dir, epoch, val, trl))
-        logf.write("{}: {} {}\n".format(epoch, val, trl))
-        sess.run([val_loss.assign(val), train_loss.assign(trl)])
-        if val < best_val_loss:
-            print("saving best model")
-            best_val_loss = val
-            val_saver.save(sess, '{}/best-model'.format(train_dir), global_step=epoch)
-        np.random.shuffle(X_tr)
-        if epoch % 10 == 0:
-            train_saver.save(sess, '{}/model'.format(train_dir), global_step=epoch)
+            # epoch over, run test data
+            iwaes = []
+            for x_va in X_va:
+                x_va_batch = np.array([x_va for i in range(valid_batch_size)])
+                iwae = sess.run(iwae_elbo, feed_dict={x: x_va_batch})
+                iwaes.append(iwae)
+            trl = np.mean(train_losses)
+            val = np.mean(iwaes)
+            print("({}) Epoch = {}, Val loss = {}, Train loss = {}".format(train_dir, epoch, val, trl))
+            logf.write("{}: {} {}\n".format(epoch, val, trl))
+            sess.run([val_loss.assign(val), train_loss.assign(trl)])
+            if val < best_val_loss:
+                print("saving best model")
+                best_val_loss = val
+                val_saver.save(sess, '{}/best-model'.format(train_dir), global_step=epoch)
+            np.random.shuffle(X_tr)
+            if epoch % 10 == 0:
+                train_saver.save(sess, '{}/model'.format(train_dir), global_step=epoch)
+
+    # run iwae elbo on test set
+    else:
+        val_saver.restore(sess, checkpoint_path)
+        iwae_elbo = -(tf.reduce_logsumexp(-f_b) - np.log(valid_batch_size))
+        iwaes = []
+        elbos = []
+        for x_te in X_te:
+            x_te_batch = np.array([x_te for i in range(100)])
+            iwae, elbo = sess.run([iwae_elbo, f_b], feed_dict={x: x_te_batch})
+            iwaes.append(iwae)
+            elbos.append(elbo)
+        print("MEAN IWAE: {}".format(np.mean(iwaes)))
+        print("MEAN ELBO: {}".format(np.mean(elbos)))
+
+
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=None)
     parser.add_argument("--relaxation", type=str, default=None)
+    parser.add_argument("--checkpoint_path", type=str, default=None)
+    parser.add_argument("--train_dir", type=str, default=None)
     parser.add_argument("--model", type=str, default=None)
     parser.add_argument("--max_iters", type=int, default=None)
     parser.add_argument("--dataset", type=str, default=None)
@@ -557,17 +580,22 @@ if __name__ == "__main__":
     parser.add_argument("--Q_wd", type=float, default=0.0)
     FLAGS = parser.parse_args()
 
-    td = "/ais/gobi5/wgrathwohl/rebar_experiments/{}/{}/{}/lr_{}_var_lr_scale_{}_Q_depth_{}_Q_wd_{}_iters_{}".format(
-        FLAGS.dataset, FLAGS.model, FLAGS.relaxation,
-        str(FLAGS.lr).replace('.', 'p'), str(FLAGS.var_lr_scale).replace('.', 'p'),
-        FLAGS.Q_depth, str(FLAGS.Q_wd).replace('.', 'p'),
-        FLAGS.max_iters
-    )
+
+    if FLAGS.train_dir is None:
+        td = "/ais/gobi5/wgrathwohl/rebar_experiments_IWAE_VALID/{}/{}/{}/lr_{}_var_lr_scale_{}_Q_depth_{}_Q_wd_{}_iters_{}".format(
+            FLAGS.dataset, FLAGS.model, FLAGS.relaxation,
+            str(FLAGS.lr).replace('.', 'p'), str(FLAGS.var_lr_scale).replace('.', 'p'),
+            FLAGS.Q_depth, str(FLAGS.Q_wd).replace('.', 'p'),
+            FLAGS.max_iters
+        )
+    else:
+        td = FLAGS.train_dir
+
     print("Train Dir is {}".format(td))
     if os.path.exists(td):
+        1/0
         print("Deleting existing train dir")
         import shutil
-
         shutil.rmtree(td)
     os.makedirs(td)
     # make params file
@@ -587,5 +615,5 @@ if __name__ == "__main__":
             relaxation=FLAGS.relaxation, train_dir=td, dataset=FLAGS.dataset,
             lr=FLAGS.lr, model_type=FLAGS.model, max_iters=FLAGS.max_iters,
             logf=logf, var_lr_scale=FLAGS.var_lr_scale,
-            Q_depth=FLAGS.Q_depth, Q_wd=FLAGS.Q_wd
+            Q_depth=FLAGS.Q_depth, Q_wd=FLAGS.Q_wd, checkpoint_path=FLAGS.checkpoint_path
         )
