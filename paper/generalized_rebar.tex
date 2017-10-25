@@ -216,12 +216,12 @@ We begin with the score-function gradient estimator:
 \hat g_\textnormal{reinforce} = f \! \left( b \right) \PT \log p(b | \theta), \qquad b \sim p(b|\theta)
 \end{align}
 %
-Instead of differentiating through $f$, we build a surrogate \emph{relaxation} of $f$ using a neural network $r_\phi$, and differentiate $r_\phi$ instead.
+Instead of differentiating through $f$, we build a surrogate of $f$ using a neural network $c_\phi$, and differentiate $c_\phi$ instead.
 Using the fact that the score-function estimator and reparameterization estimator have the same expectation:
 %
 \begin{align}
-\E_{p(\epsilon)} \left[ r_\phi ( b(\epsilon, \theta)) \PT \log p(b | \theta) \right] =
-\E_{p(\epsilon)} \left[ \frac{\partial r_\phi}{\partial b} \frac{\partial b(\theta, \epsilon)}{\partial \theta} \right]
+\E_{p(\epsilon)} \left[ c_\phi ( b(\epsilon, \theta)) \PT \log p(b | \theta) \right] =
+\E_{p(\epsilon)} \left[ \frac{\partial c_\phi}{\partial b} \frac{\partial b(\theta, \epsilon)}{\partial \theta} \right]
 \end{align}
 %
 %
@@ -234,13 +234,13 @@ Using the fact that the score-function estimator and reparameterization estimato
 %\YW{This is the motivation for our following proposal. But I find it's not motivated enough.  It sounds like an assumption. But we're actually looking at this type of problem. I suggest motivate this more in the introduction paragraph, background section. List some examples of such $f$.} 
 %Given the reparameterization, we can re-write this objective as an expectation over $\epsilon$ as  $\PT\E_{p(\epsilon)}[f(T(\epsilon, \theta)]$.
 %
-%Let $r_\phi$ be a differentiable function (such as a neural network) parametrized by $\phi$.
-%By REINFORCE, we have $\PT\E_{p(b;\theta)}[r_\phi(b)] = \E_{p(b;\theta)}[r_\phi(b)\LP{b;\theta}]$.
+%Let $c_\phi$ be a differentiable function (such as a neural network) parametrized by $\phi$.
+%By REINFORCE, we have $\PT\E_{p(b;\theta)}[c_\phi(b)] = \E_{p(b;\theta)}[c_\phi(b)\LP{b;\theta}]$.
 %Hence, by adding and subtracting it, we have
 %
 %\begin{align}
-%\PT\E_{p(b;\theta)}[f(b)] &= \E_{p(b;\theta)}\left[ \left[f(b) - r_\phi(b)\right]\cdot\LP{b;\theta}\right]+\PT\E_{p(b;\theta)}[r_\phi(b)]\nonumber\\
-%&= \E_{p(\epsilon)} \left[ \left[f(g_\theta(\epsilon)) - r_\phi(g_\theta(\epsilon))\right]\cdot\LP{b} + \PT r(g_\theta(\epsilon))\right]\nonumber
+%\PT\E_{p(b;\theta)}[f(b)] &= \E_{p(b;\theta)}\left[ \left[f(b) - c_\phi(b)\right]\cdot\LP{b;\theta}\right]+\PT\E_{p(b;\theta)}[c_\phi(b)]\nonumber\\
+%&= \E_{p(\epsilon)} \left[ \left[f(g_\theta(\epsilon)) - c_\phi(g_\theta(\epsilon))\right]\cdot\LP{b} + \PT r(g_\theta(\epsilon))\right]\nonumber
 %\end{align}
 %
 %Which allows us to define our estimator below as: 
@@ -249,15 +249,15 @@ We can simply add the score-function estimator and subtract the reparameterizati
 %
 \begin{align}
 \label{eq:cont_est}
-\hat g_\LAX = \left[ f(b) -r_\phi(b) \right] \PT \log p(b|\theta) + \PT r_\phi(b) \qquad b = b(\theta, \epsilon), \epsilon \sim p(\epsilon).
+\hat g_\LAX = \left[ f(b) -c_\phi(b) \right] \PT \log p(b|\theta) + \PT c_\phi(b) \qquad b = b(\theta, \epsilon), \epsilon \sim p(\epsilon).
 \end{align}
 %
-This gives an unbiased estimator for any choice of $r_\phi$.
+This gives an unbiased estimator for any choice of $c_\phi$.
 
 
 \begin{algorithm}[h]
 \begin{algorithmic}
-\Require $f(\cdot)$, $\log p(b|\theta)$, reparameterized sampler $b = T(\theta, \epsilon)$, neural network $r_\phi(\cdot)$
+\Require $f(\cdot)$, $\log p(b|\theta)$, reparameterized sampler $b = T(\theta, \epsilon)$, neural network $c_\phi(\cdot)$
 \While {not converged} 
 	\State $\epsilon_{i} \sim p(\epsilon)$ \Comment Sample noise
 	\State $b_i \leftarrow T(\epsilon_i, \theta)$ \Comment Compute input
@@ -282,12 +282,12 @@ The discrete version of the \LAX{} estimator is given by:
 %
 \begin{align}
 \label{eq:discrete lax}
-\hat g_\DLAX = f(b) \PT \log p(b|\theta) - r_\phi(z) \PT \log p(z|\theta) + \PT r_\phi(z), \qquad b = H(z), z \sim p(z|\theta).
+\hat g_\DLAX = f(b) \PT \log p(b|\theta) - c_\phi(z) \PT \log p(z|\theta) + \PT c_\phi(z), \qquad b = H(z), z \sim p(z|\theta).
 \end{align}
 %
 %When $p(b|\theta)$ is a distribution over discrete random variables, more care must be taken.
 This estimator is simple to implement and general.
-However, we might expect this estimator to have high variance, since $r_\phi$ must both correlate with the discrete function $f$, whose gradients are zero w.r.t. its input, but also have a low-variance reparameterization gradient.
+However, we might expect this estimator to have high variance, since $c_\phi$ must both correlate with the discrete function $f$, whose gradients are zero w.r.t. its input, but also have a low-variance reparameterization gradient.
 Intuitively, these two requirements are in direct opposition.
 
 %Most discrete distributions of interest fit into this formulation.
@@ -296,20 +296,20 @@ Specifically, we evaluate our control variate both at a relaxed input $z \sim p(
 Thus we define our estimator as
 %
 \begin{align}
-\hat g_\textnormal{RELAX} = \left[ f(b) - r_\phi(\hat{z}) \right] \PT \log p(b|\theta) + \PT r_\phi(z) - \PT r_\phi (\tilde{z}) \\
+\hat g_\textnormal{RELAX} = \left[ f(b) - c_\phi(\hat{z}) \right] \PT \log p(b|\theta) + \PT c_\phi(z) - \PT c_\phi (\tilde{z}) \\
 \qquad b = H(z), z \sim p(z|\theta), \tilde{z} \sim p(z|b, \theta) \nonumber
 \end{align}
 %
 
-This estimator is unbiased for any $r_\phi$.
+This estimator is unbiased for any $c_\phi$.
 We prove this following~\cite{tucker2017rebar}:
 %
 \begin{align}
-\E_{p(b|\theta)} \! \left[\left[ f(b) - \E_{p(z|b, \theta)} \! \left[r_\phi(z) \right] \right]\PT \log p(b|\theta)  - \PT \E_{p(z|b, \theta)} \! \left[r_\phi(z) \right] \right] + \PT\E_{p(z|\theta)} \! \left[ r_\phi(z) \right] \span & \nonumber\\
-&= \PT \E_{p(b|\theta)} \! \left[ f(b) - \E_{p(z|b, \theta)}\left[ r_\phi(z) \right]  \right] + \PT\E_{p(z|\theta)} \! \left[ r_\phi(z) \right]\nonumber\\
-&= \PT \E_{p(b|\theta)} \! \left[ f(b) \right] - \E_{p(z|\theta)} \! \left[ r_\phi(z) \right] + \PT\E_{p(z|\theta)} \! \left[ r_\phi(z) \right]
-= \PT \expectedLoss{}%&= \E_{p(\epsilon, \hat{\epsilon})}\Big[\left( f(H(T(\epsilon, \theta))) - r_\phi(T(\epsilon, \theta))  \right) \PT \log p(H(T(\epsilon, \theta))|\theta) - \PT r_\phi(\hat{T}(\hat{\epsilon}, H(T(\epsilon, \theta)), \theta)) \Big]\nonumber\\
-%&\qquad + \PT\E_{p(\epsilon)}\left[ r_\phi(T(\epsilon, \theta)) \right]
+\E_{p(b|\theta)} \! \left[\left[ f(b) - \E_{p(z|b, \theta)} \! \left[c_\phi(z) \right] \right]\PT \log p(b|\theta)  - \PT \E_{p(z|b, \theta)} \! \left[c_\phi(z) \right] \right] + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right] \span & \nonumber\\
+&= \PT \E_{p(b|\theta)} \! \left[ f(b) - \E_{p(z|b, \theta)}\left[ c_\phi(z) \right]  \right] + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right]\nonumber\\
+&= \PT \E_{p(b|\theta)} \! \left[ f(b) \right] - \E_{p(z|\theta)} \! \left[ c_\phi(z) \right] + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right]
+= \PT \expectedLoss{}%&= \E_{p(\epsilon, \hat{\epsilon})}\Big[\left( f(H(T(\epsilon, \theta))) - c_\phi(T(\epsilon, \theta))  \right) \PT \log p(H(T(\epsilon, \theta))|\theta) - \PT c_\phi(\hat{T}(\hat{\epsilon}, H(T(\epsilon, \theta)), \theta)) \Big]\nonumber\\
+%&\qquad + \PT\E_{p(\epsilon)}\left[ c_\phi(T(\epsilon, \theta)) \right]
 \end{align}
 %
 We note that the distribution $p(z|b,\theta)$ must also be reparameterizable.
@@ -317,11 +317,11 @@ This is the case for Bernoulli and categorical random variables.
 We demonstrate how to perform this conditional reparameterization in appendix~\ref{resample}.
 
 \subsection{Optimizing the gradient control variate with gradients}
-Both presented estimators are unbiased for any choice of the function $r_\phi$, so the only remaining problem is to choose a $r_\phi$ that gives low variance to $\hat g_\LAX$ and $\hat g_\RELAX{}$.
+Both presented estimators are unbiased for any choice of the function $c_\phi$, so the only remaining problem is to choose a $c_\phi$ that gives low variance to $\hat g_\LAX$ and $\hat g_\RELAX{}$.
 How can we find a $\phi$ which gives our estimator low variance?
-We simply optimize $r_\phi$ using stochastic gradient descent, at the same time as we optimize the parameters of our model or policy.
+We simply optimize $c_\phi$ using stochastic gradient descent, at the same time as we optimize the parameters of our model or policy.
 
-To optimize $r_\phi$, we require the gradient of the variance of our gradient estimator.
+To optimize $c_\phi$, we require the gradient of the variance of our gradient estimator.
 To estimate these gradients, we could simply differentiate through the empirical variance over each mini-batch.
 Or, following \cite{tucker2017rebar} and \cite{ruiz2016overdispersed}, we can construct an unbiased, single-sample estimator using the fact that our gradient estimator is unbiased.
 For any unbiased gradient estimator $\hat g$ with parameters $\phi$:
@@ -338,30 +338,30 @@ For any unbiased gradient estimator $\hat g$ with parameters $\phi$:
 %
 Thus, an unbiased single-sample estimate of the gradient of the variance of $\hat g$ is given by {$2 \hat g \frac{\partial \hat g}{\partial \phi}$}.
 
-This method of directly minimizing the variance of the gradient estimator stands in contrast to other methods such as Q-Prop~\citep{gu2016q} and advantage actor-critic~\citep{mnih2016asynchronous}, which train the control variate to minimize the squared error $(f(b) - r_\phi(b))^2$.
-Our algorithm, which jointly optimizes the parameters $\theta$ and the relaxation $r_\phi$ is given in Algorithm~\ref{lax}.
+This method of directly minimizing the variance of the gradient estimator stands in contrast to other methods such as Q-Prop~\citep{gu2016q} and advantage actor-critic~\citep{mnih2016asynchronous}, which train the control variate to minimize the squared error $(f(b) - c_\phi(b))^2$.
+Our algorithm, which jointly optimizes the parameters $\theta$ and the surrogate $c_\phi$ is given in Algorithm~\ref{lax}.
 %[Todo: talk about the variance of the gradient estimator of the variance of the gradient estimators?]
 
-\subsubsection{Optimal relaxation}
-What is the form of the variance-minimizing $r_\phi$?
-Inspecting the square of \eqref{eq:cont_est}, we can see that this loss encourages $r_\phi(b)$ to approximate $f(b)$, but with a weighting based on $\PT\log p(b)$.  % Todo: reword this awkward sentence.
-Moreover, as $r_\phi \rightarrow f$ then $\hat g_\textnormal{\LAX} \rightarrow \PT r_\phi$.
+\subsubsection{Optimal surrogate}
+What is the form of the variance-minimizing $c_\phi$?
+Inspecting the square of \eqref{eq:cont_est}, we can see that this loss encourages $c_\phi(b)$ to approximate $f(b)$, but with a weighting based on $\PT\log p(b)$.  % Todo: reword this awkward sentence.
+Moreover, as $c_\phi \rightarrow f$ then $\hat g_\textnormal{\LAX} \rightarrow \PT c_\phi$.
 Thus, this objective encourages a balance between the variance of the reparameterization estimator and the variance of the REINFORCE estimator.
-Figure~\ref{first figure}c shows the optimal relaxation on a toy problem.
+Figure~\ref{first figure}c shows the optimal surrogate on a toy problem.
 
 \subsection{Choosing the control variate architecture}
 %We have introduced a generic family of algorithms which produce unbiased and potentially low variance estimates of $\PT \E_{p(b|\theta)}[f(b)]$.
 %Furthermore, we provide a tractable method to optimize the parameters of the control variate to minimize the variance of the estimator.
-%Our approach allows us to design our control variate $r_\phi$ in any way we please.
-The variance-reduction objective introduced above allows us to use any differentiable, parametric function as our control variate $r_\phi$. 
-How should we choose the architecture of $r_\phi$?
+%Our approach allows us to design our control variate $c_\phi$ in any way we please.
+The variance-reduction objective introduced above allows us to use any differentiable, parametric function as our control variate $c_\phi$. 
+How should we choose the architecture of $c_\phi$?
 Ideally, we will take advantage of any known structure in $f$.
 
-If $f$ is a known, differentiable function of discrete random variables, we can use the concrete relaxation~\cite{maddison2016concrete} and let $r_\phi(z) = f(\sigma_\lambda(z))$.
+If $f$ is a known, differentiable function of discrete random variables, we can use the concrete relaxation~\cite{maddison2016concrete} and let $c_\phi(z) = f(\sigma_\lambda(z))$.
 In this special case, our estimator is exactly the REBAR estimator.
-We are also free to add a learned component to the concrete relaxation and let $r_\phi(z) = f(\sigma_\lambda(z)) + \hat{r}_\rho(z)$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$.
+We are also free to add a learned component to the concrete relaxation and let $c_\phi(z) = f(\sigma_\lambda(z)) + \hat{r}_\rho(z)$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$.
 We have taken this approach in our experiments training discrete variational auto-encoders.
-If no information about $f$ is known, then we are also free to let $r_\phi$ be a generic function approximator such as a neural network.
+If no information about $f$ is known, then we are also free to let $c_\phi$ be a generic function approximator such as a neural network.
 This is the approach we have taken in our reinforcement learning experiments.
 
 
@@ -429,22 +429,22 @@ This is the approach we have taken in our reinforcement learning experiments.
 %b &= H(z), \nonumber
 %\end{align}
 %where $H(\cdot)$ is the \texttt{argmax} function. Inspired by REBAR \citet{tucker2017rebar}, we write $p(z|\theta)$ as $\int p(z|b, \theta)p(b|\theta)db$. Note that if $p(z|\theta)$ and $p(z|b, \theta)$ are reparameterizable, i.e., there exists $\hat{T}$ such that $\hat{T}(\hat{\epsilon}, b, \theta) = \hat{z} \sim p(z|b, \theta)$. See Appendix for details on sampling from $p(z|b, \theta)$ in both the Bernoulli and Categorical cases.
-%As in \LAX{}, we let $r_\phi$ be an differentiable function. Now we derive our estimator as follows,
+%As in \LAX{}, we let $c_\phi$ be an differentiable function. Now we derive our estimator as follows,
 %
 %\begin{align}
-%\PT \expectedLoss{} &= \PT \E_{p(b|\theta)}\left[ f(b) \right] - \E_{p(z|\theta)}\left[ r_\phi(z) \right] + \PT\E_{p(z|\theta)}\left[ r_\phi(z) \right]\nonumber\\
-%&= \PT \E_{p(b|\theta)}\left[ f(b) - \E_{p(z|b, \theta)}\left[ r_\phi(z) \right]  \right] + \PT\E_{p(z|\theta)}\left[ r_\phi(z) \right]\nonumber\\
-%&= \E_{p(b|\theta)}\left[\left( f(b) - \E_{p(z|b, \theta)}\left[r_\phi(z) \right] \right)\PT \log p(b|\theta)  - \PT \E_{p(z|b, \theta)}\left[r_\phi(z) \right] \right]\nonumber\\
-%&\qquad + \PT\E_{p(z|\theta)}\left[ r_\phi(z) \right]\nonumber\\
-%&= \E_{p(\epsilon, \hat{\epsilon})}\Big[\left( f(H(T(\epsilon, \theta))) - r_\phi(T(\epsilon, \theta))  \right) \PT \log p(H(T(\epsilon, \theta))|\theta) \nonumber\\
-%&\qquad\qquad\qquad - \PT r_\phi(\hat{T}(\hat{\epsilon}, H(T(\epsilon, \theta)), \theta)) \Big]\nonumber\\
-%&\qquad + \PT\E_{p(\epsilon)}\left[ r_\phi(T(\epsilon, \theta)) \right]\nonumber
+%\PT \expectedLoss{} &= \PT \E_{p(b|\theta)}\left[ f(b) \right] - \E_{p(z|\theta)}\left[ c_\phi(z) \right] + \PT\E_{p(z|\theta)}\left[ c_\phi(z) \right]\nonumber\\
+%&= \PT \E_{p(b|\theta)}\left[ f(b) - \E_{p(z|b, \theta)}\left[ c_\phi(z) \right]  \right] + \PT\E_{p(z|\theta)}\left[ c_\phi(z) \right]\nonumber\\
+%&= \E_{p(b|\theta)}\left[\left( f(b) - \E_{p(z|b, \theta)}\left[c_\phi(z) \right] \right)\PT \log p(b|\theta)  - \PT \E_{p(z|b, \theta)}\left[c_\phi(z) \right] \right]\nonumber\\
+%&\qquad + \PT\E_{p(z|\theta)}\left[ c_\phi(z) \right]\nonumber\\
+%&= \E_{p(\epsilon, \hat{\epsilon})}\Big[\left( f(H(T(\epsilon, \theta))) - c_\phi(T(\epsilon, \theta))  \right) \PT \log p(H(T(\epsilon, \theta))|\theta) \nonumber\\
+%&\qquad\qquad\qquad - \PT c_\phi(\hat{T}(\hat{\epsilon}, H(T(\epsilon, \theta)), \theta)) \Big]\nonumber\\
+%&\qquad + \PT\E_{p(\epsilon)}\left[ c_\phi(T(\epsilon, \theta)) \right]\nonumber
 %\end{align}
 %
 %which allows us to define our estimator as
 %
 %\begin{align}
-%\hat g_\textnormal{RELAX} = \left(f(b) -r_\phi(\hat{z})\right)\PT \log p(b|\theta) + \PT r_\phi(z) - \PT r_\phi (\tilde{z}) \nonumber\\
+%\hat g_\textnormal{RELAX} = \left(f(b) -c_\phi(\hat{z})\right)\PT \log p(b|\theta) + \PT c_\phi(z) - \PT c_\phi (\tilde{z}) \nonumber\\
 %\qquad b = H(z), z \sim p(z|\theta), \tilde{z} \sim p(z|b, \theta)
 %\end{align}
 %
@@ -452,8 +452,7 @@ This is the approach we have taken in our reinforcement learning experiments.
 %Therefore we can take the advantage of reparameterization to further reduce the variance of the estimator.
 
 
-
-\section{Reinforcement learning with \LAX{}}
+\subsection{Reinforcement learning}
 We now describe how we apply the \LAX{} estimator in the reinforcement learning (RL) setting.
 By reinforcement learning, we refer to the problem of optimizing the parameters $\theta$ of a policy distribution $\pi(a | s, \theta)$ to maximize the sum of rewards.
 In this setting, the random variable being integrated over is $\tau$, which denotes a series of actions and states $[(s_1, a_1), (s_2, a_2), ..., (s_T, a_T)]$.
@@ -488,22 +487,22 @@ The main limitations of A2C are that $c$ does not depend on $a_t$, and that it's
 Using the \LAX{} estimator addresses both of these problems.
 
 First, we assume $\pi(a_t|s_t)$ is reparametrizable, meaning that we can write $a_t = g_\theta(\epsilon,s_t)$, where $\epsilon$ does not depend on $\theta$.
-We again introduce a differentiable surrogate relaxation $r_\phi(a,s)$.
+We again introduce a differentiable surrogate $c_\phi(a,s)$.
 Crucially, this surrogate is a function of the action as well as the state.
 
 Our estimator is defined as: 
 %
 \begin{align}
-\hat g_\LAX^{\RL} = \sum_{t=1}^T \LL{t} \left[ \sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} r_\phi(g_\theta(\epsilon_t,s_t), s_t), \\
+\hat g_\LAX^{\RL} = \sum_{t=1}^T \LL{t} \left[ \sum_{t'=t}^T r_{t'} - c_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} c_\phi(g_\theta(\epsilon_t,s_t), s_t), \\
 a_t = g_\theta(\epsilon_t,s_t) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber.
 \label{eq:rl_est}
 \end{align}
 %
 This estimator is unbiased if the true dynamics of the system are Markovian w.r.t. the state $s_t$.
 When $T = 1$, we recover the special case ${g_\LAX^{\RL} = g_\LAX}$.
-Comparing $\hat g_\LAX^{\RL}$ to the standard advantage actor-critic estimator in~\eqref{eq:rl_a2c}, the main difference being that our baseline $r_\phi(a_t, s_t)$ is action-dependent without introducing bias.
+Comparing $\hat g_\LAX^{\RL}$ to the standard advantage actor-critic estimator in~\eqref{eq:rl_a2c}, the main difference being that our baseline $c_\phi(a_t, s_t)$ is action-dependent without introducing bias.
 
-To optimize the parameters $\phi$ of our control variate $r_\phi(a_t, s_t)$, we can again use the single-sample estimator of the gradient of our estimator's variance given in~\eqref{eq:vargrad}.
+To optimize the parameters $\phi$ of our control variate $c_\phi(a_t, s_t)$, we can again use the single-sample estimator of the gradient of our estimator's variance given in~\eqref{eq:vargrad}.
 This approach avoids unstable training dynamics, and doesn't require storing and replay of previous rollouts.
 
 Details of this derivation, as well as the discrete and conditionally reparameterized version of this estimator can be found in appendix~\ref{rl appendix}.
@@ -516,7 +515,7 @@ REBAR estimates the gradient of expectations of functions of Bernoulli random va
 This method uses the REINFORCE estimator with a control variate.
 The control variate is derived from the original loss function evaluated at continuously-relaxed inputs~\citep{maddison2016concrete, jang2016categorical}.
 The expectation of this control variate is estimated with low variance via the reparameterization trick.
-The REBAR estimator can been seen as a special case of the RELAX estimator when ${r_\phi(z) = f(\sigma_\lambda(z))}$.
+The REBAR estimator can been seen as a special case of the RELAX estimator when ${c_\phi(z) = f(\sigma_\lambda(z))}$.
 %While the above approaches have greatly broadened the scope of functions whose derivatives we can approximate, there still exist a number of factors limiting their application to many problems of interest.
 
 %The bias induced by the concrete relaxation can lead to convergence at unsuitable optima or no convergence at all.
@@ -581,8 +580,8 @@ Figures~\ref{first figure}a and \ref{first figure}b and shows the relative perfo
 %With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the optimal solution $\theta = 0$.
 %The fixed concrete relaxation of REBAR is unable to produce a gradient whose signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE.
 
-Figure~\ref{first figure}c plots the learned relaxation $r_\phi$ for a fixed value of $\theta$.
-RELAX learns a relaxation whose derivative points in the direction of decreased loss for all values of reparameterization noise $u$, whereas REBAR's fixed relaxation only does so for values of $u > t$.
+Figure~\ref{first figure}c plots the learned surrogate $c_\phi$ for a fixed value of $\theta$.
+RELAX learns a surrogate whose derivative points in the direction of decreased loss for all values of reparameterization noise $u$, whereas REBAR's fixed relaxation only does so for values of $u > t$.
 
 
 \subsection{Discrete variational autoencoder}
@@ -592,7 +591,7 @@ Details of these model can be found in appendix~\ref{app_disc_vae}.
 
 %them and a model with 1 layer of Bernoulli random variables with non-linear mappings between layers.
 
-To take advantage of the available structure in the loss function, we choose the form of our control variate to be $$ r_\phi(z) = \hat{r}_\rho(z) + f(\sigma_\lambda(z))$$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function (the evidence lower-bound) evaluated at continuously relaxed inputs as in REBAR.  
+To take advantage of the available structure in the loss function, we choose the form of our control variate to be $$ c_\phi(z) = \hat{r}_\rho(z) + f(\sigma_\lambda(z))$$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function (the evidence lower-bound) evaluated at continuously relaxed inputs as in REBAR.  
 %We found that due to the complicated structure of the loss function, the RELAX estimator performed worse than REBAR. Instead we add a learned relaxation to REBAR's control variate which we denote relaxed-REBAR.
 %Our estimator takes the form of \eqref{eq:RELAX} with $$\bar \relaxed(z) = \relaxed(z) + f(\sigma_\lambda(z))$$ where $\relaxed(z)$ is a learned neural network and $f(\sigma_\lambda(z))$ is the Concrete relaxation of REBAR with temperature parameter $\lambda$.
 %
@@ -845,23 +844,23 @@ v_i' =    \left\{
 To construct our estimator, we first observe that $\forall t$, we have
 %
 \begin{align}
-\E_{p(\tau)}\Big[\LL{t} r_\phi(a_t, s_t)\Big] = \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[r_\phi(a_t, s_t)\Big]\Big].
+\E_{p(\tau)}\Big[\LL{t} c_\phi(a_t, s_t)\Big] = \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[c_\phi(a_t, s_t)\Big]\Big].
 \end{align}
 %
 Then, by adding and subtracting the same term, we have
 %
 \begin{align*}
 \PT\E_{p(\tau)}[f(\tau)]
-%\E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(\tau)}\Big[\LL{t} r_\phi(a_t, s_t)\Big]+\\&\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[r_\phi(a_t,s_t)\Big]\Big]\nonumber\\
-%&= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t)\Big]\Big]\nonumber\\
-= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t)\right]
+%\E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(\tau)}\Big[\LL{t} c_\phi(a_t, s_t)\Big]+\\&\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[c_\phi(a_t,s_t)\Big]\Big]\nonumber\\
+%&= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - c_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}c_\phi(g_\theta(\epsilon_t,s_t), s_t)\Big]\Big]\nonumber\\
+= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - c_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}c_\phi(g_\theta(\epsilon_t,s_t), s_t)\right]
 \end{align*}
 
 %
 \begin{align*}
-\PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(\tau)}\Big[\LL{t} r_\phi(a_t, s_t)\Big]+\\&\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[r_\phi(a_t,s_t)\Big]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t)\Big]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t)\right]\nonumber
+\PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(\tau)}\Big[\LL{t} c_\phi(a_t, s_t)\Big]+\\&\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[c_\phi(a_t,s_t)\Big]\Big]\nonumber\\
+&= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - c_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}c_\phi(g_\theta(\epsilon_t,s_t), s_t)\Big]\Big]\nonumber\\
+&= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - c_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}c_\phi(g_\theta(\epsilon_t,s_t), s_t)\right]\nonumber
 \end{align*}
 
 \paragraph{Proof 1}
