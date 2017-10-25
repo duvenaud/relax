@@ -112,15 +112,15 @@ Furthermore, we derive improved variants of popular reinforcement learning metho
 
 \begin{figure}[h]
 \begin{center}
-\includegraphics[width=.3\textwidth]{figures/toy_losses_10000_0_499}
-\includegraphics[width=.3\textwidth]{figures/variance}
-\includegraphics[width=.3\textwidth]{figures/learned_r}
+\includegraphics[width=.325\textwidth]{figures/toy_losses_10000_0_499}
+\includegraphics[width=.325\textwidth, clip, trim=3mm 3mm 3mm 3mm]{figures/variance}
+\includegraphics[width=.325\textwidth]{figures/optimized-relaxation}
 \label{first figure}
 \end{center}
 \caption{
 \emph{Left:} Training curves using different gradient estimators on a toy problem: {$\mathcal{L}(\theta) = \E_p(b|\theta) [ (b - 0.499)^2 ]$}
 \emph{Centre:} Variance of each estimator's gradient.
-\emph{Right:} The relaxation being used by REINFORCE (red), REBAR (blue), and the optimal relaxation (green).
+\emph{Right:} The relaxation being used by REINFORCE (blue), REBAR (green), and the optimal relaxation (red).
 }
 \end{figure}
 
