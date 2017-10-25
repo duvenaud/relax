@@ -249,7 +249,7 @@ We can simply add the score-function estimator and subtract the reparameterizati
 %
 \begin{align}
 \label{eq:cont_est}
-\hat g_\LAX = \left(f(b) -r_\phi(b)\right) \PT \log p(b|\theta) + \PT r_\phi(b) \qquad b = b(\theta, \epsilon), \epsilon \sim p(\epsilon).
+\hat g_\LAX = \left[ f(b) -r_\phi(b) \right] \PT \log p(b|\theta) + \PT r_\phi(b) \qquad b = b(\theta, \epsilon), \epsilon \sim p(\epsilon).
 \end{align}
 %
 This gives an unbiased estimator for any choice of $r_\phi$.
@@ -292,7 +292,7 @@ We derive our estimator similarly to \cite{tucker2017rebar} with
 which allows us to define our estimator as
 %
 \begin{align}
-\hat g_\textnormal{RELAX} = \left(f(b) - r_\phi(\hat{z})\right)\PT \log p(b|\theta) + \PT r_\phi(z) - \PT r_\phi (\tilde{z}) \\
+\hat g_\textnormal{RELAX} = \left[ f(b) - r_\phi(\hat{z}) \right] \PT \log p(b|\theta) + \PT r_\phi(z) - \PT r_\phi (\tilde{z}) \\
 \qquad b = H(z), z \sim p(z|\theta), \tilde{z} \sim p(z|b, \theta) \nonumber
 \end{align}
 %
@@ -323,26 +323,31 @@ For any unbiased gradient estimator $\hat g$ with parameters $\phi$:
 %
 Thus, an unbiased single-sample estimate of the gradient of the variance of $\hat g$ is given by {$2 \hat g \frac{\partial \hat g}{\partial \phi}$}.
 
-This method of directly minimizing the variance of the gradient estimator stands in contrast to other methods such as Q-Prop \cite{gu2016q} and advantage actor-critic \cite{mnih2016asynchronous}, which train the control variate to minimize the squared error $(f(b) - r_\phi(b))^2$.
+This method of directly minimizing the variance of the gradient estimator stands in contrast to other methods such as Q-Prop~\citep{gu2016q} and advantage actor-critic~\citep{mnih2016asynchronous}, which train the control variate to minimize the squared error $(f(b) - r_\phi(b))^2$.
 Our algorithm, which jointly optimizes the parameters $\theta$ and the relaxation $r_\phi$ is given in Algorithm~\ref{lax}.
 %[Todo: talk about the variance of the gradient estimator of the variance of the gradient estimators?]
 
+\subsubsection{Optimal relaxation}
 What is the form of the variance-minimizing $r_\phi$?
-From inspection of the square of the estimator in \eqref{eq:cont_est} we can see that this loss encourages $r_\phi(b)$ to approximate $f(b)$, but with a weighting based on $\PT\log p(b)$.  % Todo: reword this awkward sentence.
+Inspecting the square of \eqref{eq:cont_est}, we can see that this loss encourages $r_\phi(b)$ to approximate $f(b)$, but with a weighting based on $\PT\log p(b)$.  % Todo: reword this awkward sentence.
 Moreover, as $r_\phi \rightarrow f$ then $\hat g_\textnormal{\LAX} \rightarrow \PT r_\phi$.
-Thus, this objective encourages a balance between the variance of the reparameterization estimator and the variance of the REINFORCE estimator. 
+Thus, this objective encourages a balance between the variance of the reparameterization estimator and the variance of the REINFORCE estimator.
+Figure~\ref{first figure}c shows the optimal relaxation on a toy problem.
 
-\subsection{Designing the control variate}
-We have introduced a generic family of algorithms which produce unbiased and potentially low variance estimates of $\PT \E_{p(b|\theta)}[f(b)]$.
-Furthermore, we provide a tractable method to optimize the parameters of the control variate to minimize the variance of the estimator.
-The generality of this approach allows us to design our control variate $r_\phi$ in any way we please.
-This allows us to utilize any known structure that exists in $f$ to build a suitable control variate.
+\subsection{Choosing the control variate architecture}
+%We have introduced a generic family of algorithms which produce unbiased and potentially low variance estimates of $\PT \E_{p(b|\theta)}[f(b)]$.
+%Furthermore, we provide a tractable method to optimize the parameters of the control variate to minimize the variance of the estimator.
+%Our approach allows us to design our control variate $r_\phi$ in any way we please.
+The variance-reduction objective introduced above allows us to use any differentiable, parametric function as our control variate $r_\phi$. 
+How should we choose the architecture of $r_\phi$?
+Ideally, we will take advantage of any known structure in $f$.
 
-If, for example, $f$ is a known, differentiable, function of discrete random variables, we can utilize the concrete relaxation \cite{maddison2016concrete} and let $r_\phi(z) = f(\sigma_\lambda(z))$ in which case our estimator is exactly the REBAR estimator.
+If $f$ is a known, differentiable function of discrete random variables, we can use the concrete relaxation~\cite{maddison2016concrete} and let $r_\phi(z) = f(\sigma_\lambda(z))$.
+In this special case, our estimator is exactly the REBAR estimator.
 We are also free to add a learned component to the concrete relaxation and let $r_\phi(z) = f(\sigma_\lambda(z)) + \hat{r}_\rho(z)$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$.
 We have taken this approach in our experiments training discrete variational auto-encoders.
-If no information about $f$ is known, then we are also free to let $r_\phi$ be a generic function approximator such as a neural network. This is the approach we have taken in our reinforcement learning experiments.
-The variance-reduction objective introduced above allows us to use any differentiable, parametric function as our control variate. 
+If no information about $f$ is known, then we are also free to let $r_\phi$ be a generic function approximator such as a neural network.
+This is the approach we have taken in our reinforcement learning experiments.
 
 
 %\section{Conditional reparameterization}
@@ -438,7 +443,7 @@ Reinforcement learning is strong motivating problem for methods similar to ours.
 In reinforcement learning we seek to optimize the parameters of a policy distribution $\pi(a|s;\phi)$ to maximize the discounted sum of future rewards given that policy $\mathbb{E}_{\pi(\phi)}[\sum_{t=1}^{\infty} \gamma^{t-1} r_t]$ 
 %\YW{add discounting factor into the formulation. You can refer to my paper or any standard RL paper and see how these things are defined.}.
 We can view the sum of future rewards as a black-box function of state-action trajectories $\tau$ sampled from our policy.
-Thus, as before we have reduced the problem to that of estimating $\frac{\partial \mathbb{E}_{\tau}[f(\tau)]}{\partial \phi}$ which is the standard policy gradient algorithm \cite{sutton2000policy}. 
+Thus, as before we have reduced the problem to that of estimating $\frac{\partial \mathbb{E}_{\tau}[f(\tau)]}{\partial \phi}$ which is the standard policy gradient algorithm~\citep{sutton2000policy}. 
 
 We seek to compute $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E\Big[\sum_{t=1}^T \LL{t} \sum_{t'=t}^T r_t\Big]$$ but the estimator on the right hand side can have potentially high variance. Instead, we typically compute
 $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau\Big[\sum_{t=1}^T \LL{t} [(\sum_{t'=t}^T r_{t'}) - b(s_t)]\Big]$$
@@ -460,14 +465,17 @@ Then by adding and subtracting the same term, we have
 &= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t)\right]\nonumber
 \end{align*}
 
-Hence our estimate is defined as: 
+Hence our estimator is defined as: 
+%
 \begin{align}
-\label{eq:rl_est}
 \hat g_\LAX^{\RL} = \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t), \\ a_t =g_\theta(\epsilon_t,s_t) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber.
+\label{eq:rl_est}
 \end{align}
+%
+When $T = 1$, $g_\LAX^{\RL} = g_\LAX$.
 
 
-\section{Related work}
+\section{Scope and Limitations}
 %\YW{For this section we can focus on comparisons to REBAR, because it is the most related one which might also raise most questions. We can briefly mention previous methods for doing discrete variables. We should also mention Q-prop.}
 The recently-developed REBAR method \citep{tucker2017rebar} is the work most related to ours.
 REBAR estimates the gradient of expectations of functions of Bernoulli random variables.
@@ -492,6 +500,8 @@ The answer is yes, with the caveat that one must introduce stochasticity to the 
 Thus, \RELAX{} is most suitable for problems where one is already optimizing a distribution over inputs, such as in inference or reinforcement learning.
 % Note that most optimal policies are deterministic?
 
+
+\section{Related work}
 There has been a great deal of other recent work in the area of gradient estimation. \citet{miller2017reducing} reduce the variance of reparameterization gradients in an orthogonal way to ours by approximating the gradient-generating procedure with a simple model and using that model as a control variate. NVIL~\citep{mnih2014neural}, VIMCO~\citep{mnih2016variational} provide reduced variance gradient estimation in the special case of discrete latent variable models and discrete latent variable models with monte-carlo objectives. \citet{salimans2017evolution} estimate gradients using a form of finite differences, evaluating hundreds of different parameter values in pararallel to construct a gradient estimator.
 In contrast, our method is a simple-sample estimator.
 
@@ -633,7 +643,7 @@ In all experiments, RELAX provides an increase in rate of convergence.
 \subsection{Reinforcement Learning}
 We test our approach on a few simple reinforcement learning environments with discrete and continuous actions.
 We use the \RELAX{} and \LAX{} estimators for discerete and continuous actions, respectively. We compare with the advantage actor-critic algorithm~\cite{sutton2000policy} as a baseline.
-In all experiments we utilized the same learning rate for the policy network for RELAX and A2C so differences in performance depended solely on the control variate used. 
+In all experiments we use the same learning rate for the policy network for RELAX and A2C so differences in performance depended solely on the control variate used. 
 
 To compare these approaches in the most illustrative setting possible we do not use any reward bootstrapping in either model. After each episode terminates, we generate the discounted reward for each time-step, treat the episode as a single batch of data, and perform one step of gradient decent. We are aware that better results could be obtained with bootstrapping and larger batch sizes but we wanted to work in the highest possible variance setting to demonstrate the variance reduction capabilities of our approach.
 
