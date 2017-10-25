@@ -195,7 +195,7 @@ Importantly, the new estimator has lower variance than $g(b)$ if $\controlf(b)$ 
 
 \section{Gradient estimation with \LAX{} and \RELAX{}}
 \label{lax section}
-The reparameterization trick has become the favored method for gradient estimation recently but it is only applicable when $f$ is a known, differentiable function of continuous random variables. Similarly, for functions $f$ of discrete variables, methods involving continuous relaxations of discrete distributions such as concrete \cite{maddison2016concrete}, gumbel-softmax \cite{jang2016categorical}, and REBAR \cite{tucker2017rebar} have become popular. These methods also require that $f$ is known and differentiable with respect to its inputs. Moreover, they require that $f$ be computable at and behave predictably at inputs outside of the domain of the function. While oftentimes these assumptions hold, there are many problems of interest which make these approaches inapplicable. 
+The reparameterization trick has become the favored method for gradient estimation recently but it is only applicable when $f$ is a known, differentiable function of continuous random variables. Similarly, for functions $f$ of discrete variables, methods involving continuous relaxations of discrete distributions such as concrete \cite{maddison2016concrete}, gumbel-softmax \cite{jang2016categorical}, and REBAR \cite{tucker2017rebar} have become popular. These methods also require that $f$ is known and differentiable with respect to its inputs. Moreover, they require that $f$ be computable at and behave predictably at inputs outside of the domain of the function. While these assumptions often hold, there are many problems of interest which make these approaches inapplicable. 
 
 In this section, we introduce a gradient estimator for the expectation of a function $\PT \E_{p(b|\theta)}[f(b)]$. We make no assumptions about the structure of $f$ itself. This allows the estimator to be applied to a wide-range of applications with little or no modification. This estimator combines the score function estimator, the reparameterization trick, and control variates.
 We obtain an unbiased estimator whose variance can potentially be as low as reparameterization-trick estimator, even when $f$ is not differentiable or not computable.
@@ -642,7 +642,7 @@ In all experiments both the policy and control variate were two layer neural net
 \begin{center}
 \begin{tabular}{l c c} 
 \textbf{CartPole} & A2C & RELAX \\\midrule
-Episodes until solve      & $525.8 \pm 87.6$ & $\bm{373.6 \pm 80.4}$ \\\\
+Episodes until solve      & $1152 \pm 90$ & $\bm{472 \pm 114}$ \\\\
 \textbf{LunarLander}\\ \midrule
 Episodes until solve & $10703 \pm 4087$ & $\bm{5156.8 \pm 794.9}$ 
 \end{tabular}
@@ -655,7 +655,7 @@ Episodes until solve & $10703 \pm 4087$ & $\bm{5156.8 \pm 794.9}$
 
 \begin{figure}[h]
 \begin{center}
-\includegraphics[width=.4\textwidth]{figures/cartpole_rewards}
+\includegraphics[width=.4\textwidth]{figures/cp_paper}
 \includegraphics[width=.4\textwidth]{figures/lander_rewards}
 \label{fig:disc_rl}
 \end{center}
