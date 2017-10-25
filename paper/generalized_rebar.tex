@@ -269,7 +269,10 @@ This gives an unbiased estimator for any choice of $r_\phi$.
 \end{algorithm}
 
 \subsection{The \RELAX{} estimator for discrete random variables}
-When $p(b|\theta)$ is a distribution over discrete random variables, more care must be taken. We assume that there exists a continuous, reparameterizable distribution $p(z|\theta)$ and a determanistic mapping $H(z)$ such that $H(z) = b \sim p(b|\theta)$ when $z \sim p(z|\theta)$. Examples of such distributions and functions can be found in the Appendix (section \ref{resample}). Most discrete distributions of interest fit into this formulation.
+When $p(b|\theta)$ is a distribution over discrete random variables, more care must be taken.
+We assume that there exists a continuous, reparameterizable distribution $p(z|\theta)$ and a determanistic mapping $H(z)$ such that $H(z) = b \sim p(b|\theta)$ when $z \sim p(z|\theta)$.
+Examples of such distributions and functions can be found in appendix~\ref{resample}.
+Most discrete distributions of interest fit into this formulation.
 
 Introducing the parametric function $r_\phi$, we derive our estimator similarly to \cite{tucker2017rebar} with
 %
@@ -287,7 +290,8 @@ which allows us to define our estimator as
 \qquad b = H(z), z \sim p(z|\theta), \tilde{z} \sim p(z|b, \theta) \nonumber
 \end{align}
 %
-which is also unbiased for any $r_\phi$. We note that the distribution $p(z|b,\theta)$ must also be reparameterizable. This is the case for Bernoulli and Categorical random variables. We demonstrate how to perform this conditional reparameterization in the Appendix (section \ref{resample}).
+which is also unbiased for any $r_\phi$. We note that the distribution $p(z|b,\theta)$ must also be reparameterizable.
+This is the case for Bernoulli and Categorical random variables. We demonstrate how to perform this conditional reparameterization in appendix~\ref{resample}.
 
 
 \subsection{Optimizing the gradient control variate with gradients}
@@ -320,9 +324,16 @@ Our algorithm, which jointly optimizes the parameters $\theta$ and the relaxatio
 %[Todo: talk about the variance of the gradient estimator of the variance of the gradient estimators?]
 
 \subsection{Designing the control variate}
-We have introduced a generic family of algorithms which produce unbiased and potentially low variance estimates of $\PT \E_{p(b|\theta)}[f(b)]$. Furthermore, we provide a tractable method to optimize the parameters of the control variate to minimize the variance of the estimator. The generality of this approach allows us to design our control variate $r_\phi$ in any way we please. This allows us to utilize any known structure that exists in $f$ to build a suitable control variate.
+We have introduced a generic family of algorithms which produce unbiased and potentially low variance estimates of $\PT \E_{p(b|\theta)}[f(b)]$.
+Furthermore, we provide a tractable method to optimize the parameters of the control variate to minimize the variance of the estimator.
+The generality of this approach allows us to design our control variate $r_\phi$ in any way we please.
+This allows us to utilize any known structure that exists in $f$ to build a suitable control variate.
 
-If, for example, $f$ is a known, differentiable, function of discrete random variables, we can utilize the concrete relaxation \cite{maddison2016concrete} and let $r_\phi(z) = f(\sigma_\lambda(z))$ in which case our estimator is exactly the REBAR estimator. We are also free to add a learned component to the concrete relaxation and let $r_\phi(z) = f(\sigma_\lambda(z)) + \hat{r}_\rho(z)$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$. We have taken this approach in our experiments training discrete variational auto-encoders. If no information about $f$ is known, then we are also free to let $r_\phi$ be a generic function approximator such as a neural network. This is the approach we have taken in our reinforcement learning experiments. The variance-reduction objective introduced above allows us to use any differentiable, parametric function as our control variate. 
+If, for example, $f$ is a known, differentiable, function of discrete random variables, we can utilize the concrete relaxation \cite{maddison2016concrete} and let $r_\phi(z) = f(\sigma_\lambda(z))$ in which case our estimator is exactly the REBAR estimator.
+We are also free to add a learned component to the concrete relaxation and let $r_\phi(z) = f(\sigma_\lambda(z)) + \hat{r}_\rho(z)$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$.
+We have taken this approach in our experiments training discrete variational auto-encoders.
+If no information about $f$ is known, then we are also free to let $r_\phi$ be a generic function approximator such as a neural network. This is the approach we have taken in our reinforcement learning experiments.
+The variance-reduction objective introduced above allows us to use any differentiable, parametric function as our control variate. 
 
 
 %\section{Conditional reparameterization}
@@ -432,7 +443,7 @@ In the case of RL, $b$ is $\tau$, which denotes a series of actions and states $
 We show the continuous case, and leave the discrete case to Appendix.
 We assume $\pi(a_t|s_t)$ is reparametrizable meaning that we can write $a_t = g_\theta(\epsilon,s_t)$, where $\epsilon$ does not depend on $\theta$.
 We again introduce a new differentiable function $r_\phi(a,s)$, and it's a function of the action and the state pair.
-We observe that $\forall t$, we have (see details in Appendix \ref{}) $$\E_{p(\tau)}\Big[\LL{t} r_\phi(a_t, s_t)\Big] = \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[r_\phi(a_t, s_t)\Big]\Big]$$ 
+We observe that $\forall t$, we have (see details in Appendix~\ref{}) $$\E_{p(\tau)}\Big[\LL{t} r_\phi(a_t, s_t)\Big] = \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[r_\phi(a_t, s_t)\Big]\Big]$$ 
 Then by adding and subtracting the same term, we have
 \begin{align*}
 \PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(\tau)}\Big[\LL{t} r_\phi(a_t, s_t)\Big]+\\&\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[r_\phi(a_t,s_t)\Big]\Big]\nonumber\\
@@ -510,17 +521,18 @@ We focus on the more challenging case where $t = .499$.
 With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the optimal solution $\theta = 0$.
 
 The fixed Concrete relaxation of REBAR is unable to produce a gradient whose signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE.
-Figure \ref{fig:toy_var} plots the learned relaxations for a fixed value of $\theta$.
+Figure~\ref{fig:toy_var} plots the learned relaxations for a fixed value of $\theta$.
 
 It can be seen that RELAX learns a relaxation whose derivative points in the direction of decreased loss for all values of reparameterization noise $u$, whereas REBAR's fixed relaxation only does so for values of $u > t$.
 
 
 \subsection{Discrete Variational Autoencoder}
-As in \citep{tucker2017rebar}, we benchmark the RELAX estimator on the task of training a variational autoencoder \citep{kingma2013autoencoding, rezende2014stochastic} where all random variables are Bernoulli taking values in $\{-1, 1\}$.
-As in \cite{tucker2017rebar}, we compare training the variational lower-bound across the MNIST and Omniglot~\citep{lake2015human} datasets.
-As in \cite{tucker2017rebar} we test models with 1 and 2 layers of 200 Bernoulli random variables with linear mappings between them. 
+As in \citet{tucker2017rebar}, we benchmark the RELAX estimator on the task of training a variational autoencoder~\citep{kingma2013autoencoding, rezende2014stochastic} where the latent variables are Bernoulli.
+As in \citet{tucker2017rebar}, we compare training the variational lower-bound across the MNIST and Omniglot~\citep{lake2015human} datasets.
+As in \citet{tucker2017rebar} we test models with 1 and 2 layers of 200 Bernoulli random variables with linear mappings between them. 
 
-In the one layer models we optimize the ELBO $$\mathcal{L}(\theta) = \E_{q(b|x)}[\log p(x|b) + \log p(b) - \log q(b|x)]$$ where $q(b_1|x) = \sigma(x\cdot W_q + \beta_q)$ and $p(x| b_1) = \sigma(b_1\cdot W_p + \beta_p)$ with weight matrices $W$ and biases $\beta$. The parameters of the prior $p(b)$ are also learned. Details of the two layer model can be found in the Appendix (section \ref{app_disc_vae}).
+In the one layer models we optimize the ELBO $$\mathcal{L}(\theta) = \E_{q(b|x)}[\log p(x|b) + \log p(b) - \log q(b|x)]$$ where $q(b_1|x) = \sigma(x\cdot W_q + \beta_q)$ and $p(x| b_1) = \sigma(b_1\cdot W_p + \beta_p)$ with weight matrices $W$ and biases $\beta$. The parameters of the prior $p(b)$ are also learned.
+Details of the two layer model can be found in the Appendix~\ref{app_disc_vae}.
 
 %them and a model with 1 layer of Bernoulli random variables with non-linear mappings between layers.
 
@@ -528,41 +540,39 @@ To take advantage of the available structure in the loss function, we choose the
 %We found that due to the complicated structure of the loss function, the RELAX estimator performed worse than REBAR. Instead we add a learned relaxation to REBAR's control variate which we denote relaxed-REBAR.
 %Our estimator takes the form of \eqref{eq:RELAX} with $$\bar \relaxed(z) = \relaxed(z) + f(\sigma_\lambda(z))$$ where $\relaxed(z)$ is a learned neural network and $f(\sigma_\lambda(z))$ is the Concrete relaxation of REBAR with temperature parameter $\lambda$.
 
-We compare against the strong baseline of REBAR \cite{tucker2017rebar}. In all experiments, we observed that the learned control variate improved the training and validation performance as well as increased the rate of convergence. 
+We compare against the state-of-the-art baseline of REBAR \cite{tucker2017rebar}.
+In all experiments, we the learned control variate improved the training and validation performance as well as increased the rate of convergence. 
 
 \begin{table}[h]
-\begin{center}
-\begin{tabular}{l c c c c c} 
-\textbf{MNIST} & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule
+\centering
+\begin{tabular}{r l | c c c c c} 
+Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule
 %Nonlinear      & $-102.2$ & $-101.5$ & -101.1  &  -81.01 &  \textbf{-78.13} \\
-1 layer  &-111.3 & $-112.5$ & $-111.7$  & -111.6 & \textbf{-111.20} \\ 
-2 Layer  &-99.62 & $-99.6$ & $-99.07$   & -98.22 & \textbf{-98.00} \\\\
-\textbf{Omniglot}\\ \midrule
+\textbf{MNIST} & 1 layer  &-111.3 & $-112.5$ & $-111.7$  & -111.6 & \textbf{-111.20} \\ 
+               & 2 Layer  &-99.62 & $-99.6$ & $-99.07$   & -98.22 & \textbf{-98.00} \\
+\midrule
 %Nonlinear      & $-110.4$  & $-109.58$ & -108.72  & -62.28 & \textbf{-58.55} \\
-1 layer &-117.23 & $-117.44$ & $-117.09$   & -116.63 & \textbf{-116.57} \\ 
-2 Layer &-109.95 & $-109.98$ & $-109.55$  & -108.71 & \textbf{-108.54}
+\textbf{Omniglot} & 1 layer &-117.23 & $-117.44$ & $-117.09$   & -116.63 & \textbf{-116.57} \\ 
+                  & 2 Layer &-109.95 & $-109.98$ & $-109.55$  & -108.71 & \textbf{-108.54}
 \end{tabular}
-\end{center}
-\label{tab:vae_tr}
 \caption{Best obtained training objective.}
+\label{tab:vae tr}
 \end{table}
 
+
 \begin{table}[h]
-\begin{center}
+\centering
 \begin{tabular}{l c c} 
                & REBAR & RELAX \\
 \textbf{MNIST} & ours  & \\\midrule
-
 1 layer  & -114.32 & \textbf{-113.62} \\ 
 2 Layer  & -101.20 & \textbf{-100.85} \\\\
 \textbf{Omniglot}\\ \midrule
-
 1 layer & -122.44 & \textbf{-122.11} \\ 
 2 Layer & -115.83 & \textbf{-115.42}
 \end{tabular}
-\end{center}
-\label{tab:vae_val}
 \caption{Best obtained validation objective.}
+\label{tab:vae val}
 \end{table}
 
 %In \citep{tucker2017rebar}, a separate REBAR estimator was used to estimate the gradients of each model parameter (each weight matrix and bias vector).
@@ -576,44 +586,44 @@ We compare against the strong baseline of REBAR \cite{tucker2017rebar}. In all e
 %To provide a fair comparison, we re-implemented REBAR in this way (denoted REBAR-ours in table~\ref{tab:vae}).
 %We believe this explains the large difference in performance between our implementation and that of \citep{tucker2017rebar} for the nonlinear models since there are 3 layers of parameters that all share the same gradient estimator.
 %In the linear models, each layer has its own gradient estimator making our implementation closer to that of \citep{tucker2017rebar}.
-To obtain training curves we created our own implementation of REBAR. The scores of this model are denoted ``REBAR ours'' in the following tables. We obtained identical or slightly improved performance with our implementation.
+To obtain training curves we created our own implementation of REBAR, which gave identical or slightly improved performance to the implementation of \citet{tucker2017rebar}.
 
-While we obtained a modest improvement in training and validation scores (tables \ref{tab:vae_tr} and \ref{tab:vae_val}), the most notable improvement provided by RELAX is in its rate of convergence. Training curves for all models can be seen in figures \ref{fig:vae_mnist} and \ref{fig:vae_omni}. In table \ref{tab:vae_epochs} we compare the number of training epochs that are required to match the best validation score of REBAR. In all experiments, RELAX provides a large increase in rate of convergence. 
+While we obtained a modest improvement in training and validation scores (tables~\ref{tab:vae tr} and \ref{tab:vae val}), the most notable improvement provided by \RELAX{} is in its rate of convergence.
+Training curves for all models can be seen in figures~\ref{fig:vae mnist} and \ref{fig:vae omni}.
+In table~\ref{tab:vae epochs} we compare the number of training epochs that are required to match the best validation score of REBAR.
+In all experiments, RELAX provides an increase in rate of convergence. 
 
 \begin{figure}[h]
-\begin{center}
+\centering
 \includegraphics[width=.4\textwidth]{figures/MNIST_L1}
 \includegraphics[width=.4\textwidth]{figures/MNIST_L2}
-\label{fig:vae_mnist}
-\end{center}
 \caption{Training curves on MNIST. The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
+\label{fig:vae mnist}
 \end{figure}
 
 \begin{figure}[h]
-\begin{center}
+\centering
 \includegraphics[width=.4\textwidth]{figures/OMNIGLOT_L1}
 \includegraphics[width=.4\textwidth]{figures/OMNIGLOT_L2}
-\label{fig:vae_omni}
-\end{center}
 \caption{Training curves on OMNIGLOT. The horizontal dashed line indicates the lowest validation score obtained by REBAR.}
+\label{fig:vae omni}
 \end{figure}
 
 \begin{table}[h]
-\begin{center}
+\centering
 \begin{tabular}{l c c} 
                & REBAR & RELAX \\
-\textbf{MNIST} & ours  & \\\midrule
-
+\textbf{MNIST} & ours  & \\
+\midrule
 1 layer  & 857 & \textbf{531} \\ 
 2 Layer  & 900 & \textbf{620} \\\\
-\textbf{Omniglot}\\ \midrule
-
+\textbf{Omniglot}\\
+\midrule
 1 layer & 2086 & \textbf{566} \\ 
 2 Layer & 1027 & \textbf{673}
 \end{tabular}
-\end{center}
-\label{tab:vae_epochs}
 \caption{Epochs needed to achieve REBAR's best validation score.}
+\label{tab:vae epochs}
 \end{table}
 
 
@@ -697,9 +707,6 @@ VAEs with continuous latent variables but non-differentiable likelihood function
 
 
 
-%\section{Appendix A: Control Variates}
-% basic definitions following level of detail in Tucker 2017
-
 
 % ** Questions to answer: 
 % (1) is z-tilde a clever way of using Rao-Blackwellization for a part of the reparameterization gradient? This would mean that the reparameterization z-tilde is related to the sufficient statistic of the estimator...
@@ -724,9 +731,11 @@ VAEs with continuous latent variables but non-differentiable likelihood function
 
 %\par{Interpreting REBAR through GRG}
 
+\clearpage
+\section*{Appendices}
+\appendix
 
-
-\section{Appendix A: Conditional Re-sampling for Discrete Random Variables}
+\section{Conditional Re-sampling for Discrete Random Variables}
 \label{resample}
 When applying the RELAX estimator to a function of discrete random variables $b \sim p(b|\theta)$, we require that there exists a distribution $p(z|\theta)$ and a deterministic mapping $H(z)$ such that if $z \sim p(z|\theta)$ then $H(z) = b \sim p(b|\theta)$. Treating both $b$ and $z$ as random, this procedure defines a probabalistic model $p(b, z | \theta) = p(b|z)p(z|\theta)$. The RELAX estimator requires reparameterized samples from $p(z|\theta)$ and $p(z|b,\theta)$. We describe how to sample from these distributions in the common cases of $p(b|\theta) = \text{Bernoulli}(\theta)$ and $p(b|\theta) = \text{Categorical}(\theta)$.
 
@@ -769,7 +778,7 @@ v_i' =    \left\{
 %One limitation of the concrete distribution is that it is a biased estimator except in limiting temperature.
 %In other words, a small amount of bias is present for a non-zero temperature.
 
-\section{Appendix B: RL proofs}
+\section{Reinforcement learning proofs}
 
 \paragraph{Proof 1}
 
@@ -786,14 +795,15 @@ which completes our proof.
 In the discrete action setting our policy parameterizes a soft-max distribution which we use to sample actions. 
 In the discrete case we define $z_t = f(\pi, u) = \sigma (\log\pi - \log(-\log(u)))$ where $u\sim \text{Unif}[0, 1]$, $a_t = \text{argmax}(z_t)$, $\sigma$ is the soft-max function.
 
-We also define $\tilde{z_t} \sim p(z_t|a_t)$ so if the $z_t$ are gumbel softmax samples, then $\tilde{z_t}$ are gumbel softmax samples constrainted so that the largest value is that of the index of $a_t$. See Appendix (section\ref{resample}) for how to efficiently generate samples $\tilde{z_t}$. 
+We also define $\tilde{z_t} \sim p(z_t|a_t)$ so if the $z_t$ are Gumbel-softmax samples, then $\tilde{z_t}$ are Gumbel-softmax samples constrained so that the largest value is that of the index of $a_t$.
+See appendix~\ref{resample} for how to efficiently generate samples $\tilde{z_t}$. 
 
 In the discrete case, we use $m(\tilde{z_t}, s_t)\cdot \LL{t}$ as our control variate giving us $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau\Big[\sum_{t=1}^T \LL{t} [(\sum_{t'=t}^T r_{t'}) - m(\tilde{z_t}, s_t)]\Big]$$ which is biased, so we must add a term to remove this bias which will be $\frac{\partial m(z_t, s_t)}{\partial\theta} - \frac{\partial m(\tilde{z_t}, s_t)}{\partial\theta}$ making the full estimator
 $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau\Big[\sum_{t=1}^T \LL{t} [(\sum_{t'=t}^T r_{t'}) - m(\tilde{z_t}, s_t)] + \frac{\partial m(z_t, s_t)}{\partial\theta} -  \frac{\partial m(\tilde{z_t}, s_t)}{\partial\theta}\Big].$$ 
 
 For this estimator to be unbiased, we must have $$\E_\tau\Big[\sum_{t=1}^T \LL{t} m(\tilde{z_t}, s_t) - \Big(\frac{\partial m(z_t, s_t)}{\partial\theta} - \frac{\partial m(\tilde{z_t}, s_t)}{\partial\theta}\Big)\Big] = 0$$ and we claim that $\forall t$  $$\E_\tau\Big[ \LL{t} m(\tilde{z_t}, s_t) - \Big(\frac{\partial m(z_t, s_t)}{\partial\theta} - \frac{\partial m(\tilde{z_t}, s_t)}{\partial\theta}\Big)\Big] = 0$$ 
 
-We introduce some notation that $a(z) = \text{argmax}(z)$
+We introduce the notation $a(z) = \text{argmax}(z)$
 
 \begin{align}
 0 = \PT \E_\tau\Big[ m(z_t, s_t) - m(z_t, s_t) \Big] = \E_{a_{<t},s_{\leq t}}\Big[ \PT \E_{z_t|s_t} \Big[ m(z_t, s_t) \Big] -  \PT \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[ m(z_t, s_t)\Big] \Big]\Big]
@@ -813,7 +823,7 @@ Thus due to the markov property of the MDP, then we can wrap all of these expect
 
 %We can estimate this value with the REINFORCE gradient estimator as $$\frac{\partial \mathbb{E}_{\pi(a|\phi)}[f(a)]}{\partial \phi} = \mathbb{E}[f(a)\frac{\partial \log p(a)}{\partial \phi}]$$ but the variance of this estimator can be very high thus making our model very sample-inefficient. We can subtract a control variate $r(\rho)\frac{\partial \log p(a(\rho))}{\partial \phi}$ where $\rho$ is sampled from some distribution which is a function of $\phi$ and $a(\rho)$ is a deterministic function of such that $a \sim \pi(a|\phi)$.
 
-\section{Appendix C: Experimental Details}
+\section{Experimental Details}
 \subsection{Discrete VAE}
 We run all models for $2,000,000$ iterations with a batch size of $24$. For the REBAR models, we tested learning rates in $\{.005, .001, .0005,  .0001, .00005\}$. 
 
