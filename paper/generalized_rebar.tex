@@ -261,7 +261,7 @@ This gives an unbiased estimator for any choice of $c_\phi$.
 \While {not converged} 
 	\State $\epsilon_{i} \sim p(\epsilon)$ \Comment Sample noise
 	\State $b_i \leftarrow T(\epsilon_i, \theta)$ \Comment Compute input
-	\State  $g_\theta \leftarrow \left[f(b_i) - r_{\phi}(b_i) \right] \nabla_\theta \log p + \nabla_\theta r(b_i)$ \Comment Estimate gradient
+	\State  $g_\theta \leftarrow \left[f(b_i) - r_{\phi}(b_i) \right] \nabla_\theta \log p + \nabla_\theta c_\phi(b_i)$ \Comment Estimate gradient
 	\State  $g_\phi \leftarrow 2 g_\theta \frac{\partial g_\theta}{\partial \phi}$ \Comment Estimate gradient of variance of gradient
 	\State $\theta \leftarrow \theta + \alpha_1 g_\theta$ \Comment Update parameters
 	\State $\phi \leftarrow \phi + \alpha_2 g_\phi$ \Comment Update control variate
@@ -867,11 +867,11 @@ Then, by adding and subtracting the same term, we have
 
 We begin with 
 \begin{align}
-\E_\tau\Big[\frac{\partial m(a_t, s_t)}{\partial\theta}\Big] &= \E_{a_{1:t-1},s_{1:t}}\Big[E_{a_{t:T},s_{t+1:T}}\Big[\frac{\partial m(a_t, s_t)}{\partial\theta}\Big]\Big]\\
-&= \E_{a_{1:t-1},s_{1:t}}\Big[E_{a_t}\Big[\frac{\partial m(a_t, s_t)}{\partial\theta}\Big]\Big]\\
-&=  \E_{a_{1:t-1},s_{1:t}}\Big[\frac{\partial{E_{a_t}[m(a_t, s_t)]}}{\partial \theta}\Big]\\
-&= \E_{a_{1:t-1},s_{1:t}}\Big[E_{a_t}\Big[\LL{t} m(a_t, s_t)\Big]\Big]\\
-&= E_\tau\Big[\LL{t} m(a_t, s_t)\Big]
+\E_\tau\Big[\frac{\partial c_\phi(a_t, s_t)}{\partial\theta}\Big] &= \E_{a_{1:t-1},s_{1:t}}\Big[E_{a_{t:T},s_{t+1:T}}\Big[\frac{\partial c_\phi(a_t, s_t)}{\partial\theta}\Big]\Big]\\
+&= \E_{a_{1:t-1},s_{1:t}}\Big[E_{a_t}\Big[\frac{\partial c_\phi(a_t, s_t)}{\partial\theta}\Big]\Big]\\
+&=  \E_{a_{1:t-1},s_{1:t}}\Big[\frac{\partial{E_{a_t}[c_\phi(a_t, s_t)]}}{\partial \theta}\Big]\\
+&= \E_{a_{1:t-1},s_{1:t}}\Big[E_{a_t}\Big[\LL{t} c_\phi(a_t, s_t)\Big]\Big]\\
+&= E_\tau\Big[\LL{t} c_\phi(a_t, s_t)\Big]
 \end{align}
 which completes our proof.
 
@@ -881,27 +881,27 @@ In the discrete case we define $z_t = f(\pi, u) = \sigma (\log\pi - \log(-\log(u
 We also define $\tilde{z_t} \sim p(z_t|a_t)$ so if the $z_t$ are Gumbel-softmax samples, then $\tilde{z_t}$ are Gumbel-softmax samples constrained so that the largest value is that of the index of $a_t$.
 See appendix~\ref{resample} for how to efficiently generate samples $\tilde{z_t}$. 
 
-In the discrete case, we use $m(\tilde{z_t}, s_t)\cdot \LL{t}$ as our control variate giving us $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau\Big[\sum_{t=1}^T \LL{t} [(\sum_{t'=t}^T r_{t'}) - m(\tilde{z_t}, s_t)]\Big]$$ which is biased, so we must add a term to remove this bias which will be $\frac{\partial m(z_t, s_t)}{\partial\theta} - \frac{\partial m(\tilde{z_t}, s_t)}{\partial\theta}$ making the full estimator
-$$\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau\Big[\sum_{t=1}^T \LL{t} [(\sum_{t'=t}^T r_{t'}) - m(\tilde{z_t}, s_t)] + \frac{\partial m(z_t, s_t)}{\partial\theta} -  \frac{\partial m(\tilde{z_t}, s_t)}{\partial\theta}\Big].$$ 
+In the discrete case, we use $c_\phi(\tilde{z_t}, s_t)\cdot \LL{t}$ as our control variate giving us $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau\Big[\sum_{t=1}^T \LL{t} [(\sum_{t'=t}^T r_{t'}) - c_\phi(\tilde{z_t}, s_t)]\Big]$$ which is biased, so we must add a term to remove this bias which will be $\frac{\partial c_\phi(z_t, s_t)}{\partial\theta} - \frac{\partial c_\phi(\tilde{z_t}, s_t)}{\partial\theta}$ making the full estimator
+$$\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau\Big[\sum_{t=1}^T \LL{t} [(\sum_{t'=t}^T r_{t'}) - c_\phi(\tilde{z_t}, s_t)] + \frac{\partial c_\phi(z_t, s_t)}{\partial\theta} -  \frac{\partial c_\phi(\tilde{z_t}, s_t)}{\partial\theta}\Big].$$ 
 
-For this estimator to be unbiased, we must have $$\E_\tau\Big[\sum_{t=1}^T \LL{t} m(\tilde{z_t}, s_t) - \Big(\frac{\partial m(z_t, s_t)}{\partial\theta} - \frac{\partial m(\tilde{z_t}, s_t)}{\partial\theta}\Big)\Big] = 0$$ and we claim that $\forall t$  $$\E_\tau\Big[ \LL{t} m(\tilde{z_t}, s_t) - \Big(\frac{\partial m(z_t, s_t)}{\partial\theta} - \frac{\partial m(\tilde{z_t}, s_t)}{\partial\theta}\Big)\Big] = 0$$ 
+For this estimator to be unbiased, we must have $$\E_\tau\Big[\sum_{t=1}^T \LL{t} c_\phi(\tilde{z_t}, s_t) - \Big(\frac{\partial c_\phi(z_t, s_t)}{\partial\theta} - \frac{\partial c_\phi(\tilde{z_t}, s_t)}{\partial\theta}\Big)\Big] = 0$$ and we claim that $\forall t$  $$\E_\tau\Big[ \LL{t} c_\phi(\tilde{z_t}, s_t) - \Big(\frac{\partial c_\phi(z_t, s_t)}{\partial\theta} - \frac{\partial c_\phi(\tilde{z_t}, s_t)}{\partial\theta}\Big)\Big] = 0$$ 
 
 We introduce the notation $a(z) = \text{argmax}(z)$
 
 \begin{align}
-0 = \PT \E_\tau\Big[ m(z_t, s_t) - m(z_t, s_t) \Big] = \E_{a_{<t},s_{\leq t}}\Big[ \PT \E_{z_t|s_t} \Big[ m(z_t, s_t) \Big] -  \PT \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[ m(z_t, s_t)\Big] \Big]\Big]
+0 = \PT \E_\tau\Big[ c_\phi(z_t, s_t) - c_\phi(z_t, s_t) \Big] = \E_{a_{<t},s_{\leq t}}\Big[ \PT \E_{z_t|s_t} \Big[ c_\phi(z_t, s_t) \Big] -  \PT \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[ c_\phi(z_t, s_t)\Big] \Big]\Big]
 \end{align}
 We drop the outer expectation for brevity and continue
 \begin{align}
-\PT \E_{z_t|s_t} &\Big[ m(z_t, s_t) \Big] -  \PT \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[ m(z_t, s_t)\Big] \Big]\\
-&= \PT \E_{z_t|s_t} \Big[ m(z_t, s_t) \Big] - \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[m(z_t, s_t) \LL{t} -\PT \E_{z_t|a_t, s_t}\Big[m(z_t, s_t)  \Big] \Big]\\
-&= \E_{z_t|s_t} \Big[ \PT m(z_t, s_t) \Big] - \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[m(z_t, s_t) \LL{t} - \E_{z_t|a_t, s_t}\Big[\PT m(z_t, s_t)  \Big] \Big]
+\PT \E_{z_t|s_t} &\Big[ c_\phi(z_t, s_t) \Big] -  \PT \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[ c_\phi(z_t, s_t)\Big] \Big]\\
+&= \PT \E_{z_t|s_t} \Big[ c_\phi(z_t, s_t) \Big] - \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[c_\phi(z_t, s_t) \LL{t} -\PT \E_{z_t|a_t, s_t}\Big[c_\phi(z_t, s_t)  \Big] \Big]\\
+&= \E_{z_t|s_t} \Big[ \PT c_\phi(z_t, s_t) \Big] - \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[c_\phi(z_t, s_t) \LL{t} - \E_{z_t|a_t, s_t}\Big[\PT c_\phi(z_t, s_t)  \Big] \Big]
 \end{align}
 Thus due to the markov property of the MDP, then we can wrap all of these expectations into the expectation over trajectories giving us
 
 \begin{align}
-\E_{a_{<t},s_{\leq t}}\Big[\E_{z_t|s_t} \Big[ \PT m(z_t, s_t) \Big] &- \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[m(z_t, s_t) \LL{t} - \E_{z_t|a_t, s_t}\Big[\PT m(z_t, s_t)  \Big] \Big]\Big]\\
-&= \E_\tau\Big[ \LL{t} m(\tilde{z_t}, s_t) - \Big(\frac{\partial m(z_t, s_t)}{\partial\theta} - \frac{\partial m(\tilde{z_t}, s_t)}{\partial\theta}\Big)\Big] = 0
+\E_{a_{<t},s_{\leq t}}\Big[\E_{z_t|s_t} \Big[ \PT c_\phi(z_t, s_t) \Big] &- \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[c_\phi(z_t, s_t) \LL{t} - \E_{z_t|a_t, s_t}\Big[\PT c_\phi(z_t, s_t)  \Big] \Big]\Big]\\
+&= \E_\tau\Big[ \LL{t} c_\phi(\tilde{z_t}, s_t) - \Big(\frac{\partial c_\phi(z_t, s_t)}{\partial\theta} - \frac{\partial c_\phi(\tilde{z_t}, s_t)}{\partial\theta}\Big)\Big] = 0
 \end{align}
 
 %We can estimate this value with the REINFORCE gradient estimator as $$\frac{\partial \mathbb{E}_{\pi(a|\phi)}[f(a)]}{\partial \phi} = \mathbb{E}[f(a)\frac{\partial \log p(a)}{\partial \phi}]$$ but the variance of this estimator can be very high thus making our model very sample-inefficient. We can subtract a control variate $r(\rho)\frac{\partial \log p(a(\rho))}{\partial \phi}$ where $\rho$ is sampled from some distribution which is a function of $\phi$ and $a(\rho)$ is a deterministic function of such that $a \sim \pi(a|\phi)$.
