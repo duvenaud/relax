@@ -903,7 +903,7 @@ Thus due to the markov property of the MDP, then we can wrap all of these expect
 
 \subsection{Discrete VAE}
 \label{app_disc_vae}
-In the one layer models we optimize the ELBO $$\mathcal{L}(\theta) = \E_{q(b|x)}[\log p(x|b) + \log p(b) - \log q(b|x)]$$ where $q(b_1|x) = \sigma(x\cdot W_q + \beta_q)$ and $p(x| b_1) = \sigma(b_1\cdot W_p + \beta_p)$ with weight matrices $W$ and biases $\beta$.
+In the one layer models we optimize the evidence lower bound (ELBO): $$\log p(x) \geq \mathcal{L}(\theta) = \E_{q(b|x)}[\log p(x|b) + \log p(b) - \log q(b|x)]$$ where $q(b_1|x) = \sigma(x\cdot W_q + \beta_q)$ and $p(x| b_1) = \sigma(b_1\cdot W_p + \beta_p)$ with weight matrices $W_q,W_p$ and bias vectors $\beta_q,\beta_p$.
 The parameters of the prior $p(b)$ are also learned.
 
 We run all models for $2,000,000$ iterations with a batch size of $24$. For the REBAR models, we tested learning rates in $\{.005, .001, .0005,  .0001, .00005\}$. 
@@ -913,16 +913,22 @@ These are the depth of the neural network component of our control variate $r_\r
 We tested neural network models with $l$ layers of 200 units using the ReLU nonlinearity with $l \in \{2, 4\}$.
 We trained the control variate with weight decay in $\{.001, .0001\}$. We trained the control variate with learning rate scaling in $\{1, 10\}$.
 
-To limit the hyperparameter search and to demonstrate the impact of reduced-variance gradient estimates, we choose the base learning rate for RELAX to be the best performing learning rate from REBAR.
+To limit the size of hyperparameter search for the RELAX models, we only test the best performing learning rate for the REBAR baseline and the next largest learning rate in our search set.
+In many cases, we found that RELAX allowed our model to converge at learning rates which made the REBAR estimators diverge.
 We believe further improvement could be achieved by tuning this parameter.
 
 All presented results are from the models which achieve the highest ELBO on the validation data.
 
 \subsubsection{Two layer model}
-In the two layer models we optimize the ELBO $$\mathcal{L}(\theta) = \E_{q(b_2|b_1)q(b_1|x)}[\log p(x|b_1) + \log p(b_1|b_2) + \log p(b_2) - \log q(b_1|x) - \log q(b_2|b_1)]$$ where $q(b_1|x) = \sigma(x\cdot W_{q_1} + \beta_{q_1})$, $q(b_2|b_1) = \sigma(b_1\cdot W_{q_2} + \beta_{q_2})$, $p(x| b_1) = \sigma(b_1\cdot W_{p_1} + \beta_{p_1})$, and $p(b_1| b_2) = \sigma(b_2\cdot W_{p_2} + \beta_{p_2})$ with weight matrices $W$ and biases $\beta$. As in the one layer model, the prior $p(b_2)$ is also learned.
+In the two layer models we optimize the ELBO $$\mathcal{L}(\theta) = \E_{q(b_2|b_1)q(b_1|x)}[\log p(x|b_1) + \log p(b_1|b_2) + \log p(b_2) - \log q(b_1|x) - \log q(b_2|b_1)]$$ where $q(b_1|x) = \sigma(x\cdot W_{q_1} + \beta_{q_1})$, $q(b_2|b_1) = \sigma(b_1\cdot W_{q_2} + \beta_{q_2})$, $p(x| b_1) = \sigma(b_1\cdot W_{p_1} + \beta_{p_1})$, and $p(b_1| b_2) = \sigma(b_2\cdot W_{p_2} + \beta_{p_2})$ with weight matrices $W_{q_1},W_{q_2},W_{p_1},W_{p_2}$ and biases $\beta_{q_1},\beta_{q_2},\beta_{p_1},\beta_{p_2}$. As in the one layer model, the prior $p(b_2)$ is also learned.
+
+We run an identical hyperpameter search in the 2 layer model as we do in the 1 layer model. 
 
 
 \subsection{Discrete RL}
+In both the baseline A2C and RELAX models, the policy and control variate (value function in the baseline model) were 2 layer neural networks with 10 units per layer. The ReLU non linearity was used on all layers except for the output layer.
+
+Both models have 2 hyperparameters to tune; the global learning rate and the scaling factor on the learning rate for the control variate (or control variate). We complete a grid search for both parameters in $\{0.01, 0.003, 0.001\}$ and present the model which ``solves'' the task in the fewest number of episodes averaged over 5 random seeds. ``Solving'' the tasks was defined by the creators of the OpenAI gym \cite{1606.01540}. The CartPole task is considered solved if the agent receives an average reward greater than 195 over 100 consecutive episodes. The LunarLander task is considered solved if the agent receives an average reward greater than 200 over 100 consecutive epsidoes. 
 \subsection{Continuous RL}
 
 \end{document}
