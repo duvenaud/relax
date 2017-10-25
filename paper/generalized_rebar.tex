@@ -111,21 +111,18 @@ Furthermore, we derive improved variants of popular reinforcement learning metho
 %\end{itemize}
 
 \begin{figure}[h]
-\begin{center}
+\centering
 \includegraphics[width=.325\textwidth]{figures/toy_losses_10000_0_499}
 \includegraphics[width=.325\textwidth, clip, trim=3mm 3mm 3mm 3mm]{figures/variance}
 \includegraphics[width=.325\textwidth]{figures/optimized-relaxation}
-\label{first figure}
-\end{center}
 \caption{
 \emph{Left:} Training curves using different gradient estimators on a toy problem: {$\mathcal{L}(\theta) = \E_p(b|\theta) [ (b - 0.499)^2 ]$}
 \emph{Centre:} Variance of each estimator's gradient.
 \emph{Right:} The relaxation being used by REINFORCE (red), REBAR (blue), and the RELAX's learned relaxation (green).
 }
+\label{first figure}
 \end{figure}
 
-
-%Also: \citep{levine2016end}
 
 \section{Background: Gradient estimators}
 
@@ -489,6 +486,7 @@ In contrast, our method is a simple-sample estimator.
 %As gradient estimators become more complex, checking their unbiasedness numerically becomes difficult.
 %The automatic theorem-proving-based unbiasedness checker developed by \citet{selsam2017developing} may become relevant to this line of research.
 
+%Also: \citep{levine2016end}
 
 \citet{staines2012variational} address the general problem of developing gradient estimators for deterministic black-box functions or discrete optimization.
 They introduce a sampling distribution, and optimize an objective similar to ours.
@@ -513,35 +511,32 @@ Unlike our method, their control variate is trained off-policy. While our method
 
 \section{Applications}
 \label{Applications}
-We demonstrate the effectiveness of our estimator on a number of challenging optimization problems. Following \cite{tucker2017rebar} we begin with a simple toy example to illuminate the potential of our method and then continue to the more relevant problems of optimizing binary VAE's and reinforcement learning.
+We demonstrate the effectiveness of our estimator on a number of challenging optimization problems. Following~\citet{tucker2017rebar} we begin with a simple toy example to illuminate the potential of our method and then continue to the more relevant problems of optimizing binary VAE's and reinforcement learning.
 
-\subsection{Toy Experiment}
-We seek to minimize $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where $p(b|\theta) = \mathtt{Bernoulli}(b|\theta)$. \cite{tucker2017rebar} set the target $t = .45$.
+\subsection{Toy experiment}
+We seek to minimize $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where {$p(b|\theta) = \textnormal{Bernoulli}(b|\theta)$}. \cite{tucker2017rebar} set the target $t = .45$.
 We focus on the more challenging case where $t = .499$.
-With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the optimal solution $\theta = 0$.
+Figures~\ref{first figure}a and \ref{first figure}b and shows the relative performance and gradient variance of REINFORCE, REBAR, and RELAX.
+%With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the optimal solution $\theta = 0$.
+%The fixed concrete relaxation of REBAR is unable to produce a gradient whose signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE.
 
-The fixed Concrete relaxation of REBAR is unable to produce a gradient whose signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE.
-Figure~\ref{fig:toy_var} plots the learned relaxations for a fixed value of $\theta$.
-
-It can be seen that RELAX learns a relaxation whose derivative points in the direction of decreased loss for all values of reparameterization noise $u$, whereas REBAR's fixed relaxation only does so for values of $u > t$.
+Figure~\ref{first figure}c plots the learned relaxation $r_\phi$ for a fixed value of $\theta$.
+RELAX learns a relaxation whose derivative points in the direction of decreased loss for all values of reparameterization noise $u$, whereas REBAR's fixed relaxation only does so for values of $u > t$.
 
 
-\subsection{Discrete Variational Autoencoder}
-As in \citet{tucker2017rebar}, we benchmark the RELAX estimator on the task of training a variational autoencoder~\citep{kingma2013autoencoding, rezende2014stochastic} where the latent variables are Bernoulli.
-As in \citet{tucker2017rebar}, we compare training the variational lower-bound across the MNIST and Omniglot~\citep{lake2015human} datasets.
-As in \citet{tucker2017rebar} we test models with 1 and 2 layers of 200 Bernoulli random variables with linear mappings between them. 
-
-In the one layer models we optimize the ELBO $$\mathcal{L}(\theta) = \E_{q(b|x)}[\log p(x|b) + \log p(b) - \log q(b|x)]$$ where $q(b_1|x) = \sigma(x\cdot W_q + \beta_q)$ and $p(x| b_1) = \sigma(b_1\cdot W_p + \beta_p)$ with weight matrices $W$ and biases $\beta$. The parameters of the prior $p(b)$ are also learned.
-Details of the two layer model can be found in the Appendix~\ref{app_disc_vae}.
+\subsection{Discrete variational autoencoder}
+Next, we evaluate the \RELAX{} estimator on the task of training a variational autoencoder~\citep{kingma2013autoencoding, rezende2014stochastic} with Bernoulli latent variables.
+We reproduced experiments from \citet{tucker2017rebar}, training models with 1 and 2 layers of 200 Bernoulli random variables with linear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
+Details of these model can be found in appendix~\ref{app_disc_vae}.
 
 %them and a model with 1 layer of Bernoulli random variables with non-linear mappings between layers.
 
 To take advantage of the available structure in the loss function, we choose the form of our control variate to be $$ r_\phi(z) = \hat{r}_\rho(z) + f(\sigma_\lambda(z))$$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function (the evidence lower-bound) evaluated at continuously relaxed inputs as in REBAR.  
 %We found that due to the complicated structure of the loss function, the RELAX estimator performed worse than REBAR. Instead we add a learned relaxation to REBAR's control variate which we denote relaxed-REBAR.
 %Our estimator takes the form of \eqref{eq:RELAX} with $$\bar \relaxed(z) = \relaxed(z) + f(\sigma_\lambda(z))$$ where $\relaxed(z)$ is a learned neural network and $f(\sigma_\lambda(z))$ is the Concrete relaxation of REBAR with temperature parameter $\lambda$.
-
-We compare against the state-of-the-art baseline of REBAR \cite{tucker2017rebar}.
-In all experiments, we the learned control variate improved the training and validation performance as well as increased the rate of convergence. 
+%
+%We compare  \cite{tucker2017rebar}.
+In all experiments, we the learned control variate improved the training and validation performance, over the state-of-the-art baseline of REBAR. 
 
 \begin{table}[h]
 \centering
@@ -779,7 +774,11 @@ v_i' =    \left\{
 %One limitation of the concrete distribution is that it is a biased estimator except in limiting temperature.
 %In other words, a small amount of bias is present for a non-zero temperature.
 
+
+
 \section{Reinforcement learning proofs}
+\label{rl appendix}
+
 
 \paragraph{Proof 1}
 
@@ -824,23 +823,32 @@ Thus due to the markov property of the MDP, then we can wrap all of these expect
 
 %We can estimate this value with the REINFORCE gradient estimator as $$\frac{\partial \mathbb{E}_{\pi(a|\phi)}[f(a)]}{\partial \phi} = \mathbb{E}[f(a)\frac{\partial \log p(a)}{\partial \phi}]$$ but the variance of this estimator can be very high thus making our model very sample-inefficient. We can subtract a control variate $r(\rho)\frac{\partial \log p(a(\rho))}{\partial \phi}$ where $\rho$ is sampled from some distribution which is a function of $\phi$ and $a(\rho)$ is a deterministic function of such that $a \sim \pi(a|\phi)$.
 
+
+
 \section{Experimental Details}
+\label{experiment appendix}
+
 \subsection{Discrete VAE}
+\label{app_disc_vae}
+In the one layer models we optimize the ELBO $$\mathcal{L}(\theta) = \E_{q(b|x)}[\log p(x|b) + \log p(b) - \log q(b|x)]$$ where $q(b_1|x) = \sigma(x\cdot W_q + \beta_q)$ and $p(x| b_1) = \sigma(b_1\cdot W_p + \beta_p)$ with weight matrices $W$ and biases $\beta$.
+The parameters of the prior $p(b)$ are also learned.
+
 We run all models for $2,000,000$ iterations with a batch size of $24$. For the REBAR models, we tested learning rates in $\{.005, .001, .0005,  .0001, .00005\}$. 
 
-RELAX adds more hyperparameters. These are the depth of the neural network component of our control variate $r_\rho$, the weight decay placed on the network, and the scaling on the learning rate for the control variate. We tested neural network models with $l$ layers of 200 units using the ReLU nonlinearity with $l \in \{2, 4\}$. We trained the control variate with weight decay in $\{.001, .0001\}$. We trained the control variate with learning rate scaling in $\{1, 10\}$.
+RELAX adds more hyperparameters.
+These are the depth of the neural network component of our control variate $r_\rho$, the weight decay placed on the network, and the scaling on the learning rate for the control variate.
+We tested neural network models with $l$ layers of 200 units using the ReLU nonlinearity with $l \in \{2, 4\}$.
+We trained the control variate with weight decay in $\{.001, .0001\}$. We trained the control variate with learning rate scaling in $\{1, 10\}$.
 
-To limit the hyperparameter search and to demonstrate the impact of reduced-variance gradient estimates, we choose the base learning rate for RELAX to be the best performing learning rate from REBAR. We believe further improvement could be achieved by tuning this parameter.
+To limit the hyperparameter search and to demonstrate the impact of reduced-variance gradient estimates, we choose the base learning rate for RELAX to be the best performing learning rate from REBAR.
+We believe further improvement could be achieved by tuning this parameter.
 
 All presented results are from the models which achieve the highest ELBO on the validation data.
-
 
 \subsubsection{Two layer model}
 In the two layer models we optimize the ELBO $$\mathcal{L}(\theta) = \E_{q(b_2|b_1)q(b_1|x)}[\log p(x|b_1) + \log p(b_1|b_2) + \log p(b_2) - \log q(b_1|x) - \log q(b_2|b_1)]$$ where $q(b_1|x) = \sigma(x\cdot W_{q_1} + \beta_{q_1})$, $q(b_2|b_1) = \sigma(b_1\cdot W_{q_2} + \beta_{q_2})$, $p(x| b_1) = \sigma(b_1\cdot W_{p_1} + \beta_{p_1})$, and $p(b_1| b_2) = \sigma(b_2\cdot W_{p_2} + \beta_{p_2})$ with weight matrices $W$ and biases $\beta$. As in the one layer model, the prior $p(b_2)$ is also learned.
 
 
-
-\label{app_disc_vae}
 \subsection{Discrete RL}
 \subsection{Continuous RL}
 
