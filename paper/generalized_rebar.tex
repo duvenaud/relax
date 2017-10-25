@@ -117,9 +117,9 @@ Furthermore, we derive improved variants of popular reinforcement learning metho
 \includegraphics[width=.325\textwidth, clip, trim=3mm 3mm 3mm 3mm]{figures/variance}
 \includegraphics[width=.325\textwidth]{figures/optimized-relaxation}
 \caption{
-\emph{Left:} Training curves using different gradient estimators on a toy problem: {$\mathcal{L}(\theta) = \E_p(b|\theta) [ (b - 0.499)^2 ]$}
+\emph{Left:} Training curves comparing different gradient estimators on a toy problem: ${\mathcal{L}(\theta) = \E_p(b|\theta) [ (b - 0.499)^2 ]}$
 \emph{Centre:} Variance of each estimator's gradient.
-\emph{Right:} The relaxation being used by REINFORCE (red), REBAR (blue), and the RELAX's learned relaxation (green).
+\emph{Right:} The optimal possible relaxation of the loss function for REINFORCE (blue), REBAR (green), and RELAX (red).
 }
 \label{first figure}
 \end{figure}
@@ -458,7 +458,7 @@ This is the approach we have taken in our reinforcement learning experiments.
 We now describe how we apply the \LAX{} estimator in the reinforcement learning (RL) setting.
 By reinforcement learning, we refer to the problem of optimizing the parameters $\theta$ of a policy distribution $\pi(a | s, \theta)$ to maximize the sum of rewards.
 In this setting, the random variable being integrated over is $\tau$, which denotes a series of actions and states $[(s_1, a_1), (s_2, a_2), ..., (s_T, a_T)]$.
-The function whose expectation is being optimized, $R$, maps $\tau$ to the sum of rewards ${R(\tau]) = \sum_{t=1}^{T} r_t(s_t, a_t)}$.
+The function whose expectation is being optimized, $R$, maps $\tau$ to the sum of rewards ${R(\tau) = \sum_{t=1}^{T} r_t(s_t, a_t)}$.
 
 Again, we want to estimate the gradient of an expectation of a black-box function: $\nicefrac{\partial \mathbb{E}_{p(\tau|\theta)}[R(\tau)]}{\partial \theta}$.
 The \emph{de facto} standard approach is the advantage actor-critic estimator (A2C)~\citep{sutton2000policy}:% which is the standard policy gradient algorithm. 
@@ -479,8 +479,7 @@ The \emph{de facto} standard approach is the advantage actor-critic estimator (A
 %
 %
 \begin{align}
-\hat g_{\textnormal{A2C}} = \sum_{t=1}^T \LL{t} \left[ \sum_{t'=t}^T r_{t'} - c(s_t) \right]+\frac{\partial}{\partial\theta} c(s_t), \\
-a_t = g_\theta(\epsilon_t,s_t) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber.
+\hat g_{\textnormal{A2C}} = \sum_{t=1}^T \LL{t} \left[ \sum_{t'=t}^T r_{t'} - c(s_t) \right]+\frac{\partial}{\partial\theta} c(s_t), \qquad a_t \sim \pi(a_t | s_t, \theta)
 \label{eq:rl_a2c}
 \end{align}
 %
@@ -675,27 +674,37 @@ In all experiments, RELAX provides an increase in rate of convergence.
 
 
 
-\subsection{Reinforcement Learning}
+\subsection{Reinforcement learning}
 We test our approach on a few simple reinforcement learning environments with discrete and continuous actions.
-We use the \RELAX{} and \LAX{} estimators for discerete and continuous actions, respectively. We compare with the advantage actor-critic algorithm~\cite{sutton2000policy} as a baseline.
+We use the \RELAX{} and \LAX{} estimators for discerete and continuous actions, respectively.
+We compare with the advantage actor-critic algorithm~\cite{sutton2000policy} as a baseline.
 In all experiments we use the same learning rate for the policy network for RELAX and A2C so differences in performance depended solely on the control variate used. 
 
-To compare these approaches in the most illustrative setting possible we do not use any reward bootstrapping in either model. After each episode terminates, we generate the discounted reward for each time-step, treat the episode as a single batch of data, and perform one step of gradient decent. We are aware that better results could be obtained with bootstrapping and larger batch sizes but we wanted to work in the highest possible variance setting to demonstrate the variance reduction capabilities of our approach.
+To compare these approaches in the most illustrative setting possible we do not use any reward bootstrapping in either model.
+After each episode terminates, we generate the discounted reward for each time-step, treat the episode as a single batch of data, and perform one step of gradient decent.
+We are aware that better results could be obtained with bootstrapping and larger batch sizes but we wanted to work in the highest possible variance setting to demonstrate the variance reduction capabilities of our approach.
 
 %We test our alrgorithm on the Cart-Pole and Lunar-Lander environments from the OpenAI Gym~\cite{1606.01540}.
 %We run the Cart-Pole and Lunar-Lander environments for 250 and 1000 episodes, respectively and plot reward and the log-variance of the policy gradients in figure~X.
 
-\subsubsection{Discrete Experiments}
-We test our approach in the discrete action domains of the CartPole and LunarLander as provided by the OpenAI gym~\cite{1606.01540}. For all models, the policy and control variate were both neural networks with 2 layers of 10 units using the ReLU nonlinearity. We first tuned the learning rate using the baseline A2C then ran \RELAX{} with the same learning rate. 
-In both domains we observe improved performance and sample efficiency using our method. Again, we are aware that improved results could be obtained by further tuning the learning rate for \RELAX{} but we wanted to illustrate the improvement provided solely by the improved control variate. 
+\subsubsection{Discrete experiments}
+We test our approach in the discrete action domains of the CartPole and LunarLander as provided by the OpenAI gym~\cite{1606.01540}.
+For all models, the policy and control variate were both neural networks with 2 layers of 10 units using the ReLU nonlinearity.
+We first tuned the learning rate using the baseline A2C then ran \RELAX{} with the same learning rate. 
+In both domains we observe improved performance and sample efficiency using our method.
+Again, we are aware that improved results could be obtained by further tuning the learning rate for \RELAX{} but we wanted to illustrate the improvement provided solely by the improved control variate. 
 
-\paragraph{Experimental Details}
+\paragraph{Experimental details}
 We estimate the policy gradient using a single Monte Carlo sample produced from a one episode roll-out of the current policy.
 We note that improved performance could be achieved by using more samples, but we intended to test our model in the highest-possible variance setting. 
-In all experiments both the policy and control variate were two layer neural networks with RELU non-linearities. Each intermediate layer's output had dimension 10. We searched over two hyper-parameters; the global learning rate and the scaling on the loss from the control variate or value function. For each we tested values in $[.01, .003, .001]$. between our model and the baseline and the learning rates were also constant across tests making it that all improvements derive from having a lower variance estimate of the policy gradient. Presented results are obtained by averaging over 5 runs with different random seeds. We run the CartPole and LunarLander for $250,000$ and $5,000,000$ time-steps respectively. 
+In all experiments both the policy and control variate were two layer neural networks with RELU non-linearities. Each intermediate layer's output had dimension 10.
+We searched over two hyper-parameters; the global learning rate and the scaling on the loss from the control variate or value function.
+For each we tested values in $[.01, .003, .001]$.
+Between our model and the baseline and the learning rates were also constant across tests making it that all improvements derive from having a lower variance estimate of the policy gradient.
+Presented results are obtained by averaging over 5 runs with different random seeds. We run the CartPole and LunarLander for $250,000$ and $5,000,000$ time-steps respectively. 
 
 \begin{table}[h]
-\begin{center}
+\centering
 \begin{tabular}{l c c} 
 \textbf{CartPole} & A2C & RELAX \\\midrule
 Episodes until solve      & $1152 \pm 90$ & $\bm{472 \pm 114}$ \\
@@ -703,31 +712,28 @@ Timesteps until solve    & $162374 \pm 17241$ & $\bm{68,712 \pm 20668}$ \\\\
 \textbf{LunarLander}\\ \midrule
 Episodes until solve & $11204 \pm 788$ & $\bm{4244 \pm 1549}$ 
 \end{tabular}
-\end{center}
-\label{tab:vae}
 \caption{Mean Episodes to Solve. CartPole is considered solved if the agent receives an average reward over $195$ in the last $100$ Episodes. LunarLander is considered solved if the agent receives an average reward over $200$ in the last $100$ frames.}
+\label{tab:vae}
 \end{table}
 % cartpole epsidoes to solve, this result looks better than episodes
 % Best Models      & $81018 \pm 15405$ & $45729 \pm 16294$ \\\\
 
 \begin{figure}[h]
-\begin{center}
+\centering
 \includegraphics[width=.4\textwidth]{figures/cp_paper}
 \includegraphics[width=.4\textwidth]{figures/ll_paper}
+\caption{Discrete RL Experiments.\emph{Left:} CartPole.
+\emph{Right:} LunarLander.}
 \label{fig:disc_rl}
-\end{center}
-\caption{Discrete RL Experiments.}
-\emph{Left:} CartPole.
-\emph{Right:} LunarLander.
-
 \end{figure}
 
-\citet{mnih-dqn-2015}
+%\citet{mnih-dqn-2015}
 
-[Do we use ADAM \citep{kingma2015adam} for optimization?]
+\subsubsection{Continuous experiments}
+We use ADAM \citep{kingma2015adam} for optimization.
 
 
-\section{Conclusions and Future Work}
+\section{Conclusions and future work}
 \label{conclusion}
 
 In this work, synthesized and generalized many of the standard approaches for constructing gradient estimators.
