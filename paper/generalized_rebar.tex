@@ -561,14 +561,12 @@ Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule
 
 \begin{table}[h]
 \centering
-\begin{tabular}{l c c} 
-               & REBAR & RELAX \\
-\textbf{MNIST} & ours  & \\\midrule
-1 layer  & -114.32 & \textbf{-113.62} \\ 
-2 Layer  & -101.20 & \textbf{-100.85} \\\\
-\textbf{Omniglot}\\ \midrule
-1 layer & -122.44 & \textbf{-122.11} \\ 
-2 Layer & -115.83 & \textbf{-115.42}
+\begin{tabular}{r l | c c} 
+  Dataset & Model & REBAR & RELAX \\\midrule
+\textbf{MNIST} & 1 layer  & -114.32 & \textbf{-113.62} \\ 
+& 2 Layer  & -101.20 & \textbf{-100.85} \\ \midrule
+\textbf{Omniglot} & 1 layer & -122.44 & \textbf{-122.11} \\ 
+& 2 Layer & -115.83 & \textbf{-115.42}
 \end{tabular}
 \caption{Best obtained validation objective.}
 \label{tab:vae val}
@@ -610,16 +608,13 @@ In all experiments, RELAX provides an increase in rate of convergence.
 
 \begin{table}[h]
 \centering
-\begin{tabular}{l c c} 
-               & REBAR & RELAX \\
-\textbf{MNIST} & ours  & \\
+\begin{tabular}{r l | c c} 
+ Dataset & Model  & REBAR & RELAX \\\midrule
+\textbf{MNIST} & 1 layer  & 857 & \textbf{531} \\ 
+& 2 Layer  & 900 & \textbf{620} \\\\
 \midrule
-1 layer  & 857 & \textbf{531} \\ 
-2 Layer  & 900 & \textbf{620} \\\\
-\textbf{Omniglot}\\
-\midrule
-1 layer & 2086 & \textbf{566} \\ 
-2 Layer & 1027 & \textbf{673}
+\textbf{Omniglot} & 1 layer & 2086 & \textbf{566} \\ 
+& 2 Layer & 1027 & \textbf{673}
 \end{tabular}
 \caption{Epochs needed to achieve REBAR's best validation score.}
 \label{tab:vae epochs}
@@ -665,7 +660,7 @@ Episodes until solve & $11204 \pm 788$ & $\bm{4244 \pm 1549}$
 \begin{figure}[h]
 \begin{center}
 \includegraphics[width=.4\textwidth]{figures/cp_paper}
-\includegraphics[width=.4\textwidth]{figures/lander_rewards}
+\includegraphics[width=.4\textwidth]{figures/ll_paper}
 \label{fig:disc_rl}
 \end{center}
 \caption{Discrete RL Experiments.}
