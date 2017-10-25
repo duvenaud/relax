@@ -48,6 +48,7 @@
 
 \newcommand{\YW}[1]{{\color{red} \bf [[YW: #1]]}}
 \newcommand{\LAX}{{\textnormal{LAX}}}
+\newcommand{\DLAX}{{\textnormal{DLAX}}}
 \newcommand{\RL}{{\textnormal{RL}}}
 \newcommand{\RELAX}{{\textnormal{RELAX}}}
 \newcommand{\BAR}{{\textnormal{BAR}}}
@@ -118,7 +119,7 @@ Furthermore, we derive improved variants of popular reinforcement learning metho
 \caption{
 \emph{Left:} Training curves using different gradient estimators on a toy problem: {$\mathcal{L}(\theta) = \E_p(b|\theta) [ (b - 0.499)^2 ]$}
 \emph{Centre:} Variance of each estimator's gradient.
-\emph{Right:} The relaxation being used by REINFORCE (red), REBAR (blue), and the RELAX's learned relaxation (green).
+\emph{Right:} The relaxation being used by REINFORCE (blue), REBAR (green), and the RELAX's learned relaxation (red).
 }
 \label{first figure}
 \end{figure}
@@ -196,8 +197,8 @@ Importantly, the new estimator has lower variance than $g(b)$ if $\controlf(b)$ 
 The reparameterization trick, while useful, is only applicable when $f$ is a known, differentiable function of a continuous random variable.
 For functions $f$ of discrete variables, gradient estimators based on continuous relaxations such as the concrete, or Gumbel-softmax relaxations~\cite{maddison2016concrete, jang2016categorical} are applicable only when $f$ is known.
 %These methods also require that $f$ is known and differentiable with respect to its inputs.
-%Moreover, they require that $f$ be computable at and behave predictably at inputs outside of the domain of the function.
-%While these assumptions often hold, there are many problems of interest which make these approaches inapplicable. 
+Moreover, they require that $f$ be computable at and behave predictably at inputs outside of the domain of the function.
+While these assumptions often hold, they greatly restrict the space of functions for which we can apply these methods. 
 
 In this section, we introduce a gradient estimator for the expectation of a function $\PT \E_{p(b|\theta)}[f(b)]$ that can be applied even when $f$ is unknown, or not differentiable.
 %We make no assumptions about the structure of $f$ itself.
@@ -205,17 +206,17 @@ This allows the estimator to be applied to a wide range of applications with lit
 Our estimator combines the score function estimator, the reparameterization trick, and control variates.
 We obtain an unbiased estimator whose variance can potentially be as low as reparameterization-trick estimator, even when $f$ is not differentiable or not computable.
 
-We begin with the case where $b$ is a reparameterizable continuous random variable.
-We then handle the case where $b$ is discrete. 
+%We begin with the case where $b$ is a reparameterizable continuous random variable.
+%We then handle the case where $b$ is discrete. 
 
-\subsection{The \LAX{} estimator for continuous random variables}
+%\subsection{The \LAX{} estimator for continuous random variables}
+First, we consider the case where $b$ is continuous, but that $f$ cannot be differentiated.
 We begin with the score-function gradient estimator:
 %
 \begin{align}
-\hat g_\textnormal{reinforce} = f \left( b \right) \PT \log p(b | \theta), \qquad b \sim p(b|\theta)
+\hat g_\textnormal{reinforce} = f \! \left( b \right) \PT \log p(b | \theta), \qquad b \sim p(b|\theta)
 \end{align}
 %
-We assume that $f$ cannot be differentiated through.
 Instead of differentiating through $f$, we build a surrogate \emph{relaxation} of $f$ using a neural network $r_\phi$, and differentiate $r_\phi$ instead.
 Using the fact that the score-function estimator and reparameterization estimator have the same expectation:
 %
@@ -224,16 +225,16 @@ Using the fact that the score-function estimator and reparameterization estimato
 \E_{p(\epsilon)} \left[ \frac{\partial r_\phi}{\partial b} \frac{\partial b(\theta, \epsilon)}{\partial \theta} \right]
 \end{align}
 %
-
+%
 %We first consider the case where $b$ is a continuous random variable.% and then when $b$ is discrete.
-
+%
 %\subsection{The \LAX{} estimator -- continuous case} 
 %\YW{The symbol $T$ usually refers to sufficient statistics. I don't think we should use it here for reparameterization. Also we should use a lower case letter.}
 %We wish to compute $\PT\E_{p(b;\theta)}[f(b)]$ where $p(b;\theta)$ is a distribution with continuous support that admits a reparameterization $b = g_\theta(\epsilon)$, where $\epsilon \sim p(\epsilon)$.
 %We assume that $f$ is a black-box, or involves operations such that $\PT f = 0$ almost everywhere or is not computable.
 %\YW{This is the motivation for our following proposal. But I find it's not motivated enough.  It sounds like an assumption. But we're actually looking at this type of problem. I suggest motivate this more in the introduction paragraph, background section. List some examples of such $f$.} 
 %Given the reparameterization, we can re-write this objective as an expectation over $\epsilon$ as  $\PT\E_{p(\epsilon)}[f(T(\epsilon, \theta)]$.
-
+%
 %Let $r_\phi$ be a differentiable function (such as a neural network) parametrized by $\phi$.
 %By REINFORCE, we have $\PT\E_{p(b;\theta)}[r_\phi(b)] = \E_{p(b;\theta)}[r_\phi(b)\LP{b;\theta}]$.
 %Hence, by adding and subtracting it, we have
@@ -245,7 +246,7 @@ Using the fact that the score-function estimator and reparameterization estimato
 %
 %Which allows us to define our estimator below as: 
 %
-We can simply add the score-function estimator and subtract the reparameterization estimator, to obtain:
+We can simply add the score-function estimator and subtract the reparameterization estimator, to get:
 %
 \begin{align}
 \label{eq:cont_est}
@@ -253,6 +254,7 @@ We can simply add the score-function estimator and subtract the reparameterizati
 \end{align}
 %
 This gives an unbiased estimator for any choice of $r_\phi$.
+
 
 \begin{algorithm}[t]
 \begin{algorithmic}
@@ -272,35 +274,48 @@ This gives an unbiased estimator for any choice of $r_\phi$.
 \end{algorithm}
 
 %\subsection{The \RELAX{} estimator for discrete random variables}
-\subsection{Conditional reparameterization}
-%When $p(b|\theta)$ is a distribution over discrete random variables, more care must be taken.
-We assume that there exists a continuous, reparameterizable distribution $p(z|\theta)$ and a deterministic mapping $H(z)$ such that $H(z) = b \sim p(b|\theta)$ when $z \sim p(z|\theta)$.
+\subsection{Discrete random variables and conditional reparameterization}
+We can adapt the \LAX{} estimator to the case where $b$ is a discrete random variable by introducing a ``relaxed'' continuous variable $z$. %, where $b = H(z)$ and $H$ denotes the Heaviside function. %, we 
+Here we assume that there exists a continuous, reparameterizable distribution $p(z|\theta)$ and a deterministic mapping $H(z)$ such that $H(z) = b \sim p(b|\theta)$ when $z \sim p(z|\theta)$.
 Examples of such distributions and functions can be found in appendix~\ref{resample}.
-%Most discrete distributions of interest fit into this formulation.
 
-We derive our estimator similarly to \cite{tucker2017rebar} with
+The discrete version of the \LAX{} estimator is given by:
 %
 \begin{align}
-\PT \expectedLoss{} %\nonumber\\
-&= \PT \E_{p(b|\theta)} \! \left[ f(b) \right] - \E_{p(z|\theta)} \! \left[ r_\phi(z) \right] + \PT\E_{p(z|\theta)} \! \left[ r_\phi(z) \right]\\
-&= \PT \E_{p(b|\theta)} \! \left[ f(b) - \E_{p(z|b, \theta)}\left[ r_\phi(z) \right]  \right] + \PT\E_{p(z|\theta)} \! \left[ r_\phi(z) \right]\nonumber\\
-= \E_{p(b|\theta)} \! \left[\left( f(b) - \E_{p(z|b, \theta)} \! \left[r_\phi(z) \right] \right)\PT \log p(b|\theta)  - \PT \E_{p(z|b, \theta)} \! \left[r_\phi(z) \right] \right] + \PT\E_{p(z|\theta)} \! \left[ r_\phi(z) \right] \span & \nonumber
-%&= \E_{p(\epsilon, \hat{\epsilon})}\Big[\left( f(H(T(\epsilon, \theta))) - r_\phi(T(\epsilon, \theta))  \right) \PT \log p(H(T(\epsilon, \theta))|\theta) - \PT r_\phi(\hat{T}(\hat{\epsilon}, H(T(\epsilon, \theta)), \theta)) \Big]\nonumber\\
-%&\qquad + \PT\E_{p(\epsilon)}\left[ r_\phi(T(\epsilon, \theta)) \right]
+\label{eq:discrete lax}
+\hat g_\DLAX = f(b) \PT \log p(b|\theta) - r_\phi(z) \PT \log p(z|\theta) + \PT r_\phi(z), \qquad b = H(z), z \sim p(z|\theta).
 \end{align}
 %
-which allows us to define our estimator as
+%When $p(b|\theta)$ is a distribution over discrete random variables, more care must be taken.
+This estimator is simple to implement and general.
+However, we might expect this estimator to have high variance, since $r_\phi$ must both correlate with the discrete function $f$, whose gradients are zero w.r.t. its input, but also have a low-variance reparameterization gradient.
+Intuitively, these two requirements are in direct opposition.
+
+%Most discrete distributions of interest fit into this formulation.
+To construct a more powerful gradient estimator, we incorporate a further refinement due to~\cite{tucker2017rebar}.
+Specifically, we evaluate our control variate both at a relaxed input $z \sim p(z|\theta)$, and also at a relaxed input \emph{conditioned on the discrete variable $b$}, denoted $\tilde z \sim p(z|b, \theta)$. 
+Thus we define our estimator as
 %
 \begin{align}
 \hat g_\textnormal{RELAX} = \left[ f(b) - r_\phi(\hat{z}) \right] \PT \log p(b|\theta) + \PT r_\phi(z) - \PT r_\phi (\tilde{z}) \\
 \qquad b = H(z), z \sim p(z|\theta), \tilde{z} \sim p(z|b, \theta) \nonumber
 \end{align}
 %
-which is also unbiased for any $r_\phi$.
+
+This estimator is unbiased for any $r_\phi$.
+We prove this following~\cite{tucker2017rebar}:
+%
+\begin{align}
+\E_{p(b|\theta)} \! \left[\left[ f(b) - \E_{p(z|b, \theta)} \! \left[r_\phi(z) \right] \right]\PT \log p(b|\theta)  - \PT \E_{p(z|b, \theta)} \! \left[r_\phi(z) \right] \right] + \PT\E_{p(z|\theta)} \! \left[ r_\phi(z) \right] \span & \nonumber\\
+&= \PT \E_{p(b|\theta)} \! \left[ f(b) - \E_{p(z|b, \theta)}\left[ r_\phi(z) \right]  \right] + \PT\E_{p(z|\theta)} \! \left[ r_\phi(z) \right]\nonumber\\
+&= \PT \E_{p(b|\theta)} \! \left[ f(b) \right] - \E_{p(z|\theta)} \! \left[ r_\phi(z) \right] + \PT\E_{p(z|\theta)} \! \left[ r_\phi(z) \right]
+= \PT \expectedLoss{}%&= \E_{p(\epsilon, \hat{\epsilon})}\Big[\left( f(H(T(\epsilon, \theta))) - r_\phi(T(\epsilon, \theta))  \right) \PT \log p(H(T(\epsilon, \theta))|\theta) - \PT r_\phi(\hat{T}(\hat{\epsilon}, H(T(\epsilon, \theta)), \theta)) \Big]\nonumber\\
+%&\qquad + \PT\E_{p(\epsilon)}\left[ r_\phi(T(\epsilon, \theta)) \right]
+\end{align}
+%
 We note that the distribution $p(z|b,\theta)$ must also be reparameterizable.
 This is the case for Bernoulli and categorical random variables.
 We demonstrate how to perform this conditional reparameterization in appendix~\ref{resample}.
-
 
 \subsection{Optimizing the gradient control variate with gradients}
 Both presented estimators are unbiased for any choice of the function $r_\phi$, so the only remaining problem is to choose a $r_\phi$ that gives low variance to $\hat g_\LAX$ and $\hat g_\RELAX{}$.
