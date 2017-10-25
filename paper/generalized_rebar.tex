@@ -255,7 +255,7 @@ We can simply add the score-function estimator and subtract the reparameterizati
 This gives an unbiased estimator for any choice of $r_\phi$.
 
 
-\begin{algorithm}[t]
+\begin{algorithm}[h]
 \begin{algorithmic}
 \Require $f(\cdot)$, $\log p(b|\theta)$, reparameterized sampler $b = T(\theta, \epsilon)$, neural network $r_\phi(\cdot)$
 \While {not converged} 
@@ -276,7 +276,7 @@ This gives an unbiased estimator for any choice of $r_\phi$.
 \subsection{Discrete random variables and conditional reparameterization}
 We can adapt the \LAX{} estimator to the case where $b$ is a discrete random variable by introducing a ``relaxed'' continuous variable $z$. %, where $b = H(z)$ and $H$ denotes the Heaviside function. %, we 
 Here we assume that there exists a continuous, reparameterizable distribution $p(z|\theta)$ and a deterministic mapping $H(z)$ such that $H(z) = b \sim p(b|\theta)$ when $z \sim p(z|\theta)$.
-Examples of such distributions and functions can be found in appendix~\ref{resample}.
+In our implementation, we use the Gumbel-softmax trick, details of which can be found in appendix~\ref{resample}.
 
 The discrete version of the \LAX{} estimator is given by:
 %
