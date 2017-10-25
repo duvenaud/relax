@@ -55,7 +55,7 @@
 
 
 \title{Backpropagation through the Void:\\
-Optimizing control variates for black-box gradient estimation}
+Optimizing control variates for \\ black-box gradient estimation}
 % Optimizing gradient control variates\\ for black-box expectations}
 
 \author{
@@ -191,9 +191,13 @@ Importantly, the new estimator has lower variance than $g(b)$ if $\controlf(b)$ 
 
 
 
-\section{Gradient estimation with \LAX{} and \RELAX{}}
+\section{Constructing and optimizing a differentiable surrogate}
 \label{lax section}
-The reparameterization trick has become the favored method for gradient estimation recently but it is only applicable when $f$ is a known, differentiable function of continuous random variables. Similarly, for functions $f$ of discrete variables, methods involving continuous relaxations of discrete distributions such as concrete \cite{maddison2016concrete}, gumbel-softmax \cite{jang2016categorical}, and REBAR \cite{tucker2017rebar} have become popular. These methods also require that $f$ is known and differentiable with respect to its inputs. Moreover, they require that $f$ be computable at and behave predictably at inputs outside of the domain of the function. While these assumptions often hold, there are many problems of interest which make these approaches inapplicable. 
+The reparameterization trick, while useful, is only applicable when $f$ is a known, differentiable function of a continuous random variable.
+For functions $f$ of discrete variables, methods involving continuous relaxations of discrete distributions such as the concrete, or Gumbel-softmax relaxations~\cite{maddison2016concrete, jang2016categorical}, and REBAR~\cite{tucker2017rebar} have become popular.
+These methods also require that $f$ is known and differentiable with respect to its inputs.
+Moreover, they require that $f$ be computable at and behave predictably at inputs outside of the domain of the function.
+While these assumptions often hold, there are many problems of interest which make these approaches inapplicable. 
 
 In this section, we introduce a gradient estimator for the expectation of a function $\PT \E_{p(b|\theta)}[f(b)]$. We make no assumptions about the structure of $f$ itself. This allows the estimator to be applied to a wide-range of applications with little or no modification. This estimator combines the score function estimator, the reparameterization trick, and control variates.
 We obtain an unbiased estimator whose variance can potentially be as low as reparameterization-trick estimator, even when $f$ is not differentiable or not computable.
@@ -311,14 +315,14 @@ For any unbiased gradient estimator $\hat g$ with parameters $\phi$:
 %
 Thus, an unbiased single-sample estimate of the gradient of the variance of $\hat g$ is given by {$2 \hat g \frac{\partial \hat g}{\partial \phi}$}.
 
+This method of directly minimizing the variance of the gradient estimator stands in contrast to other methods such as Q-Prop \cite{gu2016q} and advantage actor-critic \cite{mnih2016asynchronous}, which train the control variate to minimize the squared error $(f(b) - r_\phi(b))^2$.
+Our algorithm, which jointly optimizes the parameters $\theta$ and the relaxation $r_\phi$ is given in Algorithm~\ref{lax}.
+%[Todo: talk about the variance of the gradient estimator of the variance of the gradient estimators?]
+
 What is the form of the variance-minimizing $r_\phi$?
 From inspection of the square of the estimator in \eqref{eq:cont_est} we can see that this loss encourages $r_\phi(b)$ to approximate $f(b)$, but with a weighting based on $\PT\log p(b)$.  % Todo: reword this awkward sentence.
 Moreover, as $r_\phi \rightarrow f$ then $\hat g_\textnormal{\LAX} \rightarrow \PT r_\phi$.
 Thus, this objective encourages a balance between the variance of the reparameterization estimator and the variance of the REINFORCE estimator. 
-
-This method of directly minimizing the variance of the gradient estimator stands in contrast to other methods such as Q-Prop \cite{gu2016q} and advantage actor-critic \cite{mnih2016asynchronous}, which train the control variate to minimize the squared error $(f(b) - r_\phi(b))^2$.
-Our algorithm, which jointly optimizes the parameters $\theta$ and the relaxation $r_\phi$ is given in Algorithm~\ref{lax}.
-%[Todo: talk about the variance of the gradient estimator of the variance of the gradient estimators?]
 
 \subsection{Designing the control variate}
 We have introduced a generic family of algorithms which produce unbiased and potentially low variance estimates of $\PT \E_{p(b|\theta)}[f(b)]$.
