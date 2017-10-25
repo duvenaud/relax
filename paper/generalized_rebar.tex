@@ -28,7 +28,7 @@
 
 \newcommand{\vtheta}{\mathbf{\theta}}
 \newcommand{\relaxed}{r}
-\newcommand{\controlf}{\hat g}  % Control variate for functions
+\newcommand{\controlf}{c}  % Control variate for functions
 \newcommand{\controlg}{\hat g}  % Control variate for gradients
 \newcommand{\discreteDist}{p(b|\theta)}
 \newcommand{\loss}{f(b)}
@@ -96,7 +96,7 @@ In discrete latent-variable models, low-variance but biased gradient estimates c
 
 A recent advance by \citet{tucker2017rebar} used a continuous relaxation to construct a control variate for functions of discrete random variables.
 Low-variance estimates of the expectation of the control variate can be computed using the reparameterization trick to produce an unbiased estimator with lower variance than previous methods.
-Furthermore, \citet{tucker2017rebar} showed how to tune the free parameters of these relaxations to minimize their variance during training.
+Furthermore, \citet{tucker2017rebar} showed how to tune the free parameters of these relaxations to minimize the estimator's variance during training.
 
 %\paragraph{Contributions}
 In this work we generalize the method of \citet{tucker2017rebar} to learn a free-form control variate parameterized by a neural network, giving a lower-variance, unbiased gradient estimator which can be applied to a wider variety of problems with greater flexibility.
@@ -171,23 +171,23 @@ One intuition for why this gradient estimator is preferable to REINFORCE is that
 
 \paragraph{Control variates}
 Control variates are a general method for reducing the variance of a Monte Carlo estimator.
-Given an estimator $g(b)$, a control variate is a function $\controlf(b)$ with a known mean $\mathbb{E}_{p(b)} [ \controlf ]$.
+Given an estimator $\hat g(b)$, a control variate is a function $\controlf(b)$ with a known mean $\mathbb{E}_{p(b)} [ \controlf ]$.
 Subtracting the control variate from our estimator and adding its mean gives us a new estimator:
 %
 \begin{align}
-\hat g_\textnormal{new}(b) = g(b) - \controlf(b) + \mathbb{E}_{p(b)}[\controlf(b)]
+\hat g_\textnormal{new}(b) = \hat g(b) - \controlf(b) + \mathbb{E}_{p(b)}[\controlf(b)]
 \end{align}
 %
 This new estimator has the same expectation as the old one:
 %
 \begin{align}
-\mathbb{E}_{p(b)}\left[ g_\textnormal{new}(b) \right] 
-= \mathbb{E}_{p(b)}\left[g(b) - \controlf(b) + \mathbb{E}_{p(b)} \left[ \controlf(b) \right] \right]
+\mathbb{E}_{p(b)}\left[\hat g_\textnormal{new}(b) \right] 
+= \mathbb{E}_{p(b)}\left[\hat g(b) - \controlf(b) + \mathbb{E}_{p(b)} \left[ \controlf(b) \right] \right]
 %= \mathbb{E}_{p(b)}\left[f(b) \right] - \mathbb{E}_{p(b)} \left[ \controlf(b) \right] + \mathbb{E}_{p(b)} \left[ \controlf(b) \right]
-= \mathbb{E}_{p(b)}\left[ g(b) \right]
+= \mathbb{E}_{p(b)}\left[ \hat g(b) \right]
 \end{align}
 %
-Importantly, the new estimator has lower variance than $g(b)$ if $\controlf(b)$ is positively correlated with $f(b)$.
+Importantly, the new estimator has lower variance than $\hat g(b)$ if $\controlf(b)$ is positively correlated with $f(b)$.
 
 
 
