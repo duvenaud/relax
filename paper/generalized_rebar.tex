@@ -93,7 +93,8 @@ Much recent work has been devoted to constructing gradient estimators for these 
 In reinforcement learning, advantage actor-critic methods~\citep{sutton2000policy} give unbiased gradient estimates with reduced variance obtained by jointly optimizing the policy parameters with an estimate of the value function.
 In discrete latent-variable models, low-variance but biased gradient estimates can be given by continuous relaxations of discrete variables~\citep{maddison2016concrete, jang2016categorical}.
 
-A recent advance by \citet{tucker2017rebar} used a continuous relaxation to construct a control variate for functions of discrete random variables. Low-variance estimates of the expectation of the control variate can be computed using the reparameterization trick to produce an unbiased estimator with lower variance than previous methods.
+A recent advance by \citet{tucker2017rebar} used a continuous relaxation to construct a control variate for functions of discrete random variables.
+Low-variance estimates of the expectation of the control variate can be computed using the reparameterization trick to produce an unbiased estimator with lower variance than previous methods.
 Furthermore, \citet{tucker2017rebar} showed how to tune the free parameters of these relaxations to minimize their variance during training.
 
 %\paragraph{Contributions}
@@ -247,8 +248,6 @@ We can simply add the score-function estimator and subtract the reparameterizati
 \hat g_\LAX = \left(f(b) -r_\phi(b)\right) \PT \log p(b|\theta) + \PT r_\phi(b) \qquad b = b(\theta, \epsilon), \epsilon \sim p(\epsilon).
 \end{align}
 %
-%This estimator is unbiased for all choices of $r_\phi$. %, i.e $\E_\epsilon[g_\phi] = \PT\E_{p(b|\theta)}[f(b)]$. 
-%A proof can be found in the appendix. 
 This gives an unbiased estimator for any choice of $r_\phi$.
 
 \begin{algorithm}[t]
@@ -264,8 +263,8 @@ This gives an unbiased estimator for any choice of $r_\phi$.
 \EndWhile
 \State \textbf{return} $\theta$ 
 \end{algorithmic}
-\label{discrete-relax}
 \caption{\LAX{}: Optimizing parameters and a gradient control variate simultaneously.}
+\label{lax}
 \end{algorithm}
 
 \subsection{The \RELAX{} estimator for discrete random variables}
@@ -301,7 +300,8 @@ We simply optimize $r_\phi$ using stochastic gradient descent, at the same time 
 
 To optimize $r_\phi$, we require the gradient of the variance of our gradient estimator.
 To estimate these gradients, we could simply differentiate through the empirical variance over each mini-batch.
-Or, following \cite{tucker2017rebar}, we can construct an unbiased, single-sample estimator using the fact that our gradient estimator is unbiased. For any unbiased gradient estimator $\hat g$ with parameters $\phi$:
+Or, following \cite{tucker2017rebar} and \cite{ruiz2016overdispersed}, we can construct an unbiased, single-sample estimator using the fact that our gradient estimator is unbiased.
+For any unbiased gradient estimator $\hat g$ with parameters $\phi$:
 %
 \begin{align}
 \PPH \text{Variance}(\hat g)
@@ -312,7 +312,7 @@ Or, following \cite{tucker2017rebar}, we can construct an unbiased, single-sampl
 = \E \left[ 2 \hat g \frac{\partial \hat g}{\partial \phi} \right].
 \end{align}  % Do we need hats on these gs?  Or get rid of them elsewhere.
 %
-Thus, our estimator of the gradient of the variance of $\hat g$ is given by {$2 \hat g \frac{\partial \hat g}{\partial \phi}$}.
+Thus, an unbiased single-sample estimate of the gradient of the variance of $\hat g$ is given by {$2 \hat g \frac{\partial \hat g}{\partial \phi}$}.
 
 What is the form of the variance-minimizing $r_\phi$?
 From inspection of the square of the estimator in \eqref{eq:cont_est} we can see that this loss encourages $r_\phi(b)$ to approximate $f(b)$, but with a weighting based on $\PT\log p(b)$.  % Todo: reword this awkward sentence.
@@ -320,7 +320,7 @@ Moreover, as $r_\phi \rightarrow f$ then $\hat g_\textnormal{\LAX} \rightarrow \
 Thus, this objective encourages a balance between the variance of the reparameterization estimator and the variance of the REINFORCE estimator. 
 
 This method of directly minimizing the variance of the gradient estimator stands in contrast to other methods such as Q-Prop \cite{gu2016q} and advantage actor-critic \cite{mnih2016asynchronous}, which train the control variate to minimize the squared error $(f(b) - r_\phi(b))^2$.
-Our algorithm, which jointly optimizes the parameters $\theta$ and the relaxation $r_\phi$ is given in Algorithm \ref{discrete-relax}.
+Our algorithm, which jointly optimizes the parameters $\theta$ and the relaxation $r_\phi$ is given in Algorithm~\ref{lax}.
 %[Todo: talk about the variance of the gradient estimator of the variance of the gradient estimators?]
 
 \subsection{Designing the control variate}
