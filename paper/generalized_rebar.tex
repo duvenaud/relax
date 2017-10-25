@@ -254,6 +254,39 @@ We can simply add the score-function estimator and subtract the reparameterizati
 %
 This gives an unbiased estimator for any choice of $c_\phi$.
 
+\subsection{Optimizing the gradient control variate with gradients}
+Both presented estimators are unbiased for any choice of the function $c_\phi$, so the only remaining problem is to choose a $c_\phi$ that gives low variance to $\hat g_\LAX$ and $\hat g_\RELAX{}$.
+How can we find a $\phi$ which gives our estimator low variance?
+We simply optimize $c_\phi$ using stochastic gradient descent, at the same time as we optimize the parameters of our model or policy.
+
+To optimize $c_\phi$, we require the gradient of the variance of our gradient estimator.
+To estimate these gradients, we could simply differentiate through the empirical variance over each mini-batch.
+Or, following \cite{tucker2017rebar} and \cite{ruiz2016overdispersed}, we can construct an unbiased, single-sample estimator using the fact that our gradient estimator is unbiased.
+For any unbiased gradient estimator $\hat g$ with parameters $\phi$:
+%
+\begin{align}
+\PPH \text{Variance}(\hat g)
+= \PPH \E[\hat g^2] - \PPH \E[\hat g]^2
+%= \PPH \E[\hat g^2] - \PPH \E_{p(b|\theta)}[f(b)]
+= \PPH \E[\hat g^2]
+= \E \left[ \PPH \hat g^2 \right]
+= \E \left[ 2 \hat g \frac{\partial \hat g}{\partial \phi} \right].
+\label{eq:vargrad}
+\end{align}  % Do we need hats on these gs?  Or get rid of them elsewhere.
+%
+Thus, an unbiased single-sample estimate of the gradient of the variance of $\hat g$ is given by {$2 \hat g \frac{\partial \hat g}{\partial \phi}$}.
+
+This method of directly minimizing the variance of the gradient estimator stands in contrast to other methods such as Q-Prop~\citep{gu2016q} and advantage actor-critic~\citep{mnih2016asynchronous}, which train the control variate to minimize the squared error $(f(b) - c_\phi(b))^2$.
+Our algorithm, which jointly optimizes the parameters $\theta$ and the surrogate $c_\phi$ is given in Algorithm~\ref{lax}.
+%[Todo: talk about the variance of the gradient estimator of the variance of the gradient estimators?]
+
+\subsubsection{Optimal surrogate}
+What is the form of the variance-minimizing $c_\phi$?
+Inspecting the square of \eqref{eq:cont_est}, we can see that this loss encourages $c_\phi(b)$ to approximate $f(b)$, but with a weighting based on $\PT\log p(b)$.  % Todo: reword this awkward sentence.
+Moreover, as $c_\phi \rightarrow f$ then $\hat g_\textnormal{\LAX} \rightarrow \PT c_\phi$.
+Thus, this objective encourages a balance between the variance of the reparameterization estimator and the variance of the REINFORCE estimator.
+Figure~\ref{first figure}c shows the optimal surrogate on a toy problem.
+
 
 \begin{algorithm}[h]
 \begin{algorithmic}
@@ -315,39 +348,6 @@ We prove this following~\cite{tucker2017rebar}:
 We note that the distribution $p(z|b,\theta)$ must also be reparameterizable.
 This is the case for Bernoulli and categorical random variables.
 We demonstrate how to perform this conditional reparameterization in appendix~\ref{resample}.
-
-\subsection{Optimizing the gradient control variate with gradients}
-Both presented estimators are unbiased for any choice of the function $c_\phi$, so the only remaining problem is to choose a $c_\phi$ that gives low variance to $\hat g_\LAX$ and $\hat g_\RELAX{}$.
-How can we find a $\phi$ which gives our estimator low variance?
-We simply optimize $c_\phi$ using stochastic gradient descent, at the same time as we optimize the parameters of our model or policy.
-
-To optimize $c_\phi$, we require the gradient of the variance of our gradient estimator.
-To estimate these gradients, we could simply differentiate through the empirical variance over each mini-batch.
-Or, following \cite{tucker2017rebar} and \cite{ruiz2016overdispersed}, we can construct an unbiased, single-sample estimator using the fact that our gradient estimator is unbiased.
-For any unbiased gradient estimator $\hat g$ with parameters $\phi$:
-%
-\begin{align}
-\PPH \text{Variance}(\hat g)
-= \PPH \E[\hat g^2] - \PPH \E[\hat g]^2
-%= \PPH \E[\hat g^2] - \PPH \E_{p(b|\theta)}[f(b)]
-= \PPH \E[\hat g^2]
-= \E \left[ \PPH \hat g^2 \right]
-= \E \left[ 2 \hat g \frac{\partial \hat g}{\partial \phi} \right].
-\label{eq:vargrad}
-\end{align}  % Do we need hats on these gs?  Or get rid of them elsewhere.
-%
-Thus, an unbiased single-sample estimate of the gradient of the variance of $\hat g$ is given by {$2 \hat g \frac{\partial \hat g}{\partial \phi}$}.
-
-This method of directly minimizing the variance of the gradient estimator stands in contrast to other methods such as Q-Prop~\citep{gu2016q} and advantage actor-critic~\citep{mnih2016asynchronous}, which train the control variate to minimize the squared error $(f(b) - c_\phi(b))^2$.
-Our algorithm, which jointly optimizes the parameters $\theta$ and the surrogate $c_\phi$ is given in Algorithm~\ref{lax}.
-%[Todo: talk about the variance of the gradient estimator of the variance of the gradient estimators?]
-
-\subsubsection{Optimal surrogate}
-What is the form of the variance-minimizing $c_\phi$?
-Inspecting the square of \eqref{eq:cont_est}, we can see that this loss encourages $c_\phi(b)$ to approximate $f(b)$, but with a weighting based on $\PT\log p(b)$.  % Todo: reword this awkward sentence.
-Moreover, as $c_\phi \rightarrow f$ then $\hat g_\textnormal{\LAX} \rightarrow \PT c_\phi$.
-Thus, this objective encourages a balance between the variance of the reparameterization estimator and the variance of the REINFORCE estimator.
-Figure~\ref{first figure}c shows the optimal surrogate on a toy problem.
 
 \subsection{Choosing the control variate architecture}
 %We have introduced a generic family of algorithms which produce unbiased and potentially low variance estimates of $\PT \E_{p(b|\theta)}[f(b)]$.
