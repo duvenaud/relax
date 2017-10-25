@@ -438,42 +438,74 @@ This is the approach we have taken in our reinforcement learning experiments.
 
 
 
-\section{Reinforcement Learning}
-Reinforcement learning is strong motivating problem for methods similar to ours.
-In reinforcement learning we seek to optimize the parameters of a policy distribution $\pi(a|s;\phi)$ to maximize the discounted sum of future rewards given that policy $\mathbb{E}_{\pi(\phi)}[\sum_{t=1}^{\infty} \gamma^{t-1} r_t]$ 
+\section{Reinforcement learning with \LAX{} and \RELAX{}}
+We now describe how we apply the \LAX{} and \RELAX{} estimators in the reinforcement learning (RL) setting.
+By reinforcement learning, we refer to the problem of optimizing the parameters $\theta$ of a policy distribution $\pi(a | s, \theta)$ to maximize the sum of rewards~\citep{sutton2000policy}.
+In this setting, the random variable being integrated over is $\tau$, which denotes a series of actions and states $[s_1, a_1, s_2, a_2, ..., s_T, a_T]$.
+The function whose expectation is being optimized, $R$, maps $\tau$ to the sum of rewards
+{${R(\tau]) = \sum_{t=1}^{T} r_t(s_t, a_t)}$}.
 %\YW{add discounting factor into the formulation. You can refer to my paper or any standard RL paper and see how these things are defined.}.
-We can view the sum of future rewards as a black-box function of state-action trajectories $\tau$ sampled from our policy.
-Thus, as before we have reduced the problem to that of estimating $\frac{\partial \mathbb{E}_{\tau}[f(\tau)]}{\partial \phi}$ which is the standard policy gradient algorithm~\citep{sutton2000policy}. 
 
-We seek to compute $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E\Big[\sum_{t=1}^T \LL{t} \sum_{t'=t}^T r_t\Big]$$ but the estimator on the right hand side can have potentially high variance. Instead, we typically compute
-$$\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau\Big[\sum_{t=1}^T \LL{t} [(\sum_{t'=t}^T r_{t'}) - b(s_t)]\Big]$$
+This problem can be approached by estimating the gradients of an expectation of a black-box function: $\frac{\partial \mathbb{E}_{p(\tau|\theta)}[R(\tau)]}{\partial \theta}$.
+The \emph{de facto} standard approach is the advantage actor-critic estimator: [cite]% which is the standard policy gradient algorithm. 
+%We seek to compute
+%
+%\begin{align}
+%\frac{\partial \E_\tau[R]}{\partial \theta} = \E \left[ \sum_{t=1}^T \LL{t} \sum_{t'=t}^T r_t \right]
+%\end{align}
+%
+%but the estimator on the right hand side can have potentially high variance.
+%
+%We can view the sum of future rewards as a black-box function of state-action trajectories $\tau$ sampled from our policy.
+%Instead, we typically compute
+%
+%\begin{align}
+%\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau \left[ \sum_{t=1}^T \LL{t} \left[ \sum_{t'=t}^T r_{t'} - b(s_t) \right] \right]
+%\end{align}
+%
+%
+\begin{align}
+\hat g_{\textnormal{A2C}} = \sum_{t=1}^T \LL{t} \left[ \sum_{t'=t}^T r_{t'} - b(s_t) \right]+\frac{\partial}{\partial\theta} b(s_t), \\
+a_t = g_\theta(\epsilon_t,s_t) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber.
+\label{eq:rl_a2c}
+\end{align}
+%
 Where $b(s_t)$ is an estimate of the state-value function, $b(s) \approx V^\pi(s) = \E_{\tau}[R|s_1=s].$
-This is unbiased for any choice of $b$ since $b$ does not depend on $a_t$. 
+This estimator is unbiased when $b$ does not depend on $a_t$. 
 
-\subsubsection{Reinforcement learning with \LAX{} and \RELAX{}}
-We now describe how we apply \LAX{} and \RELAX{} estimators in the RL setting.
-In the case of RL, $b$ is $\tau$, which denotes a series of actions and states $[s_1, a_1, s_2, a_2, ..., s_T, a_T]$, and the function $f$ refers to the underlying MDP, which maps $\tau$ to the sum of discounted reward, $R = \sum_{t=1}^T \gamma^t r_t$ with discount factor $\gamma$. 
+How to apply \RELAX{} in this setting?
+We assume $\pi(a_t|s_t)$ is reparametrizable, meaning that we can write $a_t = g_\theta(\epsilon,s_t)$, where $\epsilon$ does not depend on $\theta$.
+We again introduce a differentiable surrogate relaxation $r_\phi(a,s)$.
+Crucially, this surrogate is a function of the action as well as the state.
 
-We show the continuous case, and leave the discrete case to Appendix.
-We assume $\pi(a_t|s_t)$ is reparametrizable meaning that we can write $a_t = g_\theta(\epsilon,s_t)$, where $\epsilon$ does not depend on $\theta$.
-We again introduce a new differentiable function $r_\phi(a,s)$, and it's a function of the action and the state pair.
-We observe that $\forall t$, we have (see details in Appendix~\ref{}) $$\E_{p(\tau)}\Big[\LL{t} r_\phi(a_t, s_t)\Big] = \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[r_\phi(a_t, s_t)\Big]\Big]$$ 
-Then by adding and subtracting the same term, we have
+To construct this estimator, we first observe that $\forall t$, we have
+%
+\begin{align}
+\E_{p(\tau)}\Big[\LL{t} r_\phi(a_t, s_t)\Big] = \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[r_\phi(a_t, s_t)\Big]\Big].
+\end{align}
+%
+Then, by adding and subtracting the same term, we have
+%
 \begin{align*}
-\PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(\tau)}\Big[\LL{t} r_\phi(a_t, s_t)\Big]+\\&\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[r_\phi(a_t,s_t)\Big]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t)\Big]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t)\right]\nonumber
+\PT\E_{p(\tau)}[f(\tau)]
+%\E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(\tau)}\Big[\LL{t} r_\phi(a_t, s_t)\Big]+\\&\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[r_\phi(a_t,s_t)\Big]\Big]\nonumber\\
+%&= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t)\Big]\Big]\nonumber\\
+= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t)\right]
 \end{align*}
 
 Hence our estimator is defined as: 
 %
 \begin{align}
-\hat g_\LAX^{\RL} = \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t), \\ a_t =g_\theta(\epsilon_t,s_t) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber.
+\hat g_\LAX^{\RL} = \sum_{t=1}^T \LL{t} \left[ \sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t), \\
+a_t = g_\theta(\epsilon_t,s_t) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber.
 \label{eq:rl_est}
 \end{align}
 %
-When $T = 1$, $g_\LAX^{\RL} = g_\LAX$.
+This estimator is unbiased if the true dynamics of the system are Markovian w.r.t. the state $s_t$.
+When $T = 1$, we recover the special case $g_\LAX^{\RL} = g_\LAX$.
 
+Comparing $\hat g_\LAX^{\RL}$ to the standard advantage actor-critic estimator in \eqref{eq:rl_a2c}, the main difference being that our baseline is action-dependent, without introducing bias.
+Details of this derivation, and the discrete version of the estimators can be found in the appendix.
 
 \section{Scope and Limitations}
 %\YW{For this section we can focus on comparisons to REBAR, because it is the most related one which might also raise most questions. We can briefly mention previous methods for doing discrete variables. We should also mention Q-prop.}
@@ -629,7 +661,7 @@ In all experiments, RELAX provides an increase in rate of convergence.
 \begin{tabular}{r l | c c} 
  Dataset & Model  & REBAR & RELAX \\\midrule
 \textbf{MNIST} & 1 layer  & 857 & \textbf{531} \\ 
-& 2 Layer  & 900 & \textbf{620} \\\\
+& 2 Layer  & 900 & \textbf{620} \\
 \midrule
 \textbf{Omniglot} & 1 layer & 2086 & \textbf{566} \\ 
 & 2 Layer & 1027 & \textbf{673}
@@ -796,6 +828,13 @@ v_i' =    \left\{
 \section{Reinforcement learning proofs}
 \label{rl appendix}
 
+
+%
+\begin{align*}
+\PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(\tau)}\Big[\LL{t} r_\phi(a_t, s_t)\Big]+\\&\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[r_\phi(a_t,s_t)\Big]\Big]\nonumber\\
+&= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t)\Big]\Big]\nonumber\\
+&= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - r_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}r_\phi(g_\theta(\epsilon_t,s_t), s_t)\right]\nonumber
+\end{align*}
 
 \paragraph{Proof 1}
 
