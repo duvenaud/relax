@@ -119,7 +119,7 @@ Furthermore, we derive improved variants of popular reinforcement learning metho
 \caption{
 \emph{Left:} Training curves using different gradient estimators on a toy problem: {$\mathcal{L}(\theta) = \E_p(b|\theta) [ (b - 0.499)^2 ]$}
 \emph{Centre:} Variance of each estimator's gradient.
-\emph{Right:} The relaxation being used by REINFORCE (red), REBAR (blue), and the optimal relaxation (green).
+\emph{Right:} The relaxation being used by REINFORCE (red), REBAR (blue), and the RELAX's learned relaxation (green).
 }
 \end{figure}
 
@@ -641,9 +641,10 @@ In all experiments both the policy and control variate were two layer neural net
 \begin{center}
 \begin{tabular}{l c c} 
 \textbf{CartPole} & A2C & RELAX \\\midrule
-Episodes until solve      & $1152 \pm 90$ & $\bm{472 \pm 114}$ \\\\
+Episodes until solve      & $1152 \pm 90$ & $\bm{472 \pm 114}$ \\
+Timesteps until solve    & $162374 \pm 17241$ & $\bm{68,712 \pm 20668}$ \\\\
 \textbf{LunarLander}\\ \midrule
-Episodes until solve & $10703 \pm 4087$ & $\bm{5156.8 \pm 794.9}$ 
+Episodes until solve & $11204 \pm 788$ & $\bm{4244 \pm 1549}$ 
 \end{tabular}
 \end{center}
 \label{tab:vae}
