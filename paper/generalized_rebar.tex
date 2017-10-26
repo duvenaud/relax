@@ -477,11 +477,11 @@ The \emph{de facto} standard approach is the advantage actor-critic estimator (A
 %
 %
 \begin{align}
-\hat g_{\textnormal{A2C}} = \sum_{t=1}^T \LL{t} \left[ \sum_{t'=t}^T r_{t'} - c(s_t) \right]+\frac{\partial}{\partial\theta} c(s_t), \qquad a_t \sim \pi(a_t | s_t, \theta)
+\hat g_{\textnormal{A2C}} = \sum_{t=1}^T \LL{t} \left[ \sum_{t'=t}^T r_{t'} - c_\phi(s_t) \right]+\frac{\partial}{\partial\theta} c_\phi(s_t), \qquad a_t \sim \pi(a_t | s_t, \theta)
 \label{eq:rl_a2c}
 \end{align}
 %
-Where $c(s_t)$ is an estimate of the state-value function, $c(s) \approx V^\pi(s) = \E_{\tau}[R|s_1=s].$
+Where $c_\phi(s_t)$ is an estimate of the state-value function, $c_\phi(s) \approx V^\pi(s) = \E_{\tau}[R|s_1=s].$
 This estimator is unbiased when $c$ does not depend on $a_t$.
 The main limitations of A2C are that $c$ does not depend on $a_t$, and that it's not obvious how to optimize $c$.
 Using the \LAX{} estimator addresses both of these problems.
