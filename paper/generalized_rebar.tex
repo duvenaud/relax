@@ -903,7 +903,7 @@ In the discrete control setting, our policy parameterizes a soft-max distributio
 \begin{theorem}
 The \RELAX{} estimator,
 \begin{align}
-\hat g_\RELAX^{\RL} = \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - c_\phi(\tilde{z}_t, s_t)\right)+\frac{\partial}{\partial\theta}c_\phi(z_t, s_t), \label{eq:relaxrlproof}\\
+\hat g_\RELAX^{\RL} = \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - c_\phi(\tilde{z}_t, s_t)\right)-\frac{\partial}{\partial\theta}c_\phi(\tilde{z}_t, s_t)+\frac{\partial}{\partial\theta}c_\phi(z_t, s_t), \label{eq:relaxrlproof}\\
 \tilde{z}_t \sim p(z_t|a_t,s_t), \qquad z_t \sim p(z_t|s_t)\nonumber, 
 \end{align}
 is unbiased.
@@ -920,7 +920,8 @@ Then, by adding and subtracting the same term, we have
 \PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(a_{1:t},s_{1:t})}\Big[\LL{t} \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\Big]+\\
 &\sum_t\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]\nonumber\\
 &= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\right)\right]\\&+\sum_t\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\right)+\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\right]\nonumber
+&= \E_{p(\tau)}\Big[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)\right)\\
+&-\frac{\partial}{\partial\theta}\E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]+\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]\nonumber
 \end{align*}
 Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:relaxrlproof}).
 \end{proof}
