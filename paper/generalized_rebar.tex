@@ -690,25 +690,27 @@ Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule
 To obtain training curves we created our own implementation of REBAR, which gave identical or slightly improved performance to compared the implementation of \citet{tucker2017rebar}.
 
 While we obtained a modest improvement in training and validation scores (tables~\ref{tab:vae tr} and \ref{tab:vae val}), the most notable improvement provided by \RELAX{} is in its rate of convergence.
-Training curves for all models can be seen in figures~\ref{fig:vae mnist} and \ref{fig:vae omni}.
+Training curves for all models can be seen in figure~\ref{fig:vae curves}.
 In table~\ref{tab:vae epochs} we compare the number of training epochs that are required to match the best validation score of REBAR.
 In all experiments, RELAX provides an increase in rate of convergence. 
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=.4\textwidth]{figures/MNIST_L1}
-\includegraphics[width=.4\textwidth]{figures/MNIST_L2}
-\caption{Training curves on MNIST. The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
-\label{fig:vae mnist}
+\includegraphics[width=.22\textwidth]{figures/MNIST_L1}
+\includegraphics[width=.22\textwidth]{figures/MNIST_L2}
+\includegraphics[width=.22\textwidth]{figures/OMNIGLOT_L1}
+\includegraphics[width=.22\textwidth]{figures/OMNIGLOT_L2}
+\caption{Training curves for VAE Experiments. Left to right: MNIST 1 Layer, MNIST 2 Layer, Omniglot 1 Layer, Omniglot 2 Layer. The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
+\label{fig:vae curves}
 \end{figure}
 
-\begin{figure}[h]
-\centering
-\includegraphics[width=.4\textwidth]{figures/OMNIGLOT_L1}
-\includegraphics[width=.4\textwidth]{figures/OMNIGLOT_L2}
-\caption{Training curves on OMNIGLOT. The horizontal dashed line indicates the lowest validation score obtained by REBAR.}
-\label{fig:vae omni}
-\end{figure}
+%\begin{figure}[h]
+%\centering
+%\includegraphics[width=.4\textwidth]{figures/OMNIGLOT_L1}
+%\includegraphics[width=.4\textwidth]{figures/OMNIGLOT_L2}
+%\caption{Training curves on OMNIGLOT. The horizontal dashed line indicates the lowest validation score obtained by REBAR.}
+%\label{fig:vae omni}
+%\end{figure}
 
 \begin{table}[h]
 \centering
