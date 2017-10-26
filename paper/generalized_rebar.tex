@@ -170,18 +170,19 @@ This estimator is unbiased, but in general has high variance.
 Intuitively, this estimator is limited by the fact that it doesn't use any information about how $f$ depends on $b$, only on the final outcome $f(b)$.
 
 \paragraph{The reparameterization trick}
-When $f$ is continuous and differentiable, and the latent variables $b$ can be written as a deterministic, differentiable function of a random draw from a fixed distribution, the reparameterization trick \citep{williams1992simple, kingma2013autoencoding, rezende2014stochastic} creates a low-variance, unbiased gradient estimator by making the dependence of $b$ on $\theta$ explicit:
+When $f$ is continuous and differentiable, and the latent variables $b$ can be written as a deterministic, differentiable function of a random draw from a fixed distribution, the reparameterization trick \citep{williams1992simple, kingma2013autoencoding, rezende2014stochastic} creates a low-variance, unbiased gradient estimator by making the dependence of $b$ on $\theta$ explicit through a reparameterization function $b=T(\theta, \epsilon)$:
 %
 \begin{align}
 %\hat g_\textnormal{reparam} = \frac{\partial f \left( b(\theta, \epsilon) \right)}{\partial \theta}, \qquad \epsilon \sim p(\epsilon)
 \hat g_\textnormal{reparam}
-= \PT f \left( b(\theta, \epsilon) \right)
-= \frac{\partial f}{\partial b} \frac{\partial b(\theta, \epsilon)}{\partial \theta}, 
+= \PT f \left( b \right)
+= \frac{\partial f}{\partial T}\frac{\partial T}{\partial \theta} , 
 \qquad \epsilon \sim p(\epsilon) 
 \end{align}
 %
 This gradient estimator is often used when training high-dimensional, continuous latent-variable models, such as variational autoencoders or GANs.
 One intuition for why this gradient estimator is preferable to REINFORCE is that it depends on $\partial f / \partial b$, which exposes the dependence of $f$ on $b$.
+% NOTE for revision: last sentence is confusing. What is the advantage of exposing the dependence of f on b for a gradient estimator?
 
 \paragraph{Control variates}
 Control variates are a general method for reducing the variance of a Monte Carlo estimator.
@@ -202,8 +203,10 @@ This new estimator has the same expectation as the old one:
 \end{align}
 %
 Importantly, the new estimator has lower variance than $\hat g(b)$ if $\controlf(b)$ is positively correlated with $f(b)$.
-
-
+% NOTE for revision: 
+% I think it's important to stick to the standard definition of a control variate here, which includes the scalar constant eta
+% c(b) can be positively or negatively correlated with f(b) and still reduce variance if the control variate has a learned scalar like eta
+% Eta can be positive or negative. When you learn eta optimally (Cov(g,c) / Var(c), see for example Tucker et al. 2017 sec. 7.1), eta will flip sign so that even if c(b) is negatively correlated, the new estimator will have lower variance .
 
 \section{Constructing and optimizing a differentiable surrogate}
 \label{lax section}
@@ -263,7 +266,7 @@ We can simply add the score-function estimator and subtract the reparameterizati
 %
 \begin{align}
 \label{eq:cont_est}
-\hat g_\LAX = \left[ f(b) -c_\phi(b) \right] \PT \log p(b|\theta) + \PT c_\phi(b) \qquad b = b(\theta, \epsilon), \epsilon \sim p(\epsilon).
+\hat g_\LAX = \left[ f(b) -c_\phi(b) \right] \PT \log p(b|\theta) + \PT c_\phi(b) \qquad b = T(\theta, \epsilon), \epsilon \sim p(\epsilon).
 \end{align}
 %
 This gives an unbiased estimator for any choice of $c_\phi$.
@@ -300,7 +303,7 @@ What is the form of the variance-minimizing $c_\phi$?
 Inspecting the square of \eqref{eq:cont_est}, we can see that this loss encourages $c_\phi(b)$ to approximate $f(b)$, but with a weighting based on $\PT\log p(b)$.  % Todo: reword this awkward sentence.
 Moreover, as $c_\phi \rightarrow f$ then $\hat g_\textnormal{\LAX} \rightarrow \PT c_\phi$.
 Thus, this objective encourages a balance between the variance of the reparameterization estimator and the variance of the REINFORCE estimator.
-Figure~\ref{first figure}c shows the optimal surrogate on a toy problem.
+Figure~\ref{learned-relaxations} shows the optimal surrogate on a toy problem.
 
 
 \begin{algorithm}[h]
@@ -309,7 +312,7 @@ Figure~\ref{first figure}c shows the optimal surrogate on a toy problem.
 \While {not converged} 
 	\State $\epsilon_{i} \sim p(\epsilon)$ \Comment Sample noise
 	\State $b_i \leftarrow T(\epsilon_i, \theta)$ \Comment Compute input
-	\State  $g_\theta \leftarrow \left[f(b_i) - r_{\phi}(b_i) \right] \nabla_\theta \log p + \nabla_\theta c_\phi(b_i)$ \Comment Estimate gradient
+	\State  $g_\theta \leftarrow \left[f(b_i) - c_{\phi}(b_i) \right] \nabla_\theta \log p + \nabla_\theta c_\phi(b_i)$ \Comment Estimate gradient
 	\State  $g_\phi \leftarrow 2 g_\theta \frac{\partial g_\theta}{\partial \phi}$ \Comment Estimate gradient of variance of gradient
 	\State $\theta \leftarrow \theta + \alpha_1 g_\theta$ \Comment Update parameters
 	\State $\phi \leftarrow \phi + \alpha_2 g_\phi$ \Comment Update control variate
@@ -348,6 +351,25 @@ Thus we define our estimator as
 \qquad b = H(z), z \sim p(z|\theta), \tilde{z} \sim p(z|b, \theta) \nonumber
 \end{align}
 %
+
+\begin{algorithm}[h]
+	\begin{algorithmic}
+		\Require $f(\cdot)$, $\log p(b|\theta)$, reparameterized samplers $b = T(\theta, \epsilon)$, $z = S(\epsilon, \theta)$ and $\tilde{z} = S(\epsilon, \theta | b)$, \\ 
+		\hspace{3em} neural network $c_\phi(\cdot)$  \While {not converged} 
+		\State $\epsilon_{i}, \widetilde{\epsilon_i} \sim p(\epsilon)$ \Comment Sample noise
+		\State $b_i \leftarrow T(\epsilon_i, \theta)$ \Comment Compute input
+		\State $z_i \leftarrow S(\epsilon_i, \theta)$ \Comment Compute unconditional relaxed input
+		\State $\widetilde{z_i} \leftarrow S(\widetilde{\epsilon_i}, \theta | b_i)$ \Comment Compute conditional relaxed input
+		\State  $g_\theta \leftarrow \left[f(b_i) - c_{\phi}(\widetilde{z_i}) \right] \nabla_\theta \log p + \nabla_\theta c_\phi(z_i) - \nabla_\theta c_\phi(\widetilde{z_i})$ \Comment Estimate gradient
+		\State  $g_\phi \leftarrow 2 g_\theta \frac{\partial g_\theta}{\partial \phi}$ \Comment Estimate gradient of variance of gradient
+		\State $\theta \leftarrow \theta + \alpha_1 g_\theta$ \Comment Update parameters
+		\State $\phi \leftarrow \phi + \alpha_2 g_\phi$ \Comment Update control variate
+		\EndWhile
+		\State \textbf{return} $\theta$ 
+	\end{algorithmic}
+	\caption{\RELAX{}: Low-variance control variate optimization for black-box gradient estimation.}
+	\label{lax}
+\end{algorithm}
 
 This estimator is unbiased for any $c_\phi$.
 We prove this following~\cite{tucker2017rebar}:
@@ -515,10 +537,10 @@ a_t = a(\epsilon_t,s_t, \theta) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber.
 %
 This estimator is unbiased if the true dynamics of the system are Markovian w.r.t. the state $s_t$.
 When $T = 1$, we recover the special case ${\hat g_\LAX^{\RL} = \hat g_\LAX}$.
-Comparing $\hat g_\LAX^{\RL}$ to the standard advantage actor-critic estimator in~\eqref{eq:rl_a2c}, the main difference being that our baseline $c_\phi(a_t, s_t)$ is action-dependent without introducing bias.
+Comparing $\hat g_\LAX^{\RL}$ to the standard advantage actor-critic estimator in~\eqref{eq:rl_a2c}, the main difference is that our baseline $c_\phi(a_t, s_t)$ is action-dependent while still remaining unbiased.
 
 To optimize the parameters $\phi$ of our control variate $c_\phi(a_t, s_t)$, we can again use the single-sample estimator of the gradient of our estimator's variance given in~\eqref{eq:vargrad}.
-This approach avoids unstable training dynamics, and doesn't require storing and replay of previous rollouts.
+This approach avoids unstable training dynamics, and doesn't require storage and replay of previous rollouts.
 
 Details of this derivation, as well as the discrete and conditionally reparameterized version of this estimator can be found in appendix~\ref{rl appendix}.
 
@@ -558,7 +580,7 @@ The second term on the right-hand side can be estimated using any of the methods
 \section{Related work}
 There has been a great deal of other recent work in the area of gradient estimation.
 \citet{miller2017reducing} reduce the variance of reparameterization gradients in an orthogonal way to ours by approximating the gradient-generating procedure with a simple model and using that model as a control variate.
-NVIL~\citep{mnih2014neural} and VIMCO~\citep{mnih2016variational} provide reduced variance gradient estimation in the special case of discrete latent variable models and discrete latent variable models with monte-carlo objectives.
+NVIL~\citep{mnih2014neural} and VIMCO~\citep{mnih2016variational} provide reduced variance gradient estimation in the special case of discrete latent variable models and discrete latent variable models with Monte-Carlo objectives.
 \citet{salimans2017evolution} estimate gradients using a form of finite differences, evaluating hundreds of different parameter values in pararallel to construct a gradient estimator.
 In contrast, our method is a single-sample estimator.
 
@@ -593,12 +615,12 @@ Unlike our method, their control variate is trained off-policy. While our method
 We demonstrate the effectiveness of our estimator on a number of challenging optimization problems. Following~\citet{tucker2017rebar} we begin with a simple toy example to illuminate the potential of our method and then continue to the more relevant problems of optimizing binary VAE's and reinforcement learning.
 
 \subsection{Toy experiment}
-\begin{wrapfigure}[12]{R}{0.50\textwidth}
+\begin{wrapfigure}[]{R}{0.50\textwidth}
 	\centering
 		\vspace{-3mm}
 	\hspace{-2.5mm}\includegraphics[width=0.50\columnwidth ]{figures/relaxations_t_499_which_2} 
 		\vspace*{-6mm}
-	\caption{ The relaxation for a toy loss function in REINFORCE (blue), REBAR (green), and RELAX (red)} 
+	\caption{ The relaxation for a toy loss function ${\mathcal{L}(\theta) = \E_{p(b|\theta)} [ (b - 0.499)^2 ]}$ using REINFORCE (blue), REBAR (green), and RELAX (red)} 
 	\label{learned-relaxations}
 \end{wrapfigure}
 We seek to minimize $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where {$p(b|\theta) = \textnormal{Bernoulli}(b|\theta)$}. \cite{tucker2017rebar} set the target $t = .45$.
@@ -610,7 +632,6 @@ Figures~\ref{first figure}a and \ref{first figure}b and shows the relative perfo
 
 Figure~\ref{learned-relaxations} plots the learned surrogate $c_\phi$ for a fixed value of $\theta$. We can see that $c_\phi$ is near $f$ for all $z$, keeping the variance of the REINFORCE part of the estimator small. Moreover the derivative of $c_\phi$ is positive for all $z$ meaning that the reparameterization part of the estimator will produce gradients pointing in the correct direction to optimize the expectation. Conversely, the concrete relaxation of REBAR is close to $f$ only near $0$ and $1$ and its gradient points in the correct direction only for values of $z > t$. These factors together result in the RELAX estimator achieving the best performance. 
 
-\vspace{3em}
 \subsection{Discrete variational autoencoder}
 Next, we evaluate the \RELAX{} estimator on the task of training a variational autoencoder~\citep{kingma2013autoencoding, rezende2014stochastic} with Bernoulli latent variables.
 We reproduced a subset of the experiments from \citet{tucker2017rebar}, training models with 1 and 2 layers of 200 Bernoulli random variables with linear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
@@ -618,7 +639,7 @@ Details of these models and our experimental procedure can be found in appendix~
 
 %them and a model with 1 layer of Bernoulli random variables with non-linear mappings between layers.
 
-To take advantage of the available structure in the loss function, we choose the form of our control variate to be $$ c_\phi(z) = \hat{r}_\rho(z) + f(\sigma_\lambda(z))$$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function (the evidence lower-bound) evaluated at continuously relaxed inputs as in REBAR.  
+To take advantage of the available structure in the loss function, we choose the form of our control variate to be $$ c_\phi(z) = f(\sigma_\lambda(z))+  \hat{r}_\rho(z) $$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function (the evidence lower-bound) evaluated at continuously relaxed inputs as in REBAR.  
 %We found that due to the complicated structure of the loss function, the RELAX estimator performed worse than REBAR. Instead we add a learned relaxation to REBAR's control variate which we denote relaxed-REBAR.
 %Our estimator takes the form of \eqref{eq:RELAX} with $$\bar \relaxed(z) = \relaxed(z) + f(\sigma_\lambda(z))$$ where $\relaxed(z)$ is a learned neural network and $f(\sigma_\lambda(z))$ is the Concrete relaxation of REBAR with temperature parameter $\lambda$.
 %
