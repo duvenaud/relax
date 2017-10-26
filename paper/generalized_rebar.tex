@@ -309,7 +309,7 @@ Figure~\ref{first figure}c shows the optimal surrogate on a toy problem.
 \While {not converged} 
 	\State $\epsilon_{i} \sim p(\epsilon)$ \Comment Sample noise
 	\State $b_i \leftarrow T(\epsilon_i, \theta)$ \Comment Compute input
-	\State  $g_\theta \leftarrow \left[f(b_i) - r_{\phi}(b_i) \right] \nabla_\theta \log p + \nabla_\theta c_\phi(b_i)$ \Comment Estimate gradient
+	\State  $g_\theta \leftarrow \left[f(b_i) - c_{\phi}(b_i) \right] \nabla_\theta \log p + \nabla_\theta c_\phi(b_i)$ \Comment Estimate gradient
 	\State  $g_\phi \leftarrow 2 g_\theta \frac{\partial g_\theta}{\partial \phi}$ \Comment Estimate gradient of variance of gradient
 	\State $\theta \leftarrow \theta + \alpha_1 g_\theta$ \Comment Update parameters
 	\State $\phi \leftarrow \phi + \alpha_2 g_\phi$ \Comment Update control variate
@@ -348,6 +348,25 @@ Thus we define our estimator as
 \qquad b = H(z), z \sim p(z|\theta), \tilde{z} \sim p(z|b, \theta) \nonumber
 \end{align}
 %
+
+\begin{algorithm}[h]
+	\begin{algorithmic}
+		\Require $f(\cdot)$, $\log p(b|\theta)$, reparameterized samplers $b = T(\theta, \epsilon)$, $z = S(\epsilon, \theta)$ and $\tilde{z} = S(\epsilon, \theta | b)$, \\ 
+		\hspace{3em} neural network $c_\phi(\cdot)$  \While {not converged} 
+		\State $\epsilon_{i}, \widetilde{\epsilon_i} \sim p(\epsilon)$ \Comment Sample noise
+		\State $b_i \leftarrow T(\epsilon_i, \theta)$ \Comment Compute input
+		\State $z_i \sim S(\epsilon_i, \theta)$ \Comment Compute unconditional relaxed input
+		\State $\widetilde{z_i} \sim S(\widetilde{\epsilon_i}, \theta | b_i)$ \Comment Compute conditional relaxed input
+		\State  $g_\theta \leftarrow \left[f(b_i) - c_{\phi}(\widetilde{z_i}) \right] \nabla_\theta \log p + \nabla_\theta c_\phi(z_i) - \nabla_\theta c_\phi(\widetilde{z_i})$ \Comment Estimate gradient
+		\State  $g_\phi \leftarrow 2 g_\theta \frac{\partial g_\theta}{\partial \phi}$ \Comment Estimate gradient of variance of gradient
+		\State $\theta \leftarrow \theta + \alpha_1 g_\theta$ \Comment Update parameters
+		\State $\phi \leftarrow \phi + \alpha_2 g_\phi$ \Comment Update control variate
+		\EndWhile
+		\State \textbf{return} $\theta$ 
+	\end{algorithmic}
+	\caption{\RELAX{}: Low-variance contol variate optimization for black-box gradient estimation.}
+	\label{lax}
+\end{algorithm}
 
 This estimator is unbiased for any $c_\phi$.
 We prove this following~\cite{tucker2017rebar}:
