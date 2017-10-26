@@ -501,7 +501,7 @@ This estimator is unbiased when $c$ does not depend on $a_t$.
 The main limitations of A2C are that $c$ does not depend on $a_t$, and that it's not obvious how to optimize $c$.
 Using the \LAX{} estimator addresses both of these problems.
 
-First, we assume $\pi(a_t|s_t)$ is reparametrizable, meaning that we can write $a_t = g_\theta(\epsilon,s_t)$, where $\epsilon$ does not depend on $\theta$.
+First, we assume $\pi(a_t|s_t)$ is reparametrizable, meaning that we can write $a_t = a(\epsilon_t, s_t, \theta)$, where $\epsilon_t$ does not depend on $\theta$.
 We again introduce a differentiable surrogate $c_\phi(a,s)$.
 Crucially, this surrogate is a function of the action as well as the state.
 
@@ -509,7 +509,7 @@ Our estimator is defined as:
 %
 \begin{align}
 \hat g_\LAX^{\RL} = \sum_{t=1}^{\infty} \LL{t} \left[ \sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} c_\phi(a_t, s_t), \\
-a_t = g_\theta(\epsilon_t,s_t) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber.
+a_t = a(\epsilon_t,s_t, \theta) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber.
 \label{eq:rl_est}
 \end{align}
 %
@@ -719,68 +719,40 @@ We compare with the advantage actor-critic algorithm (A2C)~\cite{sutton2000polic
 
 In the discrete action setting, we test our approach on the Cart Pole and Lunar Lander environments as provided by the OpenAI gym~\cite{1606.01540}. In the continuous action setting, we test on the MuJoCo~\cite{todorov2012mujoco}-simulated environments Inverted Pendulum and Inverted Double Pendulum also found in the OpenAI gym.
 
-In all tested environments we observe improved performance and sample efficiency using our method. The results of our experiments can be seen in figures \ref{fig:disc_rl}, [CITE OTHER RELEVANT FIGURES] and table~\ref{tab:disc_rl}.
+In all tested environments we observe improved performance and sample efficiency using our method. The results of our experiments can be seen in figures \ref{fig:disc_rl}, [CITE OTHER RELEVANT FIGURES] and table~\ref{tab:rl_results}.
 
 We found that our estimator produced policy gradients with drastically reduced variance (see figure~\ref{fig:disc_rl_var}) allowing for larger learning rates to be used while maintaining stable training. In both discrete environments our estimator achieved an over 2-times speedup in convergence over the baseline.
 
-%For all models, the policy and control variate were both neural networks with 2 layers of 10 units using the ReLU nonlinearity.
-%We first tuned the learning rate using the baseline A2C then ran \RELAX{} with the same learning rate. 
-%Again, we are aware that improved results could be obtained by further tuning the learning rate for \RELAX{} but we wanted to illustrate the improvement provided solely by the improved control variate. 
 
-%\paragraph{Experimental details}
-%We estimate the policy gradient using a single Monte Carlo sample produced from a one episode roll-out of the current policy.
-%We note that improved performance could be achieved by using more samples, but we intended to test our model in the highest-possible variance setting. 
-%In all experiments both the policy and control variate were two layer neural networks with RELU non-linearities. Each intermediate layer's output had dimension 10.
-%We searched over two hyper-parameters; the global learning rate and the scaling on the loss from the control variate or value function.
-%For each we tested values in $[.01, .003, .001]$.
-%Between our model and the baseline and the learning rates were also constant across tests making it that all improvements derive from having a lower variance estimate of the policy gradient.
-%Presented results are obtained by averaging over 5 runs with different random seeds. We run the CartPole and LunarLander for $250,000$ and $5,000,000$ time-steps respectively. 
 
 \begin{table}[h]
 \centering
-\begin{tabular}{l c c} 
-\textbf{Cart Pole} & A2C & RELAX \\\midrule
-Episodes until solve      & $1152 \pm 90$ & $\bm{472 \pm 114}$ \\
-Timesteps until solve    & $162374 \pm 17241$ & $\bm{68,712 \pm 20668}$ \\\\
-\textbf{Lunar Lander}\\ \midrule
-Episodes until solve & $11204 \pm 788$ & $\bm{4244 \pm 1549}$ \\
-Timesteps until solve & $2389787 \pm 254000$ & $\bm{1168820 \pm 756314}$
+\begin{tabular}{l | c c c c } 
+\textbf{Model} & Cart Pole & Lunar Lander & Inverted Pendulum & Inverted Double Pendulum \\\midrule
+A2C             & $1152 \pm 90$ & $162374 \pm 17241$                    & $9916 \pm 235$ & $78260 \pm 1877$  \\
+LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $\bm{60967 \pm 1669}$\\\\
 \end{tabular}
-\caption{Mean Episodes to Solve. Cart Pole is considered solved if the agent receives an average reward over $195$ in the last $100$ Episodes. Lunar Lander is considered solved if the agent receives an average reward over $200$ in the last $100$ frames.}
-\label{tab:disc_rl}
+\caption{Mean Episodes to Solve. Cart Pole is solved if the agent receives an average reward over $195$ in the last $100$ Episodes. Lunar Lander is solved if the agent receives an average reward over $200$ in the last $100$ frames. Inverted Pendulum is solved if the agent receives an average reward over $950$ in the last $100$ Episodes. Inverted Double Pendulum is solved if the agent receives an average reward over $9100$ in the last $100$ frames.}
+\label{tab:rl_results}
 \end{table}
-% cartpole epsidoes to solve, this result looks better than episodes
-% Best Models      & $81018 \pm 15405$ & $45729 \pm 16294$ \\\\
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=.4\textwidth]{figures/cp_paper}
-\includegraphics[width=.4\textwidth]{figures/ll_paper}
-\caption{Discrete RL Experiments. \emph{Left:} Cart Pole. \emph{Right:} Lunar Lander. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles.}
+\includegraphics[width=.22\textwidth]{figures/cp_paper}
+\includegraphics[width=.22\textwidth]{figures/ll_paper}
+\includegraphics[width=.22\textwidth]{figures/Inverted_Pendulum_A2C}
+\includegraphics[width=.22\textwidth]{figures/Inverted_Double_Pendulum_A2C}
+\caption{RL Experiments. Left to right: Cart Pole, Lunar Lander, Inverted Pendulum, Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles. Our model is in orange and the baseline is in blue.}
 \label{fig:disc_rl}
 \end{figure}
 
-\begin{table}[h]
-	\centering
-	\begin{tabular}{l c c} 
-		\textbf{Inverted Pendulum} & A2C & RELAX \\\midrule
-		Episodes until solve      & $9916 \pm 235$ & $\bm{6237 \pm 45}$ \\
-		Timesteps until solve    & $735376 \pm 117076$ & $\bm{349935 \pm 27529}$ \\\\
-		\textbf{Inverted Double Pendulum}\\ \midrule
-		Episodes until solve & $78260 \pm 1877$ & $\bm{60967 \pm 1669}$\\
-		Timesteps until solve    & $8701703 \pm 779270$ & $\bm{4145399 \pm 189217}$  
-	\end{tabular}
-	\caption{Mean Episodes to Solve. Inverted Pendulum is considered solved if the agent receives an average reward over $950$ in the last $100$ Episodes. Inverted Double Pendulum is considered solved if the agent receives an average reward over $9100$ in the last $100$ frames.}
-	\label{tab:cont_rl}
-\end{table}
-
-\begin{figure}[h]
-	\centering
-	%\includegraphics[width=.4\textwidth]{figures/Inverted_Pendulum_A2C}
-	%\includegraphics[width=.4\textwidth]{figures/Inverted_Double_Pendulum_A2C}
-	\caption{Continuous RL Experiments. \emph{Left:} Inverted Pendulum. \emph{Right:} Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles.}
-	\label{fig:cont_rl}
-\end{figure}
+%\begin{figure}[h]
+%	\centering
+%	\includegraphics[width=.4\textwidth]{figures/Inverted_Pendulum_A2C}
+%	\includegraphics[width=.4\textwidth]{figures/Inverted_Double_Pendulum_A2C}
+%	\caption{Continuous RL Experiments. \emph{Left:} Inverted Pendulum. \emph{Right:} Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles.}
+%	\label{fig:cont_rl}
+%\end{figure}
 % should i cut off the figure when relax stops training for the inverted double pendulum???
 
 
@@ -988,3 +960,16 @@ The baseline A2C case has 2 hyperparameters to tune: the learning rate for the o
 The Inverted Pendulum experiments were run for 1,000,000 frames. The Inverted Double Pendulum experiments were run for 10,000,000 frames.
 
 \end{document}
+
+%For all models, the policy and control variate were both neural networks with 2 layers of 10 units using the ReLU nonlinearity.
+%We first tuned the learning rate using the baseline A2C then ran \RELAX{} with the same learning rate. 
+%Again, we are aware that improved results could be obtained by further tuning the learning rate for \RELAX{} but we wanted to illustrate the improvement provided solely by the improved control variate. 
+
+%\paragraph{Experimental details}
+%We estimate the policy gradient using a single Monte Carlo sample produced from a one episode roll-out of the current policy.
+%We note that improved performance could be achieved by using more samples, but we intended to test our model in the highest-possible variance setting. 
+%In all experiments both the policy and control variate were two layer neural networks with RELU non-linearities. Each intermediate layer's output had dimension 10.
+%We searched over two hyper-parameters; the global learning rate and the scaling on the loss from the control variate or value function.
+%For each we tested values in $[.01, .003, .001]$.
+%Between our model and the baseline and the learning rates were also constant across tests making it that all improvements derive from having a lower variance estimate of the policy gradient.
+%Presented results are obtained by averaging over 5 runs with different random seeds. We run the CartPole and LunarLander for $250,000$ and $5,000,000$ time-steps respectively. 
