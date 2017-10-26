@@ -355,8 +355,8 @@ Thus we define our estimator as
 		\hspace{3em} neural network $c_\phi(\cdot)$  \While {not converged} 
 		\State $\epsilon_{i}, \widetilde{\epsilon_i} \sim p(\epsilon)$ \Comment Sample noise
 		\State $b_i \leftarrow T(\epsilon_i, \theta)$ \Comment Compute input
-		\State $z_i \sim S(\epsilon_i, \theta)$ \Comment Compute unconditional relaxed input
-		\State $\widetilde{z_i} \sim S(\widetilde{\epsilon_i}, \theta | b_i)$ \Comment Compute conditional relaxed input
+		\State $z_i \leftarrow S(\epsilon_i, \theta)$ \Comment Compute unconditional relaxed input
+		\State $\widetilde{z_i} \leftarrow S(\widetilde{\epsilon_i}, \theta | b_i)$ \Comment Compute conditional relaxed input
 		\State  $g_\theta \leftarrow \left[f(b_i) - c_{\phi}(\widetilde{z_i}) \right] \nabla_\theta \log p + \nabla_\theta c_\phi(z_i) - \nabla_\theta c_\phi(\widetilde{z_i})$ \Comment Estimate gradient
 		\State  $g_\phi \leftarrow 2 g_\theta \frac{\partial g_\theta}{\partial \phi}$ \Comment Estimate gradient of variance of gradient
 		\State $\theta \leftarrow \theta + \alpha_1 g_\theta$ \Comment Update parameters
