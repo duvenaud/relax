@@ -26,8 +26,8 @@ for i in range(len(tableau20)):
     tableau20[i] = (r / 255., g / 255., b / 255.)
 
 
-ITERS = 10000
-RESOLUTION = 10
+ITERS = 20000
+RESOLUTION = 1
 
 """ Helper Functions """
 def safe_log_prob(x, eps=1e-8):
@@ -433,7 +433,7 @@ if __name__ == "__main__":
 #
 #     with sns.axes_style("whitegrid"):
 #         sns.set_style("ticks")
-#         sns.set_context("talk")
+#         sns.set_context("poster")
 #
 #         f, (ax1, ax2, ax3) = plt.subplots(3, sharex=True)
 #         ax1.plot(us, FB[which], color=tableau20[0],  label=r'$f(b=H(z(u)))$',)
@@ -442,7 +442,7 @@ if __name__ == "__main__":
 #
 #         ax2.plot(us,  FZ[which], color=tableau20[4],label=r'$f(\sigma_\lambda(z(u)))$')
 #         ax2.legend(loc='best')
-#         ax3.plot(us, QZ[which], color=tableau20[6], label=r'$Q(u)$')
+#         ax3.plot(us, QZ[which], color=tableau20[6], label=r'$c_\phi(z(u))$')
 #         ax3.legend(loc='best')
 #     # Fine-tune figure; make subplots close to each other and hide x ticks for
 #     # all but bottom plot.
@@ -450,23 +450,23 @@ if __name__ == "__main__":
 #         sns.despine(offset=0.125, trim=True)
 #         plt.setp([a.get_xticklabels() for a in f.axes[:-1]], visible=False)
 #         plt.xlabel(r"$u$")
-        # plt.setp([a.get_yticklabels() for a in f.axes], visible=False)
-
-
-
-    #
-    # f, axes = plt.subplots(3,3)
-    # for i, ax in enumerate(axes.flatten()):
-    #     with sns.axes_style("darkgrid"):
-    #         plt.subplot(311)
-    #         ax.plot(us, (FB[i]-np.mean(FB[i]))/np.std(FB[i])-3, ls='-', color='red', alpha=0.8, label=r'$f(b=H(z(u)))$')
-    #         ax.plot(us, (FZ[i]-np.mean(FZ[i]))/np.std(FZ[i])-1, ls=':', color='blue', alpha=0.8, label=r'$f(\sigma_\lambda(z(u)))$')
-    #         ax.plot(us, (QZ[i]-np.mean(QZ[i]))/np.std(QZ[i])+1, ls='-.',  color='green', alpha=0.8, label=r'$Q(\sigma(z(u)))$')
-    #         # ax.legend(loc='best')#bbox_to_anchor=(1.0, 0.65))
-    #     # ax.xlabel('u')
-    # plt.tight_layout()
-    # plt.savefig("relaxations_t_{}_which_{}.pdf".format(t, which), format='pdf')
-    #
+#         # plt.setp([a.get_yticklabels() for a in f.axes], visible=False)
+#
+#
+#
+#     #
+#     # f, axes = plt.subplots(3,3)
+#     # for i, ax in enumerate(axes.flatten()):
+#     #     with sns.axes_style("darkgrid"):
+#     #         plt.subplot(311)
+#     #         ax.plot(us, (FB[i]-np.mean(FB[i]))/np.std(FB[i])-3, ls='-', color='red', alpha=0.8, label=r'$f(b=H(z(u)))$')
+#     #         ax.plot(us, (FZ[i]-np.mean(FZ[i]))/np.std(FZ[i])-1, ls=':', color='blue', alpha=0.8, label=r'$f(\sigma_\lambda(z(u)))$')
+#     #         ax.plot(us, (QZ[i]-np.mean(QZ[i]))/np.std(QZ[i])+1, ls='-.',  color='green', alpha=0.8, label=r'$Q(\sigma(z(u)))$')
+#     #         # ax.legend(loc='best')#bbox_to_anchor=(1.0, 0.65))
+#     #     # ax.xlabel('u')
+#     plt.tight_layout()
+#     plt.savefig("relaxations_t_{}_which_{}.pdf".format(t, which), format='pdf')
+#     #
 ##    fig1_dict = {}
 ##    fig1_dict["relax_losses_t0.1"] = relax_losses
 ##    fig1_dict[]
@@ -519,11 +519,10 @@ if __name__ == "__main__":
 #        plt.savefig('/home/damichoi/ml/relaxed-rebar/toy_problem/test'+str(i)+'.png', bbox_inches='tight')
 #        plt.show()
 # uncomment once to collect losses for Figs 1 and 2:
-    file_name = "toy_losses_{}_{}_funcs".format(ITERS, t)
+    file_name = "toy_losses_{}_{}".format(ITERS, t)
     try:
         with open(file_name+'.pkl', 'r') as f:
-            ext_losses, reinf_losses, rebar_losses, relax_losses, rebar_variances, reinf_variances, relax_variances, \
-            ext_variances = pickle.load(f)
+            unloaded = pickle.load(f)
     except IOError:
         _,ext_thetas, ext_losses, ext_variances,__,___ = main(t=t, use_reinforce=False, log_var=False, relaxed=False, visualize=None, force_same=True, test_bias=True, use_exact_gradient=True)
         tf.reset_default_graph()
@@ -548,18 +547,26 @@ if __name__ == "__main__":
         with open(file_name+'.pkl', 'w') as f:
             pickle.dump([ext_losses, reinf_losses, rebar_losses, relax_losses, rebar_variances, reinf_variances, relax_variances, ext_variances], f)
 
-# UNCOMMENT HERE FOR FIGURE 1:
+    # UNCOMMENT HERE FOR FIGURE 1:
+    sns.set_style("white", {"axes.edgecolor": ".7",
+                        "font_scale": "1.2"})
+    sns.set_context("talk")
     x = np.arange(0, ITERS, RESOLUTION) #len(rebar_losses))
+    ext_losses, reinf_losses, rebar_losses, relax_losses, _ = unloaded
     print("rebar_losses {}".format(len(rebar_losses)))
     max_plot_iters = 10000
     plt.figure(1)
     plt.xlim(0,max_plot_iters)
     alpha=1.0
-    plt.plot(x, ext_losses, color='black', ls='-.', label="Exact gradient", alpha=0.5)
+    sns.set_context("paper")
+    sns.set(font_scale=1.2)
+
     plt.plot(x, reinf_losses, color=tableau20[0],label="REINFORCE", alpha=alpha)
     plt.plot(x, rebar_losses,color=tableau20[4], label="REBAR", alpha=alpha)
 #    plt.plot(x, rebar_losses_ttc, 'orange', label="REBAR trained to completion")
     plt.plot(x, relax_losses, color=tableau20[6],label="RELAX (ours)", alpha=alpha)
+
+    plt.plot(x, ext_losses, color='black', ls='-.', label="Exact gradient", alpha=0.5)
 #    plt.plot(x, relax_losses_ttc, 'purple', label="RELAX trained to completion")
 #     plt.plot(x, lax_losses,color=tableau20[5], label="LAX", alpha=alpha)
 
@@ -575,6 +582,8 @@ if __name__ == "__main__":
 #    plt.plot(x, bar_losses, 'pink', label="BAR")
 #    plt.plot(x, bar_losses_ttc, 'yellow', label="BAR trained to completion")
     plt.legend(loc="best")#bbox_to_anchor=(1.0, 0.75))
+    plt.xlabel("Steps")
+    plt.ylabel(("Loss"))
     # plt.rc('grid', linestyle="--", color='black')
     # plt.grid(True)
     # plt.ylabel("Loss")
@@ -632,7 +641,11 @@ if __name__ == "__main__":
 #     # _bar_variances =   [bar_variances[i] for i in range(10000) if (i+1)%10 == 0]
 #
 #     plt.figure(4)
+#     # sns.set(font_scale=1.2)
 #     window = 50
+#     sns.set_style("white", {"axes.edgecolor": ".7",
+#                             "font_scale" : "1.2"})
+#     sns.set_context("talk")
 #
 #     A = pandas.Series(reinf_variances, _x)
 #     B = pandas.Series(rebar_variances, _x)
@@ -642,15 +655,8 @@ if __name__ == "__main__":
 #     plt.plot(_x, pandas.rolling_mean(A, window),  color=tableau20[0], alpha=line_alpha, label="REINFORCE")
 #     plt.plot(_x, pandas.rolling_mean(B, window), color=tableau20[4], alpha=line_alpha,  label="REBAR")
 #     plt.plot(_x, pandas.rolling_mean(C, window), color=tableau20[6], alpha=line_alpha,  label="RELAX (ours)")
-#     # plt.plot(_x, reinf_variances, '.',  color=tableau20[0], alpha=point_alpha,label='_nolegend_')
-#     # plt.plot(_x, rebar_variances, '.', color=tableau20[4], alpha=point_alpha,  label='_nolegend_')
-#     # plt.plot(_x, relax_variances, '.', color=tableau20[6], alpha=point_alpha,label='_nolegend_')
-#     # plt.plot(x, _lax_variances, 'cyan', label="LAX")
-#     #    plt.plot(x, _bar_variances, 'pink', label="BAR")
 #     plt.legend(loc='best')# bbox_to_anchor=(1.0, 0.75))
-#     # plt.rc('grid', linestyle="--", color='black')
-#     # plt.grid(True)
-#     plt.ylabel("log(Var(gradient estimator))")
+#     plt.ylabel("Log Variance of Gradient Estimates")
 #     plt.xlabel("Steps")
 #     plt.xlim([500, ITERS])
 #     sns.despine()
