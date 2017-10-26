@@ -533,7 +533,11 @@ The answer is yes, with the caveat that one must introduce stochasticity to the 
 Thus, \RELAX{} is most suitable for problems where one is already optimizing a distribution over inputs, such as in inference or reinforcement learning.
 % Note that most optimal policies are deterministic?
 
-[TODO: Discuss situation when $\loss{}$ depends directly on $\theta$.]
+In our previous analysis, we have made the assumption that the function $f$ we are optimizing is not a function of $\theta$. If it were we note:
+\begin{align}
+\PT \E_{p(b|\theta)}[f(b, \theta)] = \E_{p(b|\theta)}\left[\PT f(b, \theta) + f(b, \theta)\PT \log p(b|\theta) \right].\nonumber
+\end{align}
+The second term on the right-hand side can be estimated using any of the methods presented in this paper and if $f$ is known and differentiable then the left-hand side can be computed by back-propagation.
 
 
 \section{Related work}
