@@ -691,10 +691,13 @@ We compare with the advantage actor-critic algorithm (A2C)~\cite{sutton2000polic
 %We test our alrgorithm on the Cart-Pole and Lunar-Lander environments from the OpenAI Gym~\cite{1606.01540}.
 %We run the Cart-Pole and Lunar-Lander environments for 250 and 1000 episodes, respectively and plot reward and the log-variance of the policy gradients in figure~X.
 
-\subsubsection{Discrete experiments}
-We test our approach in the discrete action domains of the CartPole and LunarLander as provided by the OpenAI gym~\cite{1606.01540}. In both domains we observe improved performance and sample efficiency using our method. The results of our experiments can be seen in figures \ref{fig:disc_rl}, [CITE OTHER RELEVANT FIGURES] and table~\ref{tab:disc_rl}.
+\subsubsection{Experiments}
 
-We found that our estimator provided policy gradients with drastically reduced variance (see figure~\ref{fig:disc_rl_var}) allowing for larger learning rates to be used while maintaining stable training. Our estimator achieved an over 2-times speedup in convergence over the baseline.
+In the discrete action setting, we test our approach on the Cart Pole and Lunar Lander environments as provided by the OpenAI gym~\cite{1606.01540}. In the continuous action setting, we test on the MuJoCo~\cite{todorov2012mujoco}-simulated environments Inverted Pendulum and Inverted Double Pendulum also found in the OpenAI gym.
+
+In all tested environments we observe improved performance and sample efficiency using our method. The results of our experiments can be seen in figures \ref{fig:disc_rl}, [CITE OTHER RELEVANT FIGURES] and table~\ref{tab:disc_rl}.
+
+We found that our estimator produced policy gradients with drastically reduced variance (see figure~\ref{fig:disc_rl_var}) allowing for larger learning rates to be used while maintaining stable training. In both discrete environments our estimator achieved an over 2-times speedup in convergence over the baseline.
 
 %For all models, the policy and control variate were both neural networks with 2 layers of 10 units using the ReLU nonlinearity.
 %We first tuned the learning rate using the baseline A2C then ran \RELAX{} with the same learning rate. 
@@ -712,14 +715,14 @@ We found that our estimator provided policy gradients with drastically reduced v
 \begin{table}[h]
 \centering
 \begin{tabular}{l c c} 
-\textbf{CartPole} & A2C & RELAX \\\midrule
+\textbf{Cart Pole} & A2C & RELAX \\\midrule
 Episodes until solve      & $1152 \pm 90$ & $\bm{472 \pm 114}$ \\
 Timesteps until solve    & $162374 \pm 17241$ & $\bm{68,712 \pm 20668}$ \\\\
-\textbf{LunarLander}\\ \midrule
+\textbf{Lunar Lander}\\ \midrule
 Episodes until solve & $11204 \pm 788$ & $\bm{4244 \pm 1549}$ \\
 Timesteps until solve & $2389787 \pm 254000$ & $\bm{1168820 \pm 756314}$
 \end{tabular}
-\caption{Mean Episodes to Solve. CartPole is considered solved if the agent receives an average reward over $195$ in the last $100$ Episodes. LunarLander is considered solved if the agent receives an average reward over $200$ in the last $100$ frames.}
+\caption{Mean Episodes to Solve. Cart Pole is considered solved if the agent receives an average reward over $195$ in the last $100$ Episodes. Lunar Lander is considered solved if the agent receives an average reward over $200$ in the last $100$ frames.}
 \label{tab:disc_rl}
 \end{table}
 % cartpole epsidoes to solve, this result looks better than episodes
@@ -729,13 +732,9 @@ Timesteps until solve & $2389787 \pm 254000$ & $\bm{1168820 \pm 756314}$
 \centering
 \includegraphics[width=.4\textwidth]{figures/cp_paper}
 \includegraphics[width=.4\textwidth]{figures/ll_paper}
-\caption{Discrete RL Experiments. \emph{Left:} CartPole. \emph{Right:} LunarLander. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles.}
+\caption{Discrete RL Experiments. \emph{Left:} Cart Pole. \emph{Right:} Lunar Lander. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles.}
 \label{fig:disc_rl}
 \end{figure}
-
-
-\subsubsection{Continuous experiments}
-We chose our continuous experiments among the MuJoCo~\cite{todorov2012mujoco}-simulated tasks in OpenAI gym~\cite{1606.01540}: the Inverted Pendulum and Inverted Double Pendulum. As in the discrete case, we observe improved performance and sample efficiency, with less than half the time to converge compared to the baseline. The results of our experiments can be seen in figures \ref{fig:cont_rl}, [CITE OTHER RELEVANT FIGURES] and table~\ref{tab:cont_rl}.
 
 \begin{table}[h]
 	\centering
@@ -750,8 +749,6 @@ We chose our continuous experiments among the MuJoCo~\cite{todorov2012mujoco}-si
 	\caption{Mean Episodes to Solve. Inverted Pendulum is considered solved if the agent receives an average reward over $950$ in the last $100$ Episodes. Inverted Double Pendulum is considered solved if the agent receives an average reward over $9100$ in the last $100$ frames.}
 	\label{tab:cont_rl}
 \end{table}
-% cartpole epsidoes to solve, this result looks better than episodes
-% Best Models      & $81018 \pm 15405$ & $45729 \pm 16294$ \\\\
 
 \begin{figure}[h]
 	\centering
@@ -761,8 +758,6 @@ We chose our continuous experiments among the MuJoCo~\cite{todorov2012mujoco}-si
 	\label{fig:cont_rl}
 \end{figure}
 % should i cut off the figure when relax stops training for the inverted double pendulum???
-
-\subsection{Discussion}
 
 
 \section{Conclusions and future work}
@@ -968,9 +963,9 @@ As our control variate does not have the same interpretation as the value functi
 
 Both models were trained with the RMSProp \cite{Tieleman2012} optimizer and a reward discount factor of $.99$ was used.
 
-Both models have 2 hyperparameters to tune; the global learning rate and the scaling factor on the learning rate for the control variate (or value function). We complete a grid search for both parameters in $\{0.01, 0.003, 0.001\}$ and present the model which ``solves'' the task in the fewest number of episodes averaged over 5 random seeds. ``Solving'' the tasks was defined by the creators of the OpenAI gym \cite{1606.01540}. The CartPole task is considered solved if the agent receives an average reward greater than 195 over 100 consecutive episodes. The LunarLander task is considered solved if the agent receives an average reward greater than 200 over 100 consecutive epsidoes. 
+Both models have 2 hyperparameters to tune; the global learning rate and the scaling factor on the learning rate for the control variate (or value function). We complete a grid search for both parameters in $\{0.01, 0.003, 0.001\}$ and present the model which ``solves'' the task in the fewest number of episodes averaged over 5 random seeds. ``Solving'' the tasks was defined by the creators of the OpenAI gym \cite{1606.01540}. The Cart Pole task is considered solved if the agent receives an average reward greater than 195 over 100 consecutive episodes. The Lunar Lander task is considered solved if the agent receives an average reward greater than 200 over 100 consecutive epsidoes. 
 
-The CartPole experiments were run for 250,000 frames. The LunerLander experiments were run for 5,000,000 frames. 
+The Cart Pole experiments were run for 250,000 frames. The Lunar Lander experiments were run for 5,000,000 frames. 
 
 \subsection{Continuous RL}
 The continuous tasks uses both the value function and the control variate to enable bootstrapping, which is needed due to the increased complexity of the problem. Our model architecture is base on OpenAI's baseline\cite{?} code for ACKTR\cite{?}. The three models- policy, value, and control variate, are 2 layer neural networks with 64 hidden units per layer. The value and control variate networks are identical, with the ELU nonlinearity in each hidden layer. The policy network has Tanh nonlinearity. The policy network, which parameterizes the gaussian policy comprises of a network (with the architecture mentioned above) that outputs the mean, and a separate, trainable log standard deviation value that is not input dependent. All three networks have a linear output layer. We selected the batch size to be 2500, meaning for a fixed timestep (2500) we collect multiple rollouts of a task and update the networks' parameters with the batch of episodes. Per one policy update, we optimize both the value and control variate network multiple times. The number of times we train  the value network is fixed to 25, while for the control variate, it was chosen to be a hyperparameter. 
