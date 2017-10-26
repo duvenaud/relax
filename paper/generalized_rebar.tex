@@ -580,13 +580,13 @@ Figures~\ref{first figure}a and \ref{first figure}b and shows the relative perfo
 %With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the optimal solution $\theta = 0$.
 %The fixed concrete relaxation of REBAR is unable to produce a gradient whose signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE.
 
-Figure~\ref{first figure}c plots the learned surrogate $c_\phi$ for a fixed value of $\theta$. We can see that $c_\phi$ is near $f$ for all $z$, keeping the variance of the REINFORCE part of the estimator small. Moreover the derivative of $c_\phi$ is positive for all $z$ meaning that the reparameterization part of the estimator will produce gradients pointing in the right direction to optimize the expectation. Conversely, the concrete relaxation of REBAR is close to $f$ only near $0$ and $1$ and its gradient points in the right direction only for values of $z > t$. These factors together result in the RELAX estimator achieving the best performance. 
+Figure~\ref{first figure}c plots the learned surrogate $c_\phi$ for a fixed value of $\theta$. We can see that $c_\phi$ is near $f$ for all $z$, keeping the variance of the REINFORCE part of the estimator small. Moreover the derivative of $c_\phi$ is positive for all $z$ meaning that the reparameterization part of the estimator will produce gradients pointing in the correct direction to optimize the expectation. Conversely, the concrete relaxation of REBAR is close to $f$ only near $0$ and $1$ and its gradient points in the correct direction only for values of $z > t$. These factors together result in the RELAX estimator achieving the best performance. 
 
 
 \subsection{Discrete variational autoencoder}
 Next, we evaluate the \RELAX{} estimator on the task of training a variational autoencoder~\citep{kingma2013autoencoding, rezende2014stochastic} with Bernoulli latent variables.
-We reproduced experiments from \citet{tucker2017rebar}, training models with 1 and 2 layers of 200 Bernoulli random variables with linear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
-Details of these model can be found in appendix~\ref{app_disc_vae}.
+We reproduced a subset of the experiments from \citet{tucker2017rebar}, training models with 1 and 2 layers of 200 Bernoulli random variables with linear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
+Details of these models and our experimental procedure can be found in appendix~\ref{app_disc_vae}.
 
 %them and a model with 1 layer of Bernoulli random variables with non-linear mappings between layers.
 
@@ -680,7 +680,7 @@ In all experiments, RELAX provides an increase in rate of convergence.
 \subsection{Reinforcement learning}
 We test our approach on a few simple reinforcement learning environments with discrete and continuous actions.
 We use the \RELAX{} and \LAX{} estimators for discrete and continuous actions, respectively.
-We compare with the advantage actor-critic algorithm~\cite{sutton2000policy} as a baseline.
+We compare with the advantage actor-critic algorithm (A2C)~\cite{sutton2000policy} as a baseline.
 
 To compare these approaches in the most illustrative setting possible, in the discrete case we do not use any reward bootstrapping. This is because we replace the value function in the actor-critic method with a control variate, and its job is to reduce the variance of the gradient estimates, not to predict rewards. Therefore, in the discrete case, after each episode terminates we generate the discounted reward for each timestep, treat the episode as a single batch of data, and perform one step of gradient decent.
 In the continuous case, however, due to the increased complexity of the problems we employed bootstrapping with batched inputs and therefore, to do the bootstrapping, we kept the value function. We perform gradient descent using a batch of multiple episodes that were collected during a fixed number of timesteps. Full details of our experiments can be found in Appendix~\ref{experiment appendix}.  
