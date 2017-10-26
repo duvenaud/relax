@@ -617,7 +617,7 @@ We demonstrate the effectiveness of our estimator on a number of challenging opt
 		\vspace{-3mm}
 	\hspace{-2.5mm}\includegraphics[width=0.50\columnwidth ]{figures/relaxations_t_499_which_2} 
 		\vspace*{-6mm}
-	\caption{ The relaxation for a toy loss function in REINFORCE (blue), REBAR (green), and RELAX (red)} 
+	\caption{ The relaxation for a toy loss function ${\mathcal{L}(\theta) = \E_{p(b|\theta)} [ (b - 0.499)^2 ]}$ using REINFORCE (blue), REBAR (green), and RELAX (red)} 
 	\label{learned-relaxations}
 \end{wrapfigure}
 We seek to minimize $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where {$p(b|\theta) = \textnormal{Bernoulli}(b|\theta)$}. \cite{tucker2017rebar} set the target $t = .45$.
@@ -629,7 +629,6 @@ Figures~\ref{first figure}a and \ref{first figure}b and shows the relative perfo
 
 Figure~\ref{learned-relaxations} plots the learned surrogate $c_\phi$ for a fixed value of $\theta$. We can see that $c_\phi$ is near $f$ for all $z$, keeping the variance of the REINFORCE part of the estimator small. Moreover the derivative of $c_\phi$ is positive for all $z$ meaning that the reparameterization part of the estimator will produce gradients pointing in the correct direction to optimize the expectation. Conversely, the concrete relaxation of REBAR is close to $f$ only near $0$ and $1$ and its gradient points in the correct direction only for values of $z > t$. These factors together result in the RELAX estimator achieving the best performance. 
 
-\vspace{3em}
 \subsection{Discrete variational autoencoder}
 Next, we evaluate the \RELAX{} estimator on the task of training a variational autoencoder~\citep{kingma2013autoencoding, rezende2014stochastic} with Bernoulli latent variables.
 We reproduced a subset of the experiments from \citet{tucker2017rebar}, training models with 1 and 2 layers of 200 Bernoulli random variables with linear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
