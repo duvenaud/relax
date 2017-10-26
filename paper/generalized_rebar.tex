@@ -883,34 +883,30 @@ We give the derivation of the \LAX{} estimator used for continuous RL tasks.
 The \LAX{} estimator,
 \begin{align}
 \hat g_\LAX^{\RL} = \sum_{t=1}^{\infty} \LL{t} \left[ \sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} c_\phi(a_t, s_t), \\
-a_t = g_\theta(\epsilon_t,s_t) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber,
+a_t = a_t(\epsilon_t,s_t,\theta), \quad \epsilon_t \sim p(\epsilon_t)\nonumber,
 \end{align}
 is unbiased.
 \end{theorem}
 \begin{proof}
 Note that by using the score-function estimator, for all $t$, we have 
 %
-\begin{align}
+\begin{align*}
 \E_{p(\tau)}\Big[\LL{t} c_\phi(a_t, s_t)\Big] = \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[c_\phi(a_t, s_t)\Big]\Big].
-\end{align}
+\end{align*}
 Then, by adding and subtracting the same term, we have
 \begin{align*}
 \PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(\tau)}\Big[\LL{t} c_\phi(a_t, s_t)\Big]+\\&\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[c_\phi(a_t,s_t)\Big]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}c_\phi(g_\theta(\epsilon_t,s_t), s_t)\Big]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}c_\phi(g_\theta(\epsilon_t,s_t), s_t)\right]\nonumber
+&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}c_\phi(a_t(\epsilon_t,s_t,\theta), s_t)\Big]\Big]\nonumber\\
+&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}c_\phi(a_t(\epsilon_t,s_t,\theta), s_t)\right]\nonumber
 \end{align*}
 \end{proof}
 
-In the discrete action setting our policy parameterizes a soft-max distribution which we use to sample actions. 
-In the discrete case we define $z_t = f(\pi, u) = \sigma (\log\pi - \log(-\log(u)))$ where $u\sim \text{Unif}[0, 1]$, $a_t = \text{argmax}(z_t)$, $\sigma$ is the soft-max function.
-
-We also define $\tilde{z_t} \sim p(z_t|a_t)$ so if the $z_t$ are Gumbel-softmax samples, then $\tilde{z_t}$ are Gumbel-softmax samples constrained so that the largest value is that of the index of $a_t$.
-See appendix~\ref{resample} for how to efficiently generate samples $\tilde{z_t}$. 
+In the discrete control setting, our policy parameterizes a soft-max distribution which we use to sample actions. We define $z_t\sim p(z_t|s_t)$, which is equal to $\sigma (\log\pi - \log(-\log(u)))$ where $u\sim \text{Unif}[0, 1]$, $a_t = \text{argmax}(z_t)$, $\sigma$ is the soft-max function. We also define $\tilde{z_t} \sim p(z_t|a_t,s_t)$ and uses the same reparametrization trick for sampling $\tilde{z_t}$ as explicated in Appendix \ref{resample}.
 \begin{theorem}
 The \RELAX{} estimator,
 \begin{align}
-\hat g_\LAX^{\RL} = \sum_{t=1}^{\infty} \LL{t} \left[ \sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} c_\phi(a_t, s_t), \\
-a_t = g_\theta(\epsilon_t,s_t) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber,
+\hat g_\RELAX^{\RL} = \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - c_\phi(\tilde{z}_t, s_t)\right)+\frac{\partial}{\partial\theta}c_\phi(z_t, s_t), \label{eq:relaxrlproof}\\
+\tilde{z}_t \sim p(z_t|a_t,s_t), \qquad z_t \sim p(z_t|s_t)\nonumber, 
 \end{align}
 is unbiased.
 \end{theorem}
@@ -918,16 +914,17 @@ is unbiased.
 Note that by using the score-function estimator, for all $t$, we have 
 %
 \begin{align*}
-\E_{p(a_{1:t},s_{1:t})}\Big[\LL{t} \E_{p(z_t|a_t)}[c_\phi(z_t, s_t)]\Big] &= \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[\E_{p(z_t|a_t)}[c_\phi(z_t, s_t)]\Big]\Big]\\
-&=\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t)}[c_\phi(z_t, s_t)]\Big]
+\E_{p(a_{1:t},s_{1:t})}\Big[\LL{t} \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\Big] &= \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[\E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\Big]\Big]\\
+&=\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]
 \end{align*}
 Then, by adding and subtracting the same term, we have
 \begin{align*}
-\PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(a_{1:t},s_{1:t})}\Big[\LL{t} \E_{p(z_t|a_t)}[c_\phi(z_t, s_t)]\Big]+\\
-&\sum_t\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t)}[c_\phi(z_t, s_t)]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - \E_{p(z_t|a_t)}[c_\phi(z_t, s_t)]\right)\right]+\sum_t\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t)}[c_\phi(z_t, s_t)]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - \E_{p(z_t|a_t)}[c_\phi(z_t, s_t)]\right)+\frac{\partial}{\partial\theta}c_\phi(g_\theta(\epsilon_t,s_t), s_t)\right]\nonumber
+\PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(a_{1:t},s_{1:t})}\Big[\LL{t} \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\Big]+\\
+&\sum_t\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]\nonumber\\
+&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\right)\right]\\&+\sum_t\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]\nonumber\\
+&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\right)+\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\right]\nonumber
 \end{align*}
+Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:relaxrlproof}).
 \end{proof}
 
 
