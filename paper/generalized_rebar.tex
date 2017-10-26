@@ -7,6 +7,7 @@
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 \usepackage{microtype}      % microtypography
 \usepackage{amsmath}
+\usepackage{amsthm}
 \usepackage{hyperref}
 \usepackage{graphicx}
 \usepackage{algorithm}
@@ -53,6 +54,18 @@
 \newcommand{\RELAX}{{\textnormal{RELAX}}}
 \newcommand{\BAR}{{\textnormal{BAR}}}
 \newcommand{\REBAR}{{\textnormal{REBAR}}}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{example}[theorem]{Example}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{exercise}[theorem]{Exercise}
+\newtheorem{problem}[theorem]{Problem}
+\newtheorem{question}[theorem]{Question}
+\newtheorem{observation}[theorem]{Observation}
 
 
 \title{Backpropagation through the Void:\\
@@ -340,7 +353,7 @@ We prove this following~\cite{tucker2017rebar}:
 \begin{align}
 \E_{p(b|\theta)} \! \left[\left[ f(b) - \E_{p(z|b, \theta)} \! \left[c_\phi(z) \right] \right]\PT \log p(b|\theta)  - \PT \E_{p(z|b, \theta)} \! \left[c_\phi(z) \right] \right] + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right] \span & \nonumber\\
 &= \PT \E_{p(b|\theta)} \! \left[ f(b) - \E_{p(z|b, \theta)}\left[ c_\phi(z) \right]  \right] + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right]\nonumber\\
-&= \PT \E_{p(b|\theta)} \! \left[ f(b) \right] - \E_{p(z|\theta)} \! \left[ c_\phi(z) \right] + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right]
+&= \PT \E_{p(b|\theta)} \! \left[ f(b) \right] - \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right] + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right]
 = \PT \expectedLoss{}%&= \E_{p(\epsilon, \hat{\epsilon})}\Big[\left( f(H(T(\epsilon, \theta))) - c_\phi(T(\epsilon, \theta))  \right) \PT \log p(H(T(\epsilon, \theta))|\theta) - \PT c_\phi(\hat{T}(\hat{\epsilon}, H(T(\epsilon, \theta)), \theta)) \Big]\nonumber\\
 %&\qquad + \PT\E_{p(\epsilon)}\left[ c_\phi(T(\epsilon, \theta)) \right]
 \end{align}
@@ -463,7 +476,7 @@ The \emph{de facto} standard approach is the advantage actor-critic estimator (A
 %We seek to compute
 %
 %\begin{align}
-%\frac{\partial \E_\tau[R]}{\partial \theta} = \E \left[ \sum_{t=1}^T \LL{t} \sum_{t'=t}^T r_t \right]
+%\frac{\partial \E_\tau[R]}{\partial \theta} = \E \left[ \sum_{t=1}^{\infty} \LL{t} \sum_{t'=t}^{\infty} r_t \right]
 %\end{align}
 %
 %but the estimator on the right hand side can have potentially high variance.
@@ -472,12 +485,12 @@ The \emph{de facto} standard approach is the advantage actor-critic estimator (A
 %Instead, we typically compute
 %
 %\begin{align}
-%\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau \left[ \sum_{t=1}^T \LL{t} \left[ \sum_{t'=t}^T r_{t'} - b(s_t) \right] \right]
+%\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau \left[ \sum_{t=1}^{\infty} \LL{t} \left[ \sum_{t'=t}^{\infty} r_{t'} - b(s_t) \right] \right]
 %\end{align}
 %
 %
 \begin{align}
-\hat g_{\textnormal{A2C}} = \sum_{t=1}^T \LL{t} \left[ \sum_{t'=t}^T r_{t'} - c_\phi(s_t) \right]+\frac{\partial}{\partial\theta} c_\phi(s_t), \qquad a_t \sim \pi(a_t | s_t, \theta)
+\hat g_{\textnormal{A2C}} = \sum_{t=1}^{\infty} \LL{t} \left[ \sum_{t'=t}^{\infty} r_{t'} - c_\phi(s_t) \right]+\frac{\partial}{\partial\theta} c_\phi(s_t), \qquad a_t \sim \pi(a_t | s_t, \theta)
 \label{eq:rl_a2c}
 \end{align}
 %
@@ -493,7 +506,7 @@ Crucially, this surrogate is a function of the action as well as the state.
 Our estimator is defined as: 
 %
 \begin{align}
-\hat g_\LAX^{\RL} = \sum_{t=1}^T \LL{t} \left[ \sum_{t'=t}^T r_{t'} - c_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} c_\phi(a_t, s_t), \\
+\hat g_\LAX^{\RL} = \sum_{t=1}^{\infty} \LL{t} \left[ \sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} c_\phi(a_t, s_t), \\
 a_t = g_\theta(\epsilon_t,s_t) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber.
 \label{eq:rl_est}
 \end{align}
@@ -757,8 +770,8 @@ We chose our continuous experiments among the MuJoCo~\cite{???}-simulated tasks 
 
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=.4\textwidth]{figures/Inverted_Pendulum_A2C}
-	\includegraphics[width=.4\textwidth]{figures/Inverted_Double_Pendulum_A2C}
+	%\includegraphics[width=.4\textwidth]{figures/Inverted_Pendulum_A2C}
+	%\includegraphics[width=.4\textwidth]{figures/Inverted_Double_Pendulum_A2C}
 	\caption{Continuous RL Experiments. \emph{Left:} Inverted Pendulum. \emph{Right:} Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles.}
 	\label{fig:cont_rl}
 \end{figure}
@@ -868,73 +881,60 @@ v_i' =    \left\{
 
 
 
-\section{Reinforcement learning proofs}
+\section{Derivations of estimators used in Reinforcement learning}
 \label{rl appendix}
-
-To construct our estimator, we first observe that $\forall t$, we have
+We give the derivation of the \LAX{} estimator used for continuous RL tasks.
+\begin{theorem}
+The \LAX{} estimator,
+\begin{align}
+\hat g_\LAX^{\RL} = \sum_{t=1}^{\infty} \LL{t} \left[ \sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} c_\phi(a_t, s_t), \\
+a_t = g_\theta(\epsilon_t,s_t) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber,
+\end{align}
+is unbiased.
+\end{theorem}
+\begin{proof}
+Note that by using the score-function estimator, for all $t$, we have 
 %
 \begin{align}
 \E_{p(\tau)}\Big[\LL{t} c_\phi(a_t, s_t)\Big] = \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[c_\phi(a_t, s_t)\Big]\Big].
 \end{align}
-%
 Then, by adding and subtracting the same term, we have
-%
-\begin{align*}
-\PT\E_{p(\tau)}[f(\tau)]
-%\E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(\tau)}\Big[\LL{t} c_\phi(a_t, s_t)\Big]+\\&\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[c_\phi(a_t,s_t)\Big]\Big]\nonumber\\
-%&= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - c_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}c_\phi(g_\theta(\epsilon_t,s_t), s_t)\Big]\Big]\nonumber\\
-= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - c_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}c_\phi(g_\theta(\epsilon_t,s_t), s_t)\right]
-\end{align*}
-
-%
 \begin{align*}
 \PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(\tau)}\Big[\LL{t} c_\phi(a_t, s_t)\Big]+\\&\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[c_\phi(a_t,s_t)\Big]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - c_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}c_\phi(g_\theta(\epsilon_t,s_t), s_t)\Big]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^T \LL{t}\left(\sum_{t'=t}^T r_{t'} - c_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}c_\phi(g_\theta(\epsilon_t,s_t), s_t)\right]\nonumber
+&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}c_\phi(g_\theta(\epsilon_t,s_t), s_t)\Big]\Big]\nonumber\\
+&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}c_\phi(g_\theta(\epsilon_t,s_t), s_t)\right]\nonumber
 \end{align*}
-
-\paragraph{Proof 1}
-
-We begin with 
-\begin{align}
-\E_\tau\Big[\frac{\partial c_\phi(a_t, s_t)}{\partial\theta}\Big] &= \E_{a_{1:t-1},s_{1:t}}\Big[E_{a_{t:T},s_{t+1:T}}\Big[\frac{\partial c_\phi(a_t, s_t)}{\partial\theta}\Big]\Big]\\
-&= \E_{a_{1:t-1},s_{1:t}}\Big[E_{a_t}\Big[\frac{\partial c_\phi(a_t, s_t)}{\partial\theta}\Big]\Big]\\
-&=  \E_{a_{1:t-1},s_{1:t}}\Big[\frac{\partial{E_{a_t}[c_\phi(a_t, s_t)]}}{\partial \theta}\Big]\\
-&= \E_{a_{1:t-1},s_{1:t}}\Big[E_{a_t}\Big[\LL{t} c_\phi(a_t, s_t)\Big]\Big]\\
-&= E_\tau\Big[\LL{t} c_\phi(a_t, s_t)\Big]
-\end{align}
-which completes our proof.
+\end{proof}
 
 In the discrete action setting our policy parameterizes a soft-max distribution which we use to sample actions. 
 In the discrete case we define $z_t = f(\pi, u) = \sigma (\log\pi - \log(-\log(u)))$ where $u\sim \text{Unif}[0, 1]$, $a_t = \text{argmax}(z_t)$, $\sigma$ is the soft-max function.
 
 We also define $\tilde{z_t} \sim p(z_t|a_t)$ so if the $z_t$ are Gumbel-softmax samples, then $\tilde{z_t}$ are Gumbel-softmax samples constrained so that the largest value is that of the index of $a_t$.
 See appendix~\ref{resample} for how to efficiently generate samples $\tilde{z_t}$. 
-
-In the discrete case, we use $c_\phi(\tilde{z_t}, s_t)\cdot \LL{t}$ as our control variate giving us $$\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau\Big[\sum_{t=1}^T \LL{t} [(\sum_{t'=t}^T r_{t'}) - c_\phi(\tilde{z_t}, s_t)]\Big]$$ which is biased, so we must add a term to remove this bias which will be $\frac{\partial c_\phi(z_t, s_t)}{\partial\theta} - \frac{\partial c_\phi(\tilde{z_t}, s_t)}{\partial\theta}$ making the full estimator
-$$\frac{\partial \E_\tau[R]}{\partial \theta} = \E_\tau\Big[\sum_{t=1}^T \LL{t} [(\sum_{t'=t}^T r_{t'}) - c_\phi(\tilde{z_t}, s_t)] + \frac{\partial c_\phi(z_t, s_t)}{\partial\theta} -  \frac{\partial c_\phi(\tilde{z_t}, s_t)}{\partial\theta}\Big].$$ 
-
-For this estimator to be unbiased, we must have $$\E_\tau\Big[\sum_{t=1}^T \LL{t} c_\phi(\tilde{z_t}, s_t) - \Big(\frac{\partial c_\phi(z_t, s_t)}{\partial\theta} - \frac{\partial c_\phi(\tilde{z_t}, s_t)}{\partial\theta}\Big)\Big] = 0$$ and we claim that $\forall t$  $$\E_\tau\Big[ \LL{t} c_\phi(\tilde{z_t}, s_t) - \Big(\frac{\partial c_\phi(z_t, s_t)}{\partial\theta} - \frac{\partial c_\phi(\tilde{z_t}, s_t)}{\partial\theta}\Big)\Big] = 0$$ 
-
-We introduce the notation $a(z) = \text{argmax}(z)$
-
+\begin{theorem}
+The \RELAX{} estimator,
 \begin{align}
-0 = \PT \E_\tau\Big[ c_\phi(z_t, s_t) - c_\phi(z_t, s_t) \Big] = \E_{a_{<t},s_{\leq t}}\Big[ \PT \E_{z_t|s_t} \Big[ c_\phi(z_t, s_t) \Big] -  \PT \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[ c_\phi(z_t, s_t)\Big] \Big]\Big]
+\hat g_\LAX^{\RL} = \sum_{t=1}^{\infty} \LL{t} \left[ \sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} c_\phi(a_t, s_t), \\
+a_t = g_\theta(\epsilon_t,s_t) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber,
 \end{align}
-We drop the outer expectation for brevity and continue
-\begin{align}
-\PT \E_{z_t|s_t} &\Big[ c_\phi(z_t, s_t) \Big] -  \PT \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[ c_\phi(z_t, s_t)\Big] \Big]\\
-&= \PT \E_{z_t|s_t} \Big[ c_\phi(z_t, s_t) \Big] - \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[c_\phi(z_t, s_t) \LL{t} -\PT \E_{z_t|a_t, s_t}\Big[c_\phi(z_t, s_t)  \Big] \Big]\\
-&= \E_{z_t|s_t} \Big[ \PT c_\phi(z_t, s_t) \Big] - \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[c_\phi(z_t, s_t) \LL{t} - \E_{z_t|a_t, s_t}\Big[\PT c_\phi(z_t, s_t)  \Big] \Big]
-\end{align}
-Thus due to the markov property of the MDP, then we can wrap all of these expectations into the expectation over trajectories giving us
+is unbiased.
+\end{theorem}
+\begin{proof}
+Note that by using the score-function estimator, for all $t$, we have 
+%
+\begin{align*}
+\E_{p(a_{1:t},s_{1:t})}\Big[\LL{t} \E_{p(z_t|a_t)}[c_\phi(z_t, s_t)]\Big] &= \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[\E_{p(z_t|a_t)}[c_\phi(z_t, s_t)]\Big]\Big]\\
+&=\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t)}[c_\phi(z_t, s_t)]\Big]
+\end{align*}
+Then, by adding and subtracting the same term, we have
+\begin{align*}
+\PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(a_{1:t},s_{1:t})}\Big[\LL{t} \E_{p(z_t|a_t)}[c_\phi(z_t, s_t)]\Big]+\\
+&\sum_t\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t)}[c_\phi(z_t, s_t)]\Big]\nonumber\\
+&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - \E_{p(z_t|a_t)}[c_\phi(z_t, s_t)]\right)\right]+\sum_t\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t)}[c_\phi(z_t, s_t)]\Big]\nonumber\\
+&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - \E_{p(z_t|a_t)}[c_\phi(z_t, s_t)]\right)+\frac{\partial}{\partial\theta}c_\phi(g_\theta(\epsilon_t,s_t), s_t)\right]\nonumber
+\end{align*}
+\end{proof}
 
-\begin{align}
-\E_{a_{<t},s_{\leq t}}\Big[\E_{z_t|s_t} \Big[ \PT c_\phi(z_t, s_t) \Big] &- \E_{a_t|s_t} \Big[ \E_{z_t|a_t, s_t}\Big[c_\phi(z_t, s_t) \LL{t} - \E_{z_t|a_t, s_t}\Big[\PT c_\phi(z_t, s_t)  \Big] \Big]\Big]\\
-&= \E_\tau\Big[ \LL{t} c_\phi(\tilde{z_t}, s_t) - \Big(\frac{\partial c_\phi(z_t, s_t)}{\partial\theta} - \frac{\partial c_\phi(\tilde{z_t}, s_t)}{\partial\theta}\Big)\Big] = 0
-\end{align}
-
-%We can estimate this value with the REINFORCE gradient estimator as $$\frac{\partial \mathbb{E}_{\pi(a|\phi)}[f(a)]}{\partial \phi} = \mathbb{E}[f(a)\frac{\partial \log p(a)}{\partial \phi}]$$ but the variance of this estimator can be very high thus making our model very sample-inefficient. We can subtract a control variate $r(\rho)\frac{\partial \log p(a(\rho))}{\partial \phi}$ where $\rho$ is sampled from some distribution which is a function of $\phi$ and $a(\rho)$ is a deterministic function of such that $a \sim \pi(a|\phi)$.
 
 
 
