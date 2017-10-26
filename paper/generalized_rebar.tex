@@ -499,7 +499,7 @@ a_t = g_\theta(\epsilon_t,s_t) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber.
 \end{align}
 %
 This estimator is unbiased if the true dynamics of the system are Markovian w.r.t. the state $s_t$.
-When $T = 1$, we recover the special case ${g_\LAX^{\RL} = g_\LAX}$.
+When $T = 1$, we recover the special case ${\hat g_\LAX^{\RL} = \hat g_\LAX}$.
 Comparing $\hat g_\LAX^{\RL}$ to the standard advantage actor-critic estimator in~\eqref{eq:rl_a2c}, the main difference being that our baseline $c_\phi(a_t, s_t)$ is action-dependent without introducing bias.
 
 To optimize the parameters $\phi$ of our control variate $c_\phi(a_t, s_t)$, we can again use the single-sample estimator of the gradient of our estimator's variance given in~\eqref{eq:vargrad}.
@@ -580,8 +580,7 @@ Figures~\ref{first figure}a and \ref{first figure}b and shows the relative perfo
 %With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the optimal solution $\theta = 0$.
 %The fixed concrete relaxation of REBAR is unable to produce a gradient whose signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE.
 
-Figure~\ref{first figure}c plots the learned surrogate $c_\phi$ for a fixed value of $\theta$.
-RELAX learns a surrogate whose derivative points in the direction of decreased loss for all values of reparameterization noise $u$, whereas REBAR's fixed relaxation only does so for values of $u > t$.
+Figure~\ref{first figure}c plots the learned surrogate $c_\phi$ for a fixed value of $\theta$. We can see that $c_\phi$ is near $f$ for all $z$, keeping the variance of the REINFORCE part of the estimator small. Moreover the derivative of $c_\phi$ is positive for all $z$ meaning that the reparameterization part of the estimator will produce gradients pointing in the right direction to optimize the expectation. Conversely, the concrete relaxation of REBAR is close to $f$ only near $0$ and $1$ and its gradient points in the right direction only for values of $z > t$. These factors together result in the RELAX estimator achieving the best performance. 
 
 
 \subsection{Discrete variational autoencoder}
@@ -639,7 +638,7 @@ Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule
 %To provide a fair comparison, we re-implemented REBAR in this way (denoted REBAR-ours in table~\ref{tab:vae}).
 %We believe this explains the large difference in performance between our implementation and that of \citep{tucker2017rebar} for the nonlinear models since there are 3 layers of parameters that all share the same gradient estimator.
 %In the linear models, each layer has its own gradient estimator making our implementation closer to that of \citep{tucker2017rebar}.
-To obtain training curves we created our own implementation of REBAR, which gave identical or slightly improved performance to the implementation of \citet{tucker2017rebar}.
+To obtain training curves we created our own implementation of REBAR, which gave identical or slightly improved performance to compared the implementation of \citet{tucker2017rebar}.
 
 While we obtained a modest improvement in training and validation scores (tables~\ref{tab:vae tr} and \ref{tab:vae val}), the most notable improvement provided by \RELAX{} is in its rate of convergence.
 Training curves for all models can be seen in figures~\ref{fig:vae mnist} and \ref{fig:vae omni}.
@@ -691,20 +690,25 @@ We are aware that better results could be obtained with bootstrapping and larger
 %We run the Cart-Pole and Lunar-Lander environments for 250 and 1000 episodes, respectively and plot reward and the log-variance of the policy gradients in figure~X.
 
 \subsubsection{Discrete experiments}
-We test our approach in the discrete action domains of the CartPole and LunarLander as provided by the OpenAI gym~\cite{1606.01540}.
-For all models, the policy and control variate were both neural networks with 2 layers of 10 units using the ReLU nonlinearity.
-We first tuned the learning rate using the baseline A2C then ran \RELAX{} with the same learning rate. 
-In both domains we observe improved performance and sample efficiency using our method.
-Again, we are aware that improved results could be obtained by further tuning the learning rate for \RELAX{} but we wanted to illustrate the improvement provided solely by the improved control variate. 
+We test our approach in the discrete action domains of the CartPole and LunarLander as provided by the OpenAI gym~\cite{1606.01540}. Full details of our experiments can be found in Appendix~\ref{experiment appendix}. In both domains we observe improved performance and sample efficiency using our method. The results of our experiments can be seen in figures \ref{fig:disc_rl}, [CITE OTHER RELEVANT FIGURES] and table~\ref{tab:disc_rl}.
 
-\paragraph{Experimental details}
-We estimate the policy gradient using a single Monte Carlo sample produced from a one episode roll-out of the current policy.
-We note that improved performance could be achieved by using more samples, but we intended to test our model in the highest-possible variance setting. 
-In all experiments both the policy and control variate were two layer neural networks with RELU non-linearities. Each intermediate layer's output had dimension 10.
-We searched over two hyper-parameters; the global learning rate and the scaling on the loss from the control variate or value function.
-For each we tested values in $[.01, .003, .001]$.
-Between our model and the baseline and the learning rates were also constant across tests making it that all improvements derive from having a lower variance estimate of the policy gradient.
-Presented results are obtained by averaging over 5 runs with different random seeds. We run the CartPole and LunarLander for $250,000$ and $5,000,000$ time-steps respectively. 
+We found that our estimator provided policy gradients with drastically reduced variance (see figure~\ref{fig:disc_rl_var}) allowing for larger learning rates to be used while maintaining stable training. Our estimator achieved an over 2-times speedup in convergence over the baseline.
+
+We believe this is a promising result that should motivate further research into using action-dependent control-variates for policy-gradient methods. We are interested in combining our approach with other popular variance reduction techniques such as generalized advantage estimation \cite{kimura2000analysis}. We are also interested in ways to train our control variate off-policy as in $Q$-prop~\cite{gu2016q}. We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail than we do now. 
+
+
+%For all models, the policy and control variate were both neural networks with 2 layers of 10 units using the ReLU nonlinearity.
+%We first tuned the learning rate using the baseline A2C then ran \RELAX{} with the same learning rate. 
+%Again, we are aware that improved results could be obtained by further tuning the learning rate for \RELAX{} but we wanted to illustrate the improvement provided solely by the improved control variate. 
+
+%\paragraph{Experimental details}
+%We estimate the policy gradient using a single Monte Carlo sample produced from a one episode roll-out of the current policy.
+%We note that improved performance could be achieved by using more samples, but we intended to test our model in the highest-possible variance setting. 
+%In all experiments both the policy and control variate were two layer neural networks with RELU non-linearities. Each intermediate layer's output had dimension 10.
+%We searched over two hyper-parameters; the global learning rate and the scaling on the loss from the control variate or value function.
+%For each we tested values in $[.01, .003, .001]$.
+%Between our model and the baseline and the learning rates were also constant across tests making it that all improvements derive from having a lower variance estimate of the policy gradient.
+%Presented results are obtained by averaging over 5 runs with different random seeds. We run the CartPole and LunarLander for $250,000$ and $5,000,000$ time-steps respectively. 
 
 \begin{table}[h]
 \centering
@@ -716,7 +720,7 @@ Timesteps until solve    & $162374 \pm 17241$ & $\bm{68,712 \pm 20668}$ \\\\
 Episodes until solve & $11204 \pm 788$ & $\bm{4244 \pm 1549}$ 
 \end{tabular}
 \caption{Mean Episodes to Solve. CartPole is considered solved if the agent receives an average reward over $195$ in the last $100$ Episodes. LunarLander is considered solved if the agent receives an average reward over $200$ in the last $100$ frames.}
-\label{tab:vae}
+\label{tab:disc_rl}
 \end{table}
 % cartpole epsidoes to solve, this result looks better than episodes
 % Best Models      & $81018 \pm 15405$ & $45729 \pm 16294$ \\\\
@@ -725,8 +729,7 @@ Episodes until solve & $11204 \pm 788$ & $\bm{4244 \pm 1549}$
 \centering
 \includegraphics[width=.4\textwidth]{figures/cp_paper}
 \includegraphics[width=.4\textwidth]{figures/ll_paper}
-\caption{Discrete RL Experiments.\emph{Left:} CartPole.
-\emph{Right:} LunarLander.}
+\caption{Discrete RL Experiments. \emph{Left:} CartPole. \emph{Right:} LunarLander. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles.}
 \label{fig:disc_rl}
 \end{figure}
 
@@ -937,7 +940,15 @@ We run an identical hyperpameter search in the 2 layer model as we do in the 1 l
 \subsection{Discrete RL}
 In both the baseline A2C and RELAX models, the policy and control variate (value function in the baseline model) were 2 layer neural networks with 10 units per layer. The ReLU non linearity was used on all layers except for the output layer.
 
-Both models have 2 hyperparameters to tune; the global learning rate and the scaling factor on the learning rate for the control variate (or control variate). We complete a grid search for both parameters in $\{0.01, 0.003, 0.001\}$ and present the model which ``solves'' the task in the fewest number of episodes averaged over 5 random seeds. ``Solving'' the tasks was defined by the creators of the OpenAI gym \cite{1606.01540}. The CartPole task is considered solved if the agent receives an average reward greater than 195 over 100 consecutive episodes. The LunarLander task is considered solved if the agent receives an average reward greater than 200 over 100 consecutive epsidoes. 
+For these tasks we estimate the policy gradient with a single monte-carlo sample. We run one episode of the environment to completion, compute the discounted rewards, and run one iteration of gradient decent. We believe using larger batches will improve performance but would less clearly demonstrate the potential of our method. 
+
+As our control variate does not have the same interpretation as the value function of A2C, it was not directly clear how to add reward bootstrapping and other variance reduction techniques common in RL into our model. We leave the task of incorporating these and other variance reduction techniques to future work.  
+
+Both models were trained with the RMSProp \cite{Tieleman2012} optimizer and a reward discount factor of $.99$ was used.
+
+Both models have 2 hyperparameters to tune; the global learning rate and the scaling factor on the learning rate for the control variate (or value function). We complete a grid search for both parameters in $\{0.01, 0.003, 0.001\}$ and present the model which ``solves'' the task in the fewest number of episodes averaged over 5 random seeds. ``Solving'' the tasks was defined by the creators of the OpenAI gym \cite{1606.01540}. The CartPole task is considered solved if the agent receives an average reward greater than 195 over 100 consecutive episodes. The LunarLander task is considered solved if the agent receives an average reward greater than 200 over 100 consecutive epsidoes. 
+
+The CartPole experiments were run for 250,000 frames. The LunerLander experiments were run for 5,000,000 frames. 
 \subsection{Continuous RL}
 
 \end{document}
