@@ -276,7 +276,7 @@ This gives an unbiased estimator for any choice of $c_\phi$.
 \subsection{Discrete random variables and conditional reparameterization}
 We can adapt the \LAX{} estimator to the case where $b$ is a discrete random variable by introducing a ``relaxed'' continuous variable $z$. %, where $b = H(z)$ and $H$ denotes the Heaviside function. %, we 
 Here we assume that there exists a continuous, reparameterizable distribution $p(z|\theta)$ and a deterministic mapping $H(z)$ such that $H(z) = b \sim p(b|\theta)$ when $z \sim p(z|\theta)$.
-In our implementation, we use the Gumbel-softmax trick, details of which can be found in appendix~\ref{resample}.
+In our implementation, we use the Gumbel-softmax trick, the details of which can be found in appendix~\ref{resample}.
 
 The discrete version of the \LAX{} estimator is given by:
 %
@@ -493,7 +493,7 @@ Crucially, this surrogate is a function of the action as well as the state.
 Our estimator is defined as: 
 %
 \begin{align}
-\hat g_\LAX^{\RL} = \sum_{t=1}^T \LL{t} \left[ \sum_{t'=t}^T r_{t'} - c_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} c_\phi(g_\theta(\epsilon_t,s_t), s_t), \\
+\hat g_\LAX^{\RL} = \sum_{t=1}^T \LL{t} \left[ \sum_{t'=t}^T r_{t'} - c_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} c_\phi(a_t, s_t), \\
 a_t = g_\theta(\epsilon_t,s_t) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber.
 \label{eq:rl_est}
 \end{align}
@@ -596,7 +596,7 @@ To take advantage of the available structure in the loss function, we choose the
 %Our estimator takes the form of \eqref{eq:RELAX} with $$\bar \relaxed(z) = \relaxed(z) + f(\sigma_\lambda(z))$$ where $\relaxed(z)$ is a learned neural network and $f(\sigma_\lambda(z))$ is the Concrete relaxation of REBAR with temperature parameter $\lambda$.
 %
 %We compare  \cite{tucker2017rebar}.
-In all experiments, we the learned control variate improved the training and validation performance, over the state-of-the-art baseline of REBAR. 
+In all experiments, the learned control variate improved the training and validation performance, over the state-of-the-art baseline of REBAR. 
 
 \begin{table}[h]
 \centering
@@ -682,7 +682,6 @@ In all experiments, RELAX provides an increase in rate of convergence.
 We test our approach on a few simple reinforcement learning environments with discrete and continuous actions.
 We use the \RELAX{} and \LAX{} estimators for discerete and continuous actions, respectively.
 We compare with the advantage actor-critic algorithm~\cite{sutton2000policy} as a baseline.
-In all experiments we use the same learning rate for the policy network for RELAX and A2C so differences in performance depended solely on the control variate used. 
 
 To compare these approaches in the most illustrative setting possible we do not use any reward bootstrapping in either model.
 After each episode terminates, we generate the discounted reward for each time-step, treat the episode as a single batch of data, and perform one step of gradient decent.
