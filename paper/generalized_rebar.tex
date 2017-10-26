@@ -742,9 +742,9 @@ We compare with the advantage actor-critic algorithm (A2C)~\cite{sutton2000polic
 
 In the discrete action setting, we test our approach on the Cart Pole and Lunar Lander environments as provided by the OpenAI gym~\cite{1606.01540}. In the continuous action setting, we test on the MuJoCo~\cite{todorov2012mujoco}-simulated environments Inverted Pendulum and Inverted Double Pendulum also found in the OpenAI gym.
 
-In all tested environments we observe improved performance and sample efficiency using our method. The results of our experiments can be seen in figures \ref{fig:disc_rl}, [CITE OTHER RELEVANT FIGURES] and table~\ref{tab:rl_results}.
+In all tested environments we observe improved performance and sample efficiency using our method. The results of our experiments can be seen in figures \ref{fig:rl_results}, [CITE OTHER RELEVANT FIGURES] and table~\ref{tab:rl_results}.
 
-We found that our estimator produced policy gradients with drastically reduced variance (see figure~\ref{fig:disc_rl_var}) allowing for larger learning rates to be used while maintaining stable training. In both discrete environments our estimator achieved an over 2-times speedup in convergence over the baseline.
+We found that our estimator produced policy gradients with drastically reduced variance (see figure~\ref{fig:rl_var}) allowing for larger learning rates to be used while maintaining stable training. In both discrete environments our estimator achieved an over 2-times speedup in convergence over the baseline.
 
 
 
@@ -766,7 +766,17 @@ LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $
 \includegraphics[width=.22\textwidth]{figures/Inverted_Pendulum_A2C}
 \includegraphics[width=.22\textwidth]{figures/Inverted_Double_Pendulum_A2C}
 \caption{RL Experiments. Left to right: Cart Pole, Lunar Lander, Inverted Pendulum, Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles. Our model is in orange and the baseline is in blue.}
-\label{fig:disc_rl}
+\label{fig:rl_results}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=.22\textwidth]{figures/cp_paper_var}
+\includegraphics[width=.22\textwidth]{figures/cp_paper_var}
+\includegraphics[width=.22\textwidth]{figures/cp_paper_var}
+\includegraphics[width=.22\textwidth]{figures/cp_paper_var}
+\caption{Variance of policy gradients (log scale). Left to right: Cart Pole, Lunar Lander, Inverted Pendulum, Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate 1 standard deviation. Our model is in orange and the baseline is in blue. After every 10th training episode 100 episodes were run and the sample log-variance is reported averaged over all policy parameters}
+\label{fig:rl_var}
 \end{figure}
 
 %\begin{figure}[h]
