@@ -344,15 +344,7 @@ Thus we define our estimator as
 \end{align}
 %
 This estimator is unbiased for any $c_\phi$.
-We prove this, following~\cite{tucker2017rebar}:
-%
-\begin{align}
-\E_{p(b|\theta)} \! \left[\left[ f(b) - \E_{p(z|b, \theta)} \! \left[c_\phi(z) \right] \right]\PT \log p(b|\theta)  - \PT \E_{p(z|b, \theta)} \! \left[c_\phi(z) \right] \right] + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right] \span & \nonumber\\
-&= \PT \E_{p(b|\theta)} \! \left[ f(b) - \E_{p(z|b, \theta)}\left[ c_\phi(z) \right]  \right] + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right]\nonumber\\
-&= \PT \E_{p(b|\theta)} \! \left[ f(b) \right] - \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right] + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right]
-= \PT \expectedLoss{}%&= \E_{p(\epsilon, \hat{\epsilon})}\Big[\left( f(H(T(\epsilon, \theta))) - c_\phi(T(\epsilon, \theta))  \right) \PT \log p(H(T(\epsilon, \theta))|\theta) - \PT c_\phi(\hat{T}(\hat{\epsilon}, H(T(\epsilon, \theta)), \theta)) \Big]\nonumber\\
-%&\qquad + \PT\E_{p(\epsilon)}\left[ c_\phi(T(\epsilon, \theta)) \right]
-\end{align}
+A proof and a detailed algorithm can be found in appendix~\ref{relax proof}.
 %
 We note that the distribution $p(z|b,\theta)$ must also be reparameterizable.
 We demonstrate how to perform this conditional reparameterization for Bernoulli and categorical random variables in appendix~\ref{resample}.
@@ -595,9 +587,8 @@ Full details of our experiments can be found in Appendix~\ref{experiment appendi
 \label{experiments section}
 In the discrete action setting, we test our approach on the Cart Pole and Lunar Lander environments as provided by the OpenAI gym~\citep{1606.01540}.
 In the continuous action setting, we test on the MuJoCo~\citep{todorov2012mujoco}-simulated environments Inverted Pendulum and Inverted Double Pendulum also found in the OpenAI gym.
-
 In all tested environments we observe improved performance and sample efficiency using our method.
-The results of our experiments can be seen in figure~\ref{fig:rl_results}, [CITE OTHER RELEVANT FIGURES] and table~\ref{tab:rl_results}.
+The results of our experiments can be seen in figure~\ref{fig:rl_results}, and table~\ref{tab:rl_results}.
 
 We found that our estimator produced policy gradients with drastically reduced variance (see figure~\ref{fig:rl_var}) allowing for larger learning rates to be used while maintaining stable training.
 In both discrete environments our estimator achieved an over 2-times speedup in convergence over the baseline.
@@ -696,6 +687,48 @@ We also feel that the relationship between our learned control variate and the a
 \section*{Appendices}
 \appendix
 
+
+
+
+\section{The RELAX Algorithm}
+\label{relax proof}
+
+We prove that, following~\cite{tucker2017rebar}:
+%
+\begin{align}
+\E \left[ \hat g_\textnormal{RELAX} \right] = \\
+\E_{p(b|\theta)} \! \left[\left[ f(b) - \E_{p(z|b, \theta)} \! \left[c_\phi(z) \right] \right]\PT \log p(b|\theta)  - \PT \E_{p(z|b, \theta)} \! \left[c_\phi(z) \right] \right] + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right] \span & \nonumber\\
+&= \PT \E_{p(b|\theta)} \! \left[ f(b) - \E_{p(z|b, \theta)}\left[ c_\phi(z) \right]  \right] + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right]\nonumber\\
+&= \PT \E_{p(b|\theta)} \! \left[ f(b) \right] - \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right] + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right]
+= \PT \expectedLoss{}%&= \E_{p(\epsilon, \hat{\epsilon})}\Big[\left( f(H(T(\epsilon, \theta))) - c_\phi(T(\epsilon, \theta))  \right) \PT \log p(H(T(\epsilon, \theta))|\theta) - \PT c_\phi(\hat{T}(\hat{\epsilon}, H(T(\epsilon, \theta)), \theta)) \Big]\nonumber\\
+%&\qquad + \PT\E_{p(\epsilon)}\left[ c_\phi(T(\epsilon, \theta)) \right]
+\end{align}
+%
+
+
+\begin{algorithm}[h]
+	\begin{algorithmic}
+		\Require $f(\cdot)$, $\log p(b|\theta)$, reparameterized samplers $b = H(z)$, $z = S(\epsilon, \theta)$ and $\tilde{z} = S(\epsilon, \theta | b)$, \\ 
+		\hspace{3em} neural network $c_\phi(\cdot)$  \While {not converged} 
+		\State $\epsilon_{i}, \widetilde{\epsilon_i} \sim p(\epsilon)$ \Comment Sample noise
+		\State $z_i \leftarrow S(\epsilon_i, \theta)$ \Comment Compute unconditional relaxed input
+		\State $b_i \leftarrow H(z_i)$ \Comment Compute input
+		\State $\widetilde{z_i} \leftarrow S(\widetilde{\epsilon_i}, \theta | b_i)$ \Comment Compute conditional relaxed input
+		\State  $g_\theta \leftarrow \left[f(b_i) - c_{\phi}(\widetilde{z_i}) \right] \nabla_\theta \log p + \nabla_\theta c_\phi(z_i) - \nabla_\theta c_\phi(\widetilde{z_i})$ \Comment Estimate gradient
+		\State  $g_\phi \leftarrow 2 g_\theta \frac{\partial g_\theta}{\partial \phi}$ \Comment Estimate gradient of variance of gradient
+		\State $\theta \leftarrow \theta + \alpha_1 g_\theta$ \Comment Update parameters
+		\State $\phi \leftarrow \phi + \alpha_2 g_\phi$ \Comment Update control variate
+		\EndWhile
+		\State \textbf{return} $\theta$ 
+	\end{algorithmic}
+	\caption{\RELAX{}: Low-variance control variate optimization for black-box gradient estimation.}
+	\label{relax}
+\end{algorithm}
+
+
+
+
+
 \section{Conditional Re-sampling for Discrete Random Variables}
 \label{resample}
 When applying the RELAX estimator to a function of discrete random variables $b \sim p(b|\theta)$, we require that there exists a distribution $p(z|\theta)$ and a deterministic mapping $H(z)$ such that if $z \sim p(z|\theta)$ then $H(z) = b \sim p(b|\theta)$. Treating both $b$ and $z$ as random, this procedure defines a probabalistic model $p(b, z | \theta) = p(b|z)p(z|\theta)$. The RELAX estimator requires reparameterized samples from $p(z|\theta)$ and $p(z|b,\theta)$. We describe how to sample from these distributions in the common cases of $p(b|\theta) = \text{Bernoulli}(\theta)$ and $p(b|\theta) = \text{Categorical}(\theta)$.
@@ -738,27 +771,6 @@ v_i' =    \left\{
 %This relaxation allows values within the simplex, but in the low temperature limit, it becomes exactly the discrete argmax.
 %One limitation of the concrete distribution is that it is a biased estimator except in limiting temperature.
 %In other words, a small amount of bias is present for a non-zero temperature.
-
-\section{The RELAX Algorithm}
-
-\begin{algorithm}[h]
-	\begin{algorithmic}
-		\Require $f(\cdot)$, $\log p(b|\theta)$, reparameterized samplers $b = H(z)$, $z = S(\epsilon, \theta)$ and $\tilde{z} = S(\epsilon, \theta | b)$, \\ 
-		\hspace{3em} neural network $c_\phi(\cdot)$  \While {not converged} 
-		\State $\epsilon_{i}, \widetilde{\epsilon_i} \sim p(\epsilon)$ \Comment Sample noise
-		\State $z_i \leftarrow S(\epsilon_i, \theta)$ \Comment Compute unconditional relaxed input
-		\State $b_i \leftarrow H(z_i)$ \Comment Compute input
-		\State $\widetilde{z_i} \leftarrow S(\widetilde{\epsilon_i}, \theta | b_i)$ \Comment Compute conditional relaxed input
-		\State  $g_\theta \leftarrow \left[f(b_i) - c_{\phi}(\widetilde{z_i}) \right] \nabla_\theta \log p + \nabla_\theta c_\phi(z_i) - \nabla_\theta c_\phi(\widetilde{z_i})$ \Comment Estimate gradient
-		\State  $g_\phi \leftarrow 2 g_\theta \frac{\partial g_\theta}{\partial \phi}$ \Comment Estimate gradient of variance of gradient
-		\State $\theta \leftarrow \theta + \alpha_1 g_\theta$ \Comment Update parameters
-		\State $\phi \leftarrow \phi + \alpha_2 g_\phi$ \Comment Update control variate
-		\EndWhile
-		\State \textbf{return} $\theta$ 
-	\end{algorithmic}
-	\caption{\RELAX{}: Low-variance control variate optimization for black-box gradient estimation.}
-	\label{relax}
-\end{algorithm}
 
 
 \section{Derivations of estimators used in Reinforcement learning}
