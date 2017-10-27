@@ -480,11 +480,11 @@ While our method is applicable in both the continuous and discrete action domain
 \vspace{-10mm}
 \begin{tabular}{c}
 REINFORCE\\
-\hspace{-3mm}\includegraphics[width=0.50\columnwidth, clip, trim=0.5cm 8cm 0.8cm 0cm]{figures/relaxations_t_499_which_2}\\
+\hspace{-3mm}\includegraphics[width=0.50\columnwidth, clip, trim=0.5cm 8cm 0.8cm 0.5cm]{figures/relaxations_t_499_which_2}\\
 REBAR\\
-\hspace{-3mm}\includegraphics[width=0.50\columnwidth, clip, trim=0.5cm 5cm 0.8cm 4cm]{figures/relaxations_t_499_which_2}\\
+\hspace{-3mm}\includegraphics[width=0.50\columnwidth, clip, trim=0.5cm 5cm 0.8cm 3.9cm]{figures/relaxations_t_499_which_2}\\
 RELAX\\
-\hspace{-3mm}\includegraphics[width=0.50\columnwidth, clip, trim=0.5cm 0cm 0.8cm 7cm]{figures/relaxations_t_499_which_2}
+\hspace{-3mm}\includegraphics[width=0.50\columnwidth, clip, trim=0.5cm 0cm 0.8cm 7.2cm]{figures/relaxations_t_499_which_2}
 \end{tabular}
 \vspace*{-6mm}
 \caption{The optimal relaxation for a toy loss function, using different gradient estimators.}
@@ -598,11 +598,12 @@ In both discrete environments our estimator achieved an over 2-times speedup in 
 \begin{table}[h]
 \centering
 \begin{tabular}{l | c c c c } 
-\textbf{Model} & Cart Pole & Lunar Lander & Inverted Pendulum & Inverted Double Pendulum \\\midrule
+\textbf{Model} & Cart-pole & Lunar lander & Inverted pendulum & Inverted double pendulum \\\midrule
 A2C             & $1152 \pm 90$ & $162374 \pm 17241$                    & $9916 \pm 235$ & $78260 \pm 1877$  \\
-LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $\bm{60967 \pm 1669}$\\\\
+LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $\bm{60967 \pm 1669}$
 \end{tabular}
-\caption{Mean Episodes to Solve. Cart Pole is solved if the agent receives an average reward over $195$ in the last $100$ Episodes. Lunar Lander is solved if the agent receives an average reward over $200$ in the last $100$ frames. Inverted Pendulum is solved if the agent receives an average reward over $950$ in the last $100$ Episodes. Inverted Double Pendulum is solved if the agent receives an average reward over $9100$ in the last $100$ frames.}
+\caption{Mean episodes to solve each task.
+Definition of solving each task can be found in appendix~\ref{experiment appendix}.}
 \label{tab:rl_results}
 \end{table}
 
@@ -903,6 +904,9 @@ We complete a grid search for both parameters in $\{0.01, 0.003, 0.001\}$ and pr
 ``Solving'' the tasks was defined by the creators of the OpenAI gym~\citep{1606.01540}.
 The Cart Pole task is considered solved if the agent receives an average reward greater than 195 over 100 consecutive episodes.
 The Lunar Lander task is considered solved if the agent receives an average reward greater than 200 over 100 consecutive episodes. 
+
+Inverted Pendulum is solved if the agent receives an average reward over $950$ in the last $100$ Episodes.
+Inverted Double Pendulum is solved if the agent receives an average reward over $9100$ in the last $100$ frames.
 
 The Cart Pole experiments were run for 250,000 frames.
 The Lunar Lander experiments were run for 5,000,000 frames. 
