@@ -331,8 +331,7 @@ The discrete version of the \LAX{} estimator is given by:
 \end{align}
 %
 This estimator is simple to implement and general.
-However, we expect this estimator to have high variance, since $c_\phi$ must both correlate with the discrete function $f$, whose gradients are zero w.r.t. its input, but also have a low-variance reparameterization gradient.
-Intuitively, these two requirements are in direct opposition.
+However, we expect this estimator to have high variance because the log-probability gradients in the control variate and the reinforce estimator are over different variables. The task of the control variate would be made much simpler if we could replace the $\PT \log p(z|\theta)$ in the control variate with $\PT \log p(b|\theta)$. This is the motivation behind our next estimator which we call RELAX.
 
 To construct a more powerful gradient estimator, we incorporate a further refinement due to~\cite{tucker2017rebar}.
 Specifically, we evaluate our control variate both at a relaxed input $z \sim p(z|\theta)$, and also at a relaxed input \emph{conditioned on the discrete variable $b$}, denoted $\tilde z \sim p(z|b, \theta)$. 
