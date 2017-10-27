@@ -244,13 +244,10 @@ Using the fact that the score-function estimator and reparameterization estimato
 %&= \E_{p(\epsilon)} \left[ \left[f(g_\theta(\epsilon)) - c_\phi(g_\theta(\epsilon))\right]\cdot\LP{b} + \PT r(g_\theta(\epsilon))\right]\nonumber
 %\end{align}
 %
-<<<<<<< HEAD
 %Which allows us to define our estimator below as: 
 %
 We can simply add the score-function estimator and subtract the reparameterization estimator, to produce a gradient estimator which we call LAX:
-=======
-We can simply add the score-function estimator and subtract the reparameterization estimator, to get:
->>>>>>> 82f924cccfae59e8d24d0fba04ea8cef2a0a75f4
+
 %
 \begin{align}
 \label{eq:cont_est}
@@ -536,7 +533,7 @@ Details of this derivation, as well as the discrete and conditionally reparamete
 \section{Scope and Limitations}
 \label{limitations}
 %\YW{For this section we can focus on comparisons to REBAR, because it is the most related one which might also raise most questions. We can briefly mention previous methods for doing discrete variables. We should also mention Q-prop.}
-The recently-developed REBAR method~\citep{tucker2017rebar} is the work most related to ours.
+The work most related to ours is the recently-developed REBAR method~\citep{tucker2017rebar}.
 REBAR estimates the gradient of expectations of functions of Bernoulli random variables.
 This method uses the REINFORCE estimator with a control variate.
 The control variate is derived from the original loss function evaluated at continuously-relaxed inputs~\citep{maddison2016concrete, jang2016categorical}.
@@ -547,9 +544,8 @@ The REBAR estimator can been seen as a special case of the RELAX estimator when 
 %The bias induced by the concrete relaxation can lead to convergence at unsuitable optima or no convergence at all.
 %REBAR alleviates these issues by using the relaxation as a control variate for the estimator instead of using it as the estimator itself.
 Unfortunately, REBAR and concrete require the function being optimized, whose input is only defined at discrete inputs, to also accept continuous inputs, be differentiable w.r.t. those inputs, and behave predictably with respect to those continuous inputs.
-While often true, these are strong assumptions to make.
-Furthermore, REBAR and concrete require that the function being optimized is known. 
-This makes REBAR and the concrete relaxation inapplicable for optimizing black-box functions, as in reinforcement learning settings where the reward is an unknown function of the environment.
+While sometimes true, these are strong assumptions to make.
+Furthermore, REBAR and concrete require that the function being optimized is known so they are inapplicable for optimizing black-box functions, as in reinforcement learning settings where the reward is an unknown function of the environment.
 
 In contrast, \LAX{} and \RELAX{} can be used in these settings.
 \LAX{} and \RELAX{} only require that we can query the function being optimized, and can sample from and differentiate $p(b|\theta)$.
@@ -614,7 +610,7 @@ We demonstrate the effectiveness of our estimator on a number of challenging opt
 \end{wrapfigure}
 We seek to minimize $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where {$p(b|\theta) = \textnormal{Bernoulli}(b|\theta)$}. \cite{tucker2017rebar} set the target $t = .45$.
 We focus on the more challenging case where $t = .499$.
-Figures~\ref{first figure}a and \ref{first figure}b and shows the relative performance and gradient variance of REINFORCE, REBAR, and RELAX.
+Figures~\ref{first figure}a and \ref{first figure}b and shows the relative performance and gradient log-variance of REINFORCE, REBAR, and RELAX.
 
 %With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the optimal solution $\theta = 0$.
 %The fixed concrete relaxation of REBAR is unable to produce a gradient whose signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE.
@@ -748,12 +744,17 @@ LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $
 \label{tab:rl_results}
 \end{table}
 
-\begin{figure}[h]
+\begin{figure}[!htb]
 \centering
-\includegraphics[width=.22\textwidth]{figures/cp_paper}
-\includegraphics[width=.22\textwidth]{figures/ll_paper}
-\includegraphics[width=.22\textwidth]{figures/Inverted_Pendulum_1mil}
-\includegraphics[width=.22\textwidth]{figures/Inverted_Double_Pendulum_10mil}
+\hspace*{-.3in}
+\begin{tabular}{cccc}
+\setlength{\tabcolsep}{10pt}
+\renewcommand{\arraystretch}{0}
+\includegraphics[width=.25\linewidth]{figures/cp_paper_test} & 
+\includegraphics[width=.25\linewidth]{figures/ll_paper_test} &
+\includegraphics[width=.25\linewidth]{figures/cp_paper_test} & 
+\includegraphics[width=.25\linewidth]{figures/cp_paper_test}\\
+ \end{tabular}
 \caption{RL Experiments. Left to right: Cart Pole, Lunar Lander, Inverted Pendulum, Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles. Our model is in orange and the baseline is in blue.}
 \label{fig:rl_results}
 \end{figure}
@@ -768,20 +769,10 @@ LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $
 \label{fig:rl_var}
 \end{figure}
 
-%\begin{figure}[h]
-%	\centering
-%	\includegraphics[width=.4\textwidth]{figures/Inverted_Pendulum_A2C}
-%	\includegraphics[width=.4\textwidth]{figures/Inverted_Double_Pendulum_A2C}
-%	\caption{Continuous RL Experiments. \emph{Left:} Inverted Pendulum. \emph{Right:} Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles.}
-%	\label{fig:cont_rl}
-%\end{figure}
-% should i cut off the figure when relax stops training for the inverted double pendulum???
-
-
 \section{Conclusions and future work}
 \label{conclusion}
 
-In this work, synthesized and generalized many of the standard approaches for constructing gradient estimators.
+In this work we synthesized and generalized many of the standard approaches for constructing gradient estimators.
 We proposed a simple and generic gradient estimator that can be applied to expectations of known or black-box functions of discrete or continuous random variables. We also derive a simple extension to apply our method to reinforcement learning in both discrete and continuous action domains. 
 This approach is relatively simple to implement and adds minimal computational overhead. 
 
@@ -792,7 +783,6 @@ The central result of this paper is that learning the function in the control va
 The scope and generality of our estimator opens up many new possibilities for models which can now be trained via gradient decent. For example, we could apply our estimator to train a VAE with continuous latent variables who's generative model is non-differentiable (a rendering engine perhaps). We also feel that there is much room to explore model design choices for the control variate and develop a greater understand the properties of the optimal control variate. 
 
 We believe our results in reinforcement learning are quite promising and should motivate further research into using action-dependent control-variates for policy-gradient methods. We are interested in combining our approach with other popular variance reduction techniques such as generalized advantage estimation \cite{kimura2000analysis}. We are also interested in ways to train our control variate off-policy as in $Q$-prop~\cite{gu2016q}. We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail than we do now. 
-Other possible applications:
 
 %\section*{Acknowledgements}  % Uncomment for arxiv
 %We thank Tian Qi Chen for helpful discussions.
