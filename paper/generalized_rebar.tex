@@ -264,7 +264,7 @@ g_\textnormal{REINFORCE}[f] - g_\textnormal{REINFORCE}[c_\phi] + g_\textnormal{r
 &= \left[ f(b) -c_\phi(b) \right] \PT \log p(b|\theta) + \PT c_\phi(b) \qquad b = T(\theta, \epsilon), \epsilon \sim p(\epsilon).
 \end{align}
 %
-This estimator is unbiased for any choice of $c_\phi$ and when $c_\phi = f$, our estimator becomes the reparameterization estimator for $c_\phi$.
+This estimator is unbiased for any choice of $c_\phi$ and when $c_\phi = f$, our estimator becomes the reparameterization estimator for $f$.
 Thus our estimator can have variance at least as low as the reparameterization estimator. 
 
 
