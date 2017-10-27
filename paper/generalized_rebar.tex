@@ -262,7 +262,7 @@ We can simply add the score-function estimator and subtract the reparameterizati
 \hat g_\LAX = \left[ f(b) -c_\phi(b) \right] \PT \log p(b|\theta) + \PT c_\phi(b) \qquad b = T(\theta, \epsilon), \epsilon \sim p(\epsilon).
 \end{align}
 %
-This estimator is unbiased for any choice of $c_\phi$.
+This estimator is unbiased for any choice of $c_\phi$ and when $c_\phi = f$, our estimator becomes the reparameterization estimator for $c_\phi$. Thus our estimator can have variance at least as low as the reparameterization estimator. 
 
 
 \subsection{Optimizing the gradient control variate with gradients}
@@ -331,7 +331,7 @@ The discrete version of the \LAX{} estimator is given by:
 \end{align}
 %
 This estimator is simple to implement and general.
-However, we expect this estimator to have high variance because the log-probability gradients in the control variate and the reinforce estimator are over different variables. The task of the control variate would be made much simpler if we could replace the $\PT \log p(z|\theta)$ in the control variate with $\PT \log p(b|\theta)$. This is the motivation behind our next estimator which we call RELAX.
+However, when $f = c_\phi$ we do not recover the reparameterization estimator as we do with LAX. To achieve this, we must be able  to replace the $\PT \log p(z|\theta)$ in the control variate with $\PT \log p(b|\theta)$. This is the motivation behind our next estimator which we call RELAX.
 
 To construct a more powerful gradient estimator, we incorporate a further refinement due to~\cite{tucker2017rebar}.
 Specifically, we evaluate our control variate both at a relaxed input $z \sim p(z|\theta)$, and also at a relaxed input \emph{conditioned on the discrete variable $b$}, denoted $\tilde z \sim p(z|b, \theta)$. 
