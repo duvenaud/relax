@@ -181,7 +181,7 @@ When $f$ is continuous and differentiable, and the latent variables $b$ can be w
 \qquad \epsilon \sim p(\epsilon) 
 \end{align}
 %
-This gradient estimator is often used when training high-dimensional, continuous latent-variable models, such as variational autoencoders or GANs.
+This gradient estimator is often used when training high-dimensional, continuous latent-variable models, such as variational autoencoders or GANs \citep{goodfellow2014generative}.
 One intuition for why this gradient estimator is preferable to REINFORCE is that it depends on $\frac{\partial f}{\partial b}$, which exposes the dependence of $f$ on $b$.
 % NOTE for revision: last sentence is confusing. What is the advantage of exposing the dependence of f on b for a gradient estimator?
 
@@ -233,7 +233,7 @@ In this section, we introduce a gradient estimator for the expectation of a func
 %This situation arises in reinforcement learning, trainin
 %This allows the estimator to be applied to a wide range of applications with little or no modification.
 Our estimator combines the score function estimator, the reparameterization trick, and control variates.
-We obtain an unbiased estimator whose variance can potentially be almost as low as the reparameterization-trick estimator, even when $f$ is not differentiable or not computable.
+We obtain an unbiased estimator whose variance can potentially be as low as the reparameterization-trick estimator, even when $f$ is not differentiable or not computable.
 
 First, we consider the case where $b$ is continuous, but that $f$ cannot be differentiated.
 We begin with the score-function gradient estimator:
@@ -298,7 +298,7 @@ What is the form of the variance-minimizing $c_\phi$?
 Inspecting the square of \eqref{eq:cont_est}, we can see that this loss encourages $c_\phi(b)$ to approximate $f(b)$, but with a weighting based on $\PT\log p(b)$.  % Todo: reword this awkward sentence.
 Moreover, as $c_\phi \rightarrow f$ then $\hat g_\textnormal{\LAX} \rightarrow \PT c_\phi$.
 Thus, this objective encourages a balance between the variance of the reparameterization estimator and the variance of the REINFORCE estimator.
-Figure~\ref{learned-relaxations} shows the optimal surrogate on a toy problem.
+Figure~\ref{learned-relaxations} shows the learned surrogate on a toy problem.
 
 
 \begin{algorithm}[h]
@@ -379,7 +379,7 @@ The \emph{de facto} standard approach is the advantage actor-critic estimator (A
 %
 %
 \begin{align}
-\hat g_{\textnormal{A2C}} = \sum_{t=1}^{\infty} \LL{t} \left[ \sum_{t'=t}^{\infty} r_{t'} - c_\phi(s_t) \right]+\frac{\partial}{\partial\theta} c_\phi(s_t), \qquad a_t \sim \pi(a_t | s_t, \theta)
+\hat g_{\textnormal{A2C}} = \sum_{t=1}^{\infty} \LL{t} \left[ \sum_{t'=t}^{\infty} r_{t'} - c_\phi(s_t) \right], \qquad a_t \sim \pi(a_t | s_t, \theta)
 \label{eq:rl_a2c}
 \end{align}
 %
@@ -412,7 +412,7 @@ Details of this derivation, as well as the discrete and conditionally reparamete
 \section{Scope and Limitations}
 \label{limitations}
 The work most related to ours is the recently-developed REBAR method~\citep{tucker2017rebar}, which inspired our work.
-The REBAR estimator is a special case of the \RELAX{} estimator, when the surrogate is set to ${c_\phi(z) = \eta f(\texttt{softmax}_\lambda(z))}$.
+The REBAR estimator is a special case of the \RELAX{} estimator, when the surrogate is set to ${c_\phi(z) = \eta \cdot f(\texttt{softmax}_\lambda(z))}$.
 The only free parameters of the REBAR estimator are the scaling factor $\eta$, and the temperature $\lambda$, which gives limited scope to optimize the surrogate.
 REBAR can only be applied when $f$ is known and differentiable.
 Furthermore, it depends on essentially undefined behavior of the function being optimized, since it evaluates the discrete loss function at continuous inputs.
@@ -427,7 +427,7 @@ Thus, \RELAX{} is most suitable for problems where one is already optimizing a d
 
 \paragraph{Direct dependence on parameters}
 Above, we assumed that the function $f$ being optimized does not depend directly on $\theta$, which is usually the case in black-box optimization settings.
-However, a dependence on $\theta$ can when training probabilisitic models, or when we add a regularizer to a black-box optimization problem.
+However, a dependence on $\theta$ can occur when training probabilistic models, or when we add a regularizer to a black-box optimization problem.
 In both these settings, if the dependence on $\theta$ is known and differentiable, we can use the fact that
 %
 \begin{align}
@@ -503,7 +503,7 @@ Figures~\ref{first figure}a and \ref{first figure}b and shows the relative perfo
 %With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the optimal solution $\theta = 0$.
 %The fixed concrete relaxation of REBAR is unable to produce a gradient whose signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE.
 
-Figure~\ref{learned-relaxations} plots the learned surrogate $c_\phi$ for a fixed value of $\theta$. We can see that $c_\phi$ is near $f$ for all $z$, keeping the variance of the REINFORCE part of the estimator small. Moreover the derivative of $c_\phi$ is positive for all $z$ meaning that the reparameterization part of the estimator will produce gradients pointing in the correct direction to optimize the expectation. Conversely, the concrete relaxation of REBAR is close to $f$ only near $0$ and $1$ and its gradient points in the correct direction only for values of $z > t$. These factors together result in the RELAX estimator achieving the best performance. 
+Figure~\ref{learned-relaxations} plots the learned surrogate $c_\phi$ for a fixed value of $\theta$. We can see that $c_\phi$ is near $f$ for all $z$, keeping the variance of the REINFORCE part of the estimator small. Moreover the derivative of $c_\phi$ is positive for all $z$ meaning that the reparameterization part of the estimator will produce gradients pointing in the correct direction to optimize the expectation. Conversely, the concrete relaxation of REBAR is close to $f$ only near $0$ and $1$ and its gradient points in the correct direction only for values of $z > \log (\frac{1-t}{t})$. These factors together result in the RELAX estimator achieving the best performance. 
 
 \subsection{Discrete variational autoencoder}
 Next, we evaluate the \RELAX{} estimator on the task of training a variational autoencoder~\citep{kingma2013autoencoding, rezende2014stochastic} with Bernoulli latent variables.
@@ -544,7 +544,7 @@ Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule
 %To provide a fair comparison, we re-implemented REBAR in this way (denoted REBAR-ours in table~\ref{tab:vae}).
 %We believe this explains the large difference in performance between our implementation and that of \citep{tucker2017rebar} for the nonlinear models since there are 3 layers of parameters that all share the same gradient estimator.
 %In the linear models, each layer has its own gradient estimator making our implementation closer to that of \citep{tucker2017rebar}.
-To obtain training curves we created our own implementation of REBAR, which gave identical or improved performance to compared the implementation of \citet{tucker2017rebar}.
+To obtain training curves we created our own implementation of REBAR, which gave identical or slightly improved performance compared to the implementation of \citet{tucker2017rebar}.
 
 While we obtained a modest improvement in training and validation scores (tables~\ref{tab:vae tr} and \ref{tab:vae val}), the most notable improvement provided by \RELAX{} is in its rate of convergence.
 Training curves for all models can be seen in figure~\ref{fig:vae curves}.
@@ -638,7 +638,7 @@ Definition of solving each task can be found in appendix~\ref{experiment appendi
 \includegraphics[width=.31\linewidth]{figures/ip_paper_var} & 
 \includegraphics[width=.29\linewidth]{figures/idp_paper_var}\\
  \end{tabular}
-\caption{Variance of policy gradients (log scale). In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate 1 standard deviation. After every 10th training episode 100 episodes were run and the sample log-variance is reported averaged over all policy parameters}
+\caption{Variance of policy gradients (log scale) over 5 random seeds. The opaque bars indicate 1 standard deviation. After every 10th training episode 100 episodes were run and the sample log-variance is reported averaged over all policy parameters}
 \label{fig:rl_var}
 \end{figure}
 
@@ -704,7 +704,7 @@ We also feel that the relationship between our learned control variate and the a
 \section{The RELAX Algorithm}
 \label{relax proof}
 
-We prove that, following~\cite{tucker2017rebar}:
+We prove that $\hat g_\textnormal{RELAX}$ is unbiased. Following~\cite{tucker2017rebar}:
 %
 \begin{align}
 \E \left[ \hat g_\textnormal{RELAX} \right] = \\
@@ -915,30 +915,27 @@ We complete a grid search for both parameters in $\{0.01, 0.003, 0.001\}$ and pr
 The Cart Pole task is considered solved if the agent receives an average reward greater than 195 over 100 consecutive episodes.
 The Lunar Lander task is considered solved if the agent receives an average reward greater than 200 over 100 consecutive episodes. 
 
-Inverted Pendulum is solved if the agent receives an average reward over $950$ in the last $100$ Episodes.
-Inverted Double Pendulum is solved if the agent receives an average reward over $9100$ in the last $100$ frames.
-
 The Cart Pole experiments were run for 250,000 frames.
 The Lunar Lander experiments were run for 5,000,000 frames. 
 
 \subsection{Continuous RL}
-The continuous tasks uses both the value function and the control variate to enable bootstrapping, which is needed due to the increased complexity of the problem. Our model architecture is based on OpenAI baseline \citep{baselines}.
+The continuous tasks uses both the value function and the control variate to enable bootstrapping, which is needed due to the increased complexity of the problem.
 The three models- policy, value, and control variate, are 2 layer neural networks with 64 hidden units per layer.
 The value and control variate networks are identical, with the ELU\citep{Clevert2016ELUs} nonlinearity in each hidden layer.
 The policy network has \texttt{tanh} nonlinearity.
-The policy network, which parameterizes the gaussian policy comprises of a network (with the architecture mentioned above) that outputs the mean, and a separate, trainable log standard deviation value that is not input dependent.
+The policy network, which parameterizes the Gaussian policy comprises of a network (with the architecture mentioned above) that outputs the mean, and a separate, trainable log standard deviation value that is not input dependent.
 All three networks have a linear output layer.
 We selected the batch size to be 2500, meaning for a fixed timestep (2500) we collect multiple rollouts of a task and update the networks' parameters with the batch of episodes.
 Per one policy update, we optimize both the value and control variate network multiple times.
 The number of times we train  the value network is fixed to 25, while for the control variate, it was chosen to be a hyperparameter. 
 %need to add information on whether we build on top of reinforce, or a2c or a2c+GAE
-All models were trained, each with a separate ADAM~\citep{kingma2015adam} otpimizer, with $\beta_1=0.9$, $\beta_2=0.999$, and $\epsilon=1e-08$. 
+All models were trained using ADAM~\citep{kingma2015adam}, with $\beta_1=0.9$, $\beta_2=0.999$, and $\epsilon=1e-08$. 
 
 The baseline A2C case has 2 hyperparameters to tune: the learning rate for the optimizer for the policy and value network.
 A grid search was done over the set: $\{0.03, 0.003, 0.003\}$.
 \RELAX{} has 4 hyperparameters to tune: 3 learning rates for the optimizer per network, and the number of training iterations of the control variate per policy gradient update.
 Due to the large number of hyperparameters, we restricted the size of the grid search set to $\{0.003, 0.0003\}$ for the learning rates, and $\{10, 25, 50\}$ for the control variate training iteration number.
-We picked the hyperparameter setting that yielded the shortest episode-to-completion time.
+We chose the hyperparameter setting that yielded the shortest episode-to-completion time averaged over 5 random seeds.
 As with the discrete case, we used the definition of completion defined by OpenAI gym~\citep{1606.01540} for each task. 
 
 The Inverted Pendulum experiments were run for 1,000,000 frames.
