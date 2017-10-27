@@ -546,25 +546,27 @@ Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule
 To obtain training curves we created our own implementation of REBAR, which gave identical or slightly improved performance compared to the implementation of \citet{tucker2017rebar}.
 
 While we obtained a modest improvement in training and validation scores (tables~\ref{tab:vae tr} and \ref{tab:vae val}), the most notable improvement provided by \RELAX{} is in its rate of convergence.
-Training curves for all models can be seen in figure~\ref{fig:vae curves} and in appendix~\ref{extra vae results}.
+Training curves for the linear models can be seen in figure~\ref{fig:vae_curves} and in appendix~\ref{extra vae results}.
 In table~\ref{tab:vae epochs} we compare the number of training epochs that are required to match the best validation score of REBAR.
 In all experiments, RELAX provides an increase in rate of convergence. 
 
 \begin{figure}
 \centering
-%\hspace*{-1.1in}
+\hspace*{-.5in}
 \setlength{\tabcolsep}{10pt}
 \renewcommand{\arraystretch}{0}
-\begin{tabular}{cccc}
-\includegraphics[width=.31\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/MNIST_L1} &
+\begin{tabular}{ccc}
+&MNIST & Omniglot \\
+\rotatebox{90}{\qquad \qquad \qquad \small -ELBO} & 
+\includegraphics[width=.33\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/MNIST_L1} &
 %\includegraphics[width=.31\textwidth, clip, trim=3mm 3mm 3mm 3mm]{figures/MNIST_L2} &
-\includegraphics[width=.33\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/OMNIGLOT_L1}
+\includegraphics[width=.35\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/OMNIGLOT_L1}
 %\includegraphics[width=.31\textwidth, clip, trim=3mm 3mm 3mm 3mm]{figures/OMNIGLOT_L2}\\
 \end{tabular}
-\caption{Training curves for the one-layer VAE Experiments.
+\caption{Training curves for the one-layer VAE Experiments with the 1 layer linear model.
 %L1 represents the 1 layer linear model and L2 represents the 2 layer linear model.
 The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
-\label{fig:vae curves}
+\label{fig:vae_curves}
 \end{figure}
 
 %\begin{figure}[h]
@@ -613,20 +615,20 @@ Definition of solving each task can be found in appendix~\ref{experiment appendi
 \label{tab:rl_results}
 \end{table}
 
-\newcommand{\rlfig}[1]{{\includegraphics[height=0.25\linewidth, clip, trim=3mm 3mm 3mm 3mm]{#1}}}
+\newcommand{\rlfig}[1]{{\includegraphics[height=0.24\linewidth, clip, trim=3mm 3mm 3mm 3mm]{#1}}}
 
 \begin{figure}
 \centering
-%\hspace*{-1.2in}
+\hspace*{-.1in}
 \setlength{\tabcolsep}{0pt}
-\begin{tabular}{cccc}
+\begin{tabular}{ccccc}
 %\renewcommand{\arraystretch}{0}
-Cart-pole & Lunar lander & Inverted pendulum & Inverted double pendulum\\
-\rlfig{figures/cp_paper} & 
+& Cart-pole & Lunar lander & Inverted pendulum & Inverted double pendulum\\
+\rotatebox{90}{\qquad \qquad \small Reward} & \rlfig{figures/cp_paper} & 
 \rlfig{figures/ll_paper} &
 \rlfig{figures/ip_paper} & 
 \rlfig{figures/idp_paper}\\
-\rlfig{figures/cp_paper_var} & 
+\rotatebox{90}{\qquad \qquad \small Log-Variance} & \rlfig{figures/cp_paper_var} & 
 \rlfig{figures/ll_paper_var} &
 \rlfig{figures/ip_paper_var} & 
 \rlfig{figures/idp_paper_var}
@@ -867,21 +869,23 @@ Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:r
 \label{tab:vae epochs}
 \end{table}
 
-\begin{figure}[h]
+\begin{figure}
 \centering
-\hspace*{-1.1in}
-\begin{tabular}{cccc}
+\hspace*{-.5in}
 \setlength{\tabcolsep}{10pt}
 \renewcommand{\arraystretch}{0}
-%\includegraphics[width=.31\textwidth]{figures/MNIST_L1} &
-\includegraphics[width=.31\textwidth]{figures/MNIST_L2} &
-%\includegraphics[width=.33\textwidth]{figures/OMNIGLOT_L1} &
-\includegraphics[width=.31\textwidth]{figures/OMNIGLOT_L2}
+\begin{tabular}{ccc}
+& MNIST & Omniglot \\
+\rotatebox{90}{\qquad \qquad \qquad \small -ELBO} & 
+%\includegraphics[width=.33\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/MNIST_L1} &
+\includegraphics[width=.31\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/MNIST_L2} &
+%\includegraphics[width=.35\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/OMNIGLOT_L1}
+\includegraphics[width=.31\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/OMNIGLOT_L2}\\
 \end{tabular}
-\caption{Training curves for VAE Experiments.
-L1 represents the 1 layer linear model and L2 represents the 2 layer linear model.
+\caption{Training curves for the VAE Experiments with the 2 layer linear model.
+%L1 represents the 1 layer linear model and L2 represents the 2 layer linear model.
 The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
-\label{fig:vae curves 2}
+\label{fig:vae curves2}
 \end{figure}
 
 
