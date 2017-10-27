@@ -496,7 +496,7 @@ We demonstrate the effectiveness of our estimator on a number of challenging opt
 We seek to minimize $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where {$p(b|\theta) = \textnormal{Bernoulli}(b|\theta)$}.
 \citet{tucker2017rebar} set the target $t = .45$.
 We focus on the more challenging case where $t = .499$.
-Figures~\ref{first figure}a and \ref{first figure}b and shows the relative performance and gradient variance of REINFORCE, REBAR, and RELAX.
+Figures~\ref{first figure}a and \ref{first figure}b and shows the relative performance and gradient log-variance of REINFORCE, REBAR, and RELAX.
 
 %With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the optimal solution $\theta = 0$.
 %The fixed concrete relaxation of REBAR is unable to produce a gradient whose signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE.
@@ -626,12 +626,17 @@ LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $
 \label{tab:rl_results}
 \end{table}
 
-\begin{figure}[h]
+\begin{figure}[!htb]
 \centering
-\includegraphics[width=.22\textwidth]{figures/cp_paper}
-\includegraphics[width=.22\textwidth]{figures/ll_paper}
-\includegraphics[width=.22\textwidth]{figures/Inverted_Pendulum_1mil}
-\includegraphics[width=.22\textwidth]{figures/Inverted_Double_Pendulum_10mil}
+\hspace*{-.3in}
+\begin{tabular}{cccc}
+\setlength{\tabcolsep}{10pt}
+\renewcommand{\arraystretch}{0}
+\includegraphics[width=.25\linewidth]{figures/cp_paper_test} & 
+\includegraphics[width=.25\linewidth]{figures/ll_paper_test} &
+\includegraphics[width=.25\linewidth]{figures/cp_paper_test} & 
+\includegraphics[width=.25\linewidth]{figures/cp_paper_test}\\
+ \end{tabular}
 \caption{RL Experiments. Left to right: Cart Pole, Lunar Lander, Inverted Pendulum, Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles. Our model is in orange and the baseline is in blue.}
 \label{fig:rl_results}
 \end{figure}
@@ -646,20 +651,10 @@ LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $
 \label{fig:rl_var}
 \end{figure}
 
-%\begin{figure}[h]
-%	\centering
-%	\includegraphics[width=.4\textwidth]{figures/Inverted_Pendulum_A2C}
-%	\includegraphics[width=.4\textwidth]{figures/Inverted_Double_Pendulum_A2C}
-%	\caption{Continuous RL Experiments. \emph{Left:} Inverted Pendulum. \emph{Right:} Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles.}
-%	\label{fig:cont_rl}
-%\end{figure}
-% should i cut off the figure when relax stops training for the inverted double pendulum???
-
-
 \section{Conclusions and future work}
 \label{conclusion}
 
-In this work, synthesized and generalized many of the standard approaches for constructing gradient estimators.
+In this work we synthesized and generalized many of the standard approaches for constructing gradient estimators.
 We proposed a simple and generic gradient estimator that can be applied to expectations of known or black-box functions of discrete or continuous random variables. We also derive a simple extension to apply our method to reinforcement learning in both discrete and continuous action domains. 
 This approach is relatively simple to implement and adds minimal computational overhead. 
 
@@ -675,7 +670,6 @@ We believe our results in reinforcement learning are quite promising and should 
 We are interested in combining our approach with other popular variance reduction techniques such as generalized advantage estimation~\citep{kimura2000analysis}.
 We are also interested in ways to train our control variate off-policy as in $Q$-prop~\citep{gu2016q}.
 We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail than we do now. 
-Other possible applications:
 
 %\section*{Acknowledgements}  % Uncomment for arxiv
 %We thank Tian Qi Chen, Elliot Creager, and Dougal Maclaurin for helpful discussions.
