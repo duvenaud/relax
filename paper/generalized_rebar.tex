@@ -546,22 +546,24 @@ Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule
 To obtain training curves we created our own implementation of REBAR, which gave identical or slightly improved performance compared to the implementation of \citet{tucker2017rebar}.
 
 While we obtained a modest improvement in training and validation scores (tables~\ref{tab:vae tr} and \ref{tab:vae val}), the most notable improvement provided by \RELAX{} is in its rate of convergence.
-Training curves for all models can be seen in figure~\ref{fig:vae curves}.
+Training curves for all models can be seen in figure~\ref{fig:vae curves} and in appendix~\ref{extra vae results}.
 In table~\ref{tab:vae epochs} we compare the number of training epochs that are required to match the best validation score of REBAR.
 In all experiments, RELAX provides an increase in rate of convergence. 
 
 \begin{figure}[h]
 \centering
-\hspace*{-1.1in}
+%\hspace*{-1.1in}
 \begin{tabular}{cccc}
 \setlength{\tabcolsep}{10pt}
 \renewcommand{\arraystretch}{0}
 \includegraphics[width=.31\textwidth]{figures/MNIST_L1} &
-\includegraphics[width=.31\textwidth]{figures/MNIST_L2} &
-\includegraphics[width=.33\textwidth]{figures/OMNIGLOT_L1} &
-\includegraphics[width=.31\textwidth]{figures/OMNIGLOT_L2}\\
+%\includegraphics[width=.31\textwidth]{figures/MNIST_L2} &
+\includegraphics[width=.33\textwidth]{figures/OMNIGLOT_L1}
+%\includegraphics[width=.31\textwidth]{figures/OMNIGLOT_L2}\\
  \end{tabular}
-\caption{Training curves for VAE Experiments. L1 represents the 1 layer linear model and L2 represents the 2 layer linear model. The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
+\caption{Training curves for the one-layer VAE Experiments.
+%L1 represents the 1 layer linear model and L2 represents the 2 layer linear model.
+The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
 \label{fig:vae curves}
 \end{figure}
 
@@ -611,35 +613,34 @@ Definition of solving each task can be found in appendix~\ref{experiment appendi
 \label{tab:rl_results}
 \end{table}
 
+\newcommand{\rlfig}[1]{{\includegraphics[width=0.25\linewidth, clip, trim=3mm 3mm 3mm 3mm]{#1}}}
+
 \begin{figure}[!htb]
 \centering
-\hspace*{-1.2in}
+%\hspace*{-1.2in}
+\setlength{\tabcolsep}{0pt}
 \begin{tabular}{cccc}
-\setlength{\tabcolsep}{10pt}
-\renewcommand{\arraystretch}{0}
-\includegraphics[width=.32\linewidth]{figures/cp_paper} & 
-\includegraphics[width=.31\linewidth]{figures/ll_paper} &
-\includegraphics[width=.33\linewidth]{figures/ip_paper} & 
-\includegraphics[width=.31\linewidth]{figures/idp_paper}\\
- \end{tabular}
-\caption{RL Experiments. Left to right: Cart Pole, Lunar Lander, Inverted Pendulum, Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles.}
+%\renewcommand{\arraystretch}{0}
+Cart-pole & Lunar lander & Inverted pendulum & Inverted double pendulum \\
+\rlfig{figures/cp_paper} & 
+\rlfig{figures/ll_paper} &
+\rlfig{figures/ip_paper} & 
+\rlfig{figures/idp_paper}\\
+\rlfig{figures/cp_paper_var} & 
+\rlfig{figures/ll_paper_var} &
+\rlfig{figures/ip_paper_var} & 
+\rlfig{figures/idp_paper_var}
+\end{tabular}
+\caption{\emph{Top row:} Reward curves.
+\emph{Bottom row:} Variance of policy gradients (log scale).
+In each curve, the center line indicates the mean reward over 5 random seeds.
+The opaque bars in the top row indicate the 25th and 75th percentiles.
+The opaque bars in the bottom row indicate 1 standard deviation.
+After every 10th training episode 100 episodes were run and the sample log-variance is reported averaged over all policy parameters.}
 \label{fig:rl_results}
 \end{figure}
 
-\begin{figure}[h]
-\centering
-\hspace*{-1.0in}
-\begin{tabular}{cccc}
-\setlength{\tabcolsep}{10pt}
-\renewcommand{\arraystretch}{0}
-\includegraphics[width=.31\linewidth]{figures/cp_paper_var} & 
-\includegraphics[width=.31\linewidth]{figures/ll_paper_var} &
-\includegraphics[width=.31\linewidth]{figures/ip_paper_var} & 
-\includegraphics[width=.29\linewidth]{figures/idp_paper_var}\\
- \end{tabular}
-\caption{Variance of policy gradients (log scale) over 5 random seeds. The opaque bars indicate 1 standard deviation. After every 10th training episode 100 episodes were run and the sample log-variance is reported averaged over all policy parameters}
-\label{fig:rl_var}
-\end{figure}
+
 
 
 \section{Conclusions and future work}
@@ -865,6 +866,23 @@ Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:r
 \caption{Epochs needed to achieve REBAR's best validation score.}
 \label{tab:vae epochs}
 \end{table}
+
+\begin{figure}[h]
+\centering
+\hspace*{-1.1in}
+\begin{tabular}{cccc}
+\setlength{\tabcolsep}{10pt}
+\renewcommand{\arraystretch}{0}
+%\includegraphics[width=.31\textwidth]{figures/MNIST_L1} &
+\includegraphics[width=.31\textwidth]{figures/MNIST_L2} &
+%\includegraphics[width=.33\textwidth]{figures/OMNIGLOT_L1} &
+\includegraphics[width=.31\textwidth]{figures/OMNIGLOT_L2}
+\end{tabular}
+\caption{Training curves for VAE Experiments.
+L1 represents the 1 layer linear model and L2 represents the 2 layer linear model.
+The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
+\label{fig:vae curves 2}
+\end{figure}
 
 
 \section{Experimental Details}
