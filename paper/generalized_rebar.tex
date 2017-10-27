@@ -632,10 +632,10 @@ LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $
 \begin{tabular}{cccc}
 \setlength{\tabcolsep}{10pt}
 \renewcommand{\arraystretch}{0}
-\includegraphics[width=.25\linewidth]{figures/cp_paper_test} & 
-\includegraphics[width=.25\linewidth]{figures/ll_paper_test} &
-\includegraphics[width=.25\linewidth]{figures/cp_paper_test} & 
-\includegraphics[width=.25\linewidth]{figures/cp_paper_test}\\
+\includegraphics[width=.25\linewidth]{figures/cp_paper} & 
+\includegraphics[width=.25\linewidth]{figures/ll_paper} &
+\includegraphics[width=.25\linewidth]{figures/ll_paper} & 
+\includegraphics[width=.25\linewidth]{figures/ll_paper}\\
  \end{tabular}
 \caption{RL Experiments. Left to right: Cart Pole, Lunar Lander, Inverted Pendulum, Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles. Our model is in orange and the baseline is in blue.}
 \label{fig:rl_results}
@@ -651,9 +651,9 @@ LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $
 \label{fig:rl_var}
 \end{figure}
 
+
 \section{Conclusions and future work}
 \label{conclusion}
-
 In this work we synthesized and generalized many of the standard approaches for constructing gradient estimators.
 We proposed a simple and generic gradient estimator that can be applied to expectations of known or black-box functions of discrete or continuous random variables. We also derive a simple extension to apply our method to reinforcement learning in both discrete and continuous action domains. 
 This approach is relatively simple to implement and adds minimal computational overhead. 
@@ -669,14 +669,13 @@ We also feel that there is much room to explore model design choices for the con
 We believe our results in reinforcement learning are quite promising and should motivate further research into using action-dependent control-variates for policy-gradient methods.
 We are interested in combining our approach with other popular variance reduction techniques such as generalized advantage estimation~\citep{kimura2000analysis}.
 We are also interested in ways to train our control variate off-policy as in $Q$-prop~\citep{gu2016q}.
-We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail than we do now. 
+We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail than we do now.
 
 %\section*{Acknowledgements}  % Uncomment for arxiv
 %We thank Tian Qi Chen, Elliot Creager, and Dougal Maclaurin for helpful discussions.
 
 \bibliography{bibliography}
 \bibliographystyle{iclr2018_conference}
-
 
 
 
