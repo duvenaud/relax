@@ -88,7 +88,7 @@ Optimizing control variates for \\ black-box gradient estimation}
 \begin{abstract}
 Gradient-based optimization is the foundation of deep learning and reinforcement learning.
 Even when the mechanism being optimized is unknown or not differentiable, optimization using high-variance or biased gradient estimates is still often the best strategy.
-We introduce a general framework for learning low-variance, unbiased gradient estimators for black-box functions of random variables.
+We introduce a general framework for learning low-variance, unbiased gradient estimators for black-box functions of random variables, based on gradients of a learned function.
 These estimators can be jointly trained with model parameters or policies, and are applicable in both discrete and continuous settings.
 We give unbiased, adaptive analogs of state-of-the-art reinforcement learning methods such as advantage actor-critic.
 We also demonstrate this framework for training discrete latent-variable models.
@@ -152,14 +152,11 @@ In this paper, we'll consider the general problem of optimizing
 \begin{align}
 \mathcal{L}(\theta)=\expectedLoss{}.
 \end{align}
-%
-%Later, we will discuss the case when $\loss{}$ depends directly on $\theta$.
 
 When the parameters $\theta$ are high-dimensional, gradient-based optimization is appealing because it provides information about how to adjust each parameter individually.
-Stochastic optimization is essential for scalablility, but is only guaranteed to converge to a fixed point of the original objective when the stochastic gradients $\hat g$ are unbiased, i.e. ${\mathbb{E} \left[ \hat g \right] = \PT \mathbb{E}_{p(b|\theta)} \left[ f(b) \right]}$~\citep{robbins1951stochastic}.
+Stochastic optimization is essential for scalablility.
+However, it is only guaranteed to converge to a fixed point of the objective when the stochastic gradients $\hat g$ are unbiased, i.e. ${\mathbb{E} \left[ \hat g \right] = \PT \mathbb{E}_{p(b|\theta)} \left[ f(b) \right]}$~\citep{robbins1951stochastic}.
 
-%Below we review past work in gradient estimation.
-%There are a few general strategies for constructing unbiased gradient estimators:
 How can we build unbiased, stochastic estimators of $\PT \mathcal{L}(\theta)$?
 There are several standard methods:
 
@@ -188,9 +185,27 @@ This gradient estimator is often used when training high-dimensional, continuous
 One intuition for why this gradient estimator is preferable to REINFORCE is that it depends on $\frac{\partial f}{\partial b}$, which exposes the dependence of $f$ on $b$.
 % NOTE for revision: last sentence is confusing. What is the advantage of exposing the dependence of f on b for a gradient estimator?
 
+%The reparameterization trick, while useful, is only applicable when $f$ is a known, differentiable function of a continuous random variable.
+%\paragraph{Concrete relaxation}
+%For functions of discrete variables, gradient estimators based on continuous relaxations such as the concrete, or Gumbel-softmax relaxations~\citep{maddison2016concrete, jang2016categorical} are applicable only when $f$ is known.
+%Moreover, they require that $f$ be computable at and behave predictably at inputs outside of the domain of the function.
+%These assumptions greatly restrict the space of functions for which we can apply these methods. 
+
+%\paragraph{Concrete relaxation}
+%When $b$ is discrete and $f$ is known and differentiable, one can obtain biased but low-variance gradients using a continuous relaxation of the discrete random variable $b$.
+%For example, if $b$ is a categorical random variable with parameters $\theta$,% and  developed a differentiable relaxation of the categorical distribution, called the concrete distribution:
+%
+%\begin{align}
+%\hat g_\textnormal{concrete} = \PT f \left( \texttt{softmax}_\lambda ( \log \theta - \log(-\log \vu)) \right), \qquad \vu \sim \textnormal{uniform}[0, 1] 
+%\end{align}
+%
+%where $\sigma_\lambda$ is the \texttt{softmax} function with temperature $\lambda$.
+%This is called the Gumbel-softmax trick~\citep{jang2016categorical}, or the concrete distribution~\citep{maddison2016concrete}
+
+
 \paragraph{Control variates}
 Control variates are a general method for reducing the variance of a Monte Carlo estimator.
-Given an estimator $\hat g(b)$, a control variate is a function $\controlf(b)$ with a known mean $\mathbb{E}_{p(b)} [ \controlf ]$.
+Given an estimator $\hat g(b)$, a control variate is a function $\controlf(b)$ with a known mean $\mathbb{E}_{p(b)} [ \controlf(b) ]$.
 Subtracting the control variate from our estimator and adding its mean gives us a new estimator:
 %
 \begin{align}
@@ -214,15 +229,11 @@ Importantly, the new estimator has lower variance than $\hat g(b)$ if $\controlf
 
 \section{Constructing and optimizing a differentiable surrogate}
 \label{lax section}
-The reparameterization trick, while useful, is only applicable when $f$ is a known, differentiable function of a continuous random variable.
-For functions $f$ of discrete variables, gradient estimators based on continuous relaxations such as the concrete, or Gumbel-softmax relaxations~\cite{maddison2016concrete, jang2016categorical} are applicable only when $f$ is known.
-Moreover, they require that $f$ be computable at and behave predictably at inputs outside of the domain of the function.
-These assumptions greatly restrict the space of functions for which we can apply these methods. 
-
-In this section, we introduce a gradient estimator for the expectation of a function $\PT \E_{p(b|\theta)}[f(b)]$ that can be applied even when $f$ is unknown, or not differentiable.
-This allows the estimator to be applied to a wide range of applications with little or no modification.
+In this section, we introduce a gradient estimator for the expectation of a function $\PT \E_{p(b|\theta)}[f(b)]$ that can be applied even when $f$ is unknown, or not differentiable, or when $b$ is discrete.
+%This situation arises in reinforcement learning, trainin
+%This allows the estimator to be applied to a wide range of applications with little or no modification.
 Our estimator combines the score function estimator, the reparameterization trick, and control variates.
-We obtain an unbiased estimator whose variance can potentially be as low as the reparameterization-trick estimator, even when $f$ is not differentiable or not computable.
+We obtain an unbiased estimator whose variance can potentially be almost as low as the reparameterization-trick estimator, even when $f$ is not differentiable or not computable.
 
 First, we consider the case where $b$ is continuous, but that $f$ cannot be differentiated.
 We begin with the score-function gradient estimator:
@@ -244,22 +255,27 @@ Using the fact that the score-function estimator and reparameterization estimato
 %&= \E_{p(\epsilon)} \left[ \left[f(g_\theta(\epsilon)) - c_\phi(g_\theta(\epsilon))\right]\cdot\LP{b} + \PT r(g_\theta(\epsilon))\right]\nonumber
 %\end{align}
 %
+<<<<<<< HEAD
 %Which allows us to define our estimator below as: 
 %
 We can simply add the score-function estimator and subtract the reparameterization estimator, to produce a gradient estimator which we call LAX:
 
+=======
+We can simply add the score-function estimator and subtract the reparameterization estimator, to produce a gradient estimator which we call LAX:
+>>>>>>> e27663857b6181d480c0ab7611c52307b388680e
 %
 \begin{align}
 \label{eq:cont_est}
 \hat g_\LAX = \left[ f(b) -c_\phi(b) \right] \PT \log p(b|\theta) + \PT c_\phi(b) \qquad b = T(\theta, \epsilon), \epsilon \sim p(\epsilon).
 \end{align}
 %
-This gives an unbiased estimator for any choice of $c_\phi$.
+This estimator is unbiased for any choice of $c_\phi$.
 
 
 \subsection{Optimizing the gradient control variate with gradients}
 
-Both presented estimators are unbiased for any choice of the function $c_\phi$, so the only remaining problem is to choose a $c_\phi$ that gives low variance to $\hat g_\LAX$ and $\hat g_\RELAX{}$.
+Since $\hat g_\LAX$ is unbiased for any choice of the surrogate $c_\phi$, the only remaining problem is to choose a $c_\phi$ that gives low variance to $\hat g_\LAX$.
+% and $\hat g_\RELAX{}$.
 How can we find a $\phi$ which gives our estimator low variance?
 We simply optimize $c_\phi$ using stochastic gradient descent, at the same time as we optimize the parameters of our model or policy.
 
@@ -312,7 +328,7 @@ Figure~\ref{learned-relaxations} shows the optimal surrogate on a toy problem.
 %\subsection{The \RELAX{} estimator for discrete random variables}
 \subsection{Discrete random variables and conditional reparameterization}
 We can adapt the \LAX{} estimator to the case where $b$ is a discrete random variable by introducing a ``relaxed'' continuous variable $z$. %, where $b = H(z)$ and $H$ denotes the Heaviside function. %, we 
-Here we assume that there exists a continuous, reparameterizable distribution $p(z|\theta)$ and a deterministic mapping $H(z)$ such that $H(z) = b \sim p(b|\theta)$ when $z \sim p(z|\theta)$.
+We require a continuous, reparameterizable distribution $p(z|\theta)$ and a deterministic mapping $H(z)$ such that $H(z) = b \sim p(b|\theta)$ when $z \sim p(z|\theta)$.
 In our implementation, we use the Gumbel-softmax trick, the details of which can be found in appendix~\ref{resample}.
 
 The discrete version of the \LAX{} estimator is given by:
@@ -354,11 +370,11 @@ Thus we define our estimator as
 		\State \textbf{return} $\theta$ 
 	\end{algorithmic}
 	\caption{\RELAX{}: Low-variance control variate optimization for black-box gradient estimation.}
-	\label{lax}
+	\label{relax}
 \end{algorithm}
 
 This estimator is unbiased for any $c_\phi$.
-We prove this following~\cite{tucker2017rebar}:
+We prove this, following~\cite{tucker2017rebar}:
 %
 \begin{align}
 \E_{p(b|\theta)} \! \left[\left[ f(b) - \E_{p(z|b, \theta)} \! \left[c_\phi(z) \right] \right]\PT \log p(b|\theta)  - \PT \E_{p(z|b, \theta)} \! \left[c_\phi(z) \right] \right] + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right] \span & \nonumber\\
@@ -369,8 +385,7 @@ We prove this following~\cite{tucker2017rebar}:
 \end{align}
 %
 We note that the distribution $p(z|b,\theta)$ must also be reparameterizable.
-This is the case for Bernoulli and categorical random variables.
-We demonstrate how to perform this conditional reparameterization in appendix~\ref{resample}.
+We demonstrate how to perform this conditional reparameterization for Bernoulli and categorical random variables in appendix~\ref{resample}.
 
 \subsection{Choosing the control variate architecture}
 %We have introduced a generic family of algorithms which produce unbiased and potentially low variance estimates of $\PT \E_{p(b|\theta)}[f(b)]$.
@@ -380,12 +395,12 @@ The variance-reduction objective introduced above allows us to use any different
 How should we choose the architecture of $c_\phi$?
 Ideally, we will take advantage of any known structure in $f$.
 
-If $f$ is a known, differentiable function of discrete random variables, we can use the concrete relaxation~\cite{maddison2016concrete} and let $c_\phi(z) = f(\sigma_\lambda(z))$.
+If $f$ is a known, differentiable function of discrete random variables, we can use the concrete relaxation~\citep{jang2016categorical, maddison2016concrete} and let $c_\phi(z) = f(\sigma_\lambda(z))$.
 In this special case, our estimator is exactly the REBAR estimator.
-We are also free to add a learned component to the concrete relaxation and let $c_\phi(z) = f(\sigma_\lambda(z)) + \hat{r}_\rho(z)$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$.
-We have taken this approach in our experiments training discrete variational auto-encoders.
-If no information about $f$ is known, then we are also free to let $c_\phi$ be a generic function approximator such as a neural network.
-This is the approach we have taken in our reinforcement learning experiments.
+We are also free to add a learned component to the concrete relaxation and let $c_\phi(z) = f(\sigma_\lambda(z)) + {r}_\rho(z)$ where ${r}_\rho$ is a neural network with parameters~$\rho$.
+We took this approach in our experiments training discrete variational auto-encoders.
+If $f$ is unknown, we can simply let $c_\phi$ be a generic function approximator such as a neural network.
+We took this simpler approach in our reinforcement learning experiments.
 
 
 %\section{Conditional reparameterization}
@@ -533,21 +548,41 @@ Details of this derivation, as well as the discrete and conditionally reparamete
 \section{Scope and Limitations}
 \label{limitations}
 %\YW{For this section we can focus on comparisons to REBAR, because it is the most related one which might also raise most questions. We can briefly mention previous methods for doing discrete variables. We should also mention Q-prop.}
+<<<<<<< HEAD
 The work most related to ours is the recently-developed REBAR method~\citep{tucker2017rebar}.
 REBAR estimates the gradient of expectations of functions of Bernoulli random variables.
 This method uses the REINFORCE estimator with a control variate.
 The control variate is derived from the original loss function evaluated at continuously-relaxed inputs~\citep{maddison2016concrete, jang2016categorical}.
 The expectation of this control variate is estimated with low variance via the reparameterization trick.
 The REBAR estimator can been seen as a special case of the RELAX estimator when ${c_\phi(z) = f(\sigma_\lambda(z))}$.
+=======
+The work most related to ours is the recently-developed REBAR method~\citep{tucker2017rebar}, which inspired our work.
+%REBAR estimates the gradient of expectations of functions of Bernoulli random variables.
+%This method uses the REINFORCE estimator with a control variate.
+%The control variate is derived from the original loss function evaluated at continuously-relaxed inputs~\citep{maddison2016concrete, jang2016categorical}.
+%The expectation of this control variate is estimated with low variance via the reparameterization trick.
+The REBAR estimator is a special case of the \RELAX{} estimator, when the surrogate is set to ${c_\phi(z) = \eta f(\texttt{softmax}_\lambda(z))}$.
+The only free parameters of the REBAR estimator are the scaling factor $\eta$, and the temperature $\lambda$, which gives limited scope to optimize the surrogate.
+REBAR can only be applied when $f$ is known and differentiable.
+Furthermore, it depends on essentially undefined behavior of the function being optimized, since it evaluates the discrete loss function at continuous inputs.
+%This makes REBAR, and the concrete relaxation, inapplicable for optimizing black-box functions, as in reinforcement learning settings where the reward is an unknown function of the environment.
+
+>>>>>>> e27663857b6181d480c0ab7611c52307b388680e
 %While the above approaches have greatly broadened the scope of functions whose derivatives we can approximate, there still exist a number of factors limiting their application to many problems of interest.
 
 %The bias induced by the concrete relaxation can lead to convergence at unsuitable optima or no convergence at all.
 %REBAR alleviates these issues by using the relaxation as a control variate for the estimator instead of using it as the estimator itself.
+<<<<<<< HEAD
 Unfortunately, REBAR and concrete require the function being optimized, whose input is only defined at discrete inputs, to also accept continuous inputs, be differentiable w.r.t. those inputs, and behave predictably with respect to those continuous inputs.
 While sometimes true, these are strong assumptions to make.
 Furthermore, REBAR and concrete require that the function being optimized is known so they are inapplicable for optimizing black-box functions, as in reinforcement learning settings where the reward is an unknown function of the environment.
+=======
+%Unfortunately, REBAR and concrete require the function being optimized, whose input is only defined at discrete inputs, to also accept continuous inputs, be differentiable w.r.t. those inputs, and behave predictably with respect to those continuous inputs.
+%While often true, these are strong assumptions to make.
+%Furthermore, REBAR and concrete require that the function being optimized is known. 
+>>>>>>> e27663857b6181d480c0ab7611c52307b388680e
 
-In contrast, \LAX{} and \RELAX{} can be used in these settings.
+Because \LAX{} and \RELAX{} can construct a surrogate from scratch, they can be used for optimizing black-box functions, as in reinforcement learning settings where the reward is an unknown function of the environment.
 \LAX{} and \RELAX{} only require that we can query the function being optimized, and can sample from and differentiate $p(b|\theta)$.
 
 Can \RELAX{} be used to optimize deterministic black-box functions?
@@ -555,18 +590,23 @@ The answer is yes, with the caveat that one must introduce stochasticity to the 
 Thus, \RELAX{} is most suitable for problems where one is already optimizing a distribution over inputs, such as in inference or reinforcement learning.
 % Note that most optimal policies are deterministic?
 
-In our previous analysis, we have made the assumption that the function $f$ we are optimizing is not a function of $\theta$. Oftentimes a dependence on $\theta$ can arise naturally (as in the ELBO) or as a regularizer (such as weight-decay). If $f$ does depend on $\theta$ we note:
+\paragraph{Direct dependence on parameters}
+Above, we assumed that the function $f$ being optimized does not depend directly on $\theta$, which is usually the case in black-box optimization settings.
+However, a dependence on $\theta$ can when training probabilisitic models, or when we add a regularizer to a black-box optimization problem.% or as a regularizer (such as weight-decay).
+In both these settings, if the dependence on $\theta$ is known and differentiable, we can use the fact that
+%If $f$ does depend on $\theta$ we note:
 \begin{align}
-\PT \E_{p(b|\theta)}[f(b, \theta)] = \E_{p(b|\theta)}\left[\PT f(b, \theta) + f(b, \theta)\PT \log p(b|\theta) \right].\nonumber
+\PT \E_{p(b|\theta)}[f(b, \theta)] = \E_{p(b|\theta)}\left[\PT f(b, \theta) + f(b, \theta)\PT \log p(b|\theta) \right]
 \end{align}
-The second term on the right-hand side can be estimated using any of the methods presented in this paper and if $f$ is known and differentiable then the left-hand side can be computed by back-propagation.
-
+%The second term on the right-hand side can be estimated using any of the methods presented in this paper and 
+%If the dependence on $\theta$ is known and differentiable, for instance if   then the left-hand side can be computed by back-propagation.
+and simply add the term $\PT f(b, \theta)$ to our estimator.
 
 \section{Related work}
 There has been a great deal of other recent work in the area of gradient estimation.
 \citet{miller2017reducing} reduce the variance of reparameterization gradients in an orthogonal way to ours by approximating the gradient-generating procedure with a simple model and using that model as a control variate.
 NVIL~\citep{mnih2014neural} and VIMCO~\citep{mnih2016variational} provide reduced variance gradient estimation in the special case of discrete latent variable models and discrete latent variable models with Monte-Carlo objectives.
-\citet{salimans2017evolution} estimate gradients using a form of finite differences, evaluating hundreds of different parameter values in pararallel to construct a gradient estimator.
+\citet{salimans2017evolution} estimate gradients using a form of finite differences, evaluating hundreds of different parameter values in parallel to construct a gradient estimate.
 In contrast, our method is a single-sample estimator.
 
 %As gradient estimators become more complex, checking their unbiasedness numerically becomes difficult.
@@ -578,9 +618,11 @@ In contrast, our method is a single-sample estimator.
 They introduce a sampling distribution, and optimize an objective similar to ours.
 \citet{wierstra2014natural} also introduce a sampling distribution to build a gradient estimator, and consider optimizing the sampling distribution.
 
-In the reinforcement learning setting, the work most similar to ours is $Q$-prop \cite{haarnoja2017reinforcement}.
+In the reinforcement learning setting, the work most similar to ours is $Q$-prop \citep{haarnoja2017reinforcement}.
 Like our method, $Q$-prop reduces the variance of the policy gradient with an learned, action-dependent control variate whose expectation is approximated via a monte-carlo sample from a taylor series expansion of the control variate.
-Unlike our method, their control variate is trained off-policy. While our method is applicable in both the continuous and discrete action domain, $Q$-prop is only applicable in environments with continuous actions. We are interested in the potential of training our control variate off-policy, but we leave that for further work. 
+Unlike our method, their control variate is trained off-policy.
+While our method is applicable in both the continuous and discrete action domain, $Q$-prop is only applicable to continuous actions.
+%We are interested in the potential of training our control variate off-policy, but we leave that for further work. 
 
 %\citet{asadi2017mean} reduce the variance of actor-critic gradient estimates by simply summing over all possible actions.
 
@@ -608,7 +650,8 @@ We demonstrate the effectiveness of our estimator on a number of challenging opt
 	\caption{ The relaxation for a toy loss function ${\mathcal{L}(\theta) = \E_{p(b|\theta)} [ (b - 0.499)^2 ]}$ using REINFORCE (blue), REBAR (green), and RELAX (red)} 
 	\label{learned-relaxations}
 \end{wrapfigure}
-We seek to minimize $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where {$p(b|\theta) = \textnormal{Bernoulli}(b|\theta)$}. \cite{tucker2017rebar} set the target $t = .45$.
+We seek to minimize $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where {$p(b|\theta) = \textnormal{Bernoulli}(b|\theta)$}.
+\citet{tucker2017rebar} set the target $t = .45$.
 We focus on the more challenging case where $t = .499$.
 Figures~\ref{first figure}a and \ref{first figure}b and shows the relative performance and gradient log-variance of REINFORCE, REBAR, and RELAX.
 
@@ -622,13 +665,8 @@ Next, we evaluate the \RELAX{} estimator on the task of training a variational a
 We reproduced a subset of the experiments from \citet{tucker2017rebar}, training models with 1 and 2 layers of 200 Bernoulli random variables with linear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
 Details of these models and our experimental procedure can be found in appendix~\ref{app_disc_vae}.
 
-%them and a model with 1 layer of Bernoulli random variables with non-linear mappings between layers.
-
 To take advantage of the available structure in the loss function, we choose the form of our control variate to be $$ c_\phi(z) = f(\sigma_\lambda(z))+  \hat{r}_\rho(z) $$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function (the evidence lower-bound) evaluated at continuously relaxed inputs as in REBAR.  
-%We found that due to the complicated structure of the loss function, the RELAX estimator performed worse than REBAR. Instead we add a learned relaxation to REBAR's control variate which we denote relaxed-REBAR.
-%Our estimator takes the form of \eqref{eq:RELAX} with $$\bar \relaxed(z) = \relaxed(z) + f(\sigma_\lambda(z))$$ where $\relaxed(z)$ is a learned neural network and $f(\sigma_\lambda(z))$ is the Concrete relaxation of REBAR with temperature parameter $\lambda$.
 %
-%We compare  \cite{tucker2017rebar}.
 In all experiments, the learned control variate improved the training and validation performance, over the state-of-the-art baseline of REBAR. 
 
 \begin{table}[h]
@@ -716,18 +754,19 @@ In all experiments, RELAX provides an increase in rate of convergence.
 \subsection{Reinforcement learning}
 We apply our gradient estimator to a few simple reinforcement learning environments with discrete and continuous actions.
 We use the \RELAX{} and \LAX{} estimators for discrete and continuous actions, respectively.
-We compare with the advantage actor-critic algorithm (A2C)~\cite{sutton2000policy} as a baseline. Full details of our experiments can be found in Appendix~\ref{experiment appendix}.
+We compare with the advantage actor-critic algorithm (A2C)~\citep{sutton2000policy} as a baseline.
+Full details of our experiments can be found in Appendix~\ref{experiment appendix}.
 
 % <Dami: i took it out because it doesn't match with the continuous case, and we dont' have variance plots yet>We are aware that better results could be obtained with bootstrapping and larger batch sizes but we wanted to work in the highest possible variance setting to demonstrate the variance reduction capabilities of our approach.
 
-%We test our alrgorithm on the Cart-Pole and Lunar-Lander environments from the OpenAI Gym~\cite{1606.01540}.
+%We test our alrgorithm on the Cart-Pole and Lunar-Lander environments from the OpenAI Gym~\citep{1606.01540}.
 %We run the Cart-Pole and Lunar-Lander environments for 250 and 1000 episodes, respectively and plot reward and the log-variance of the policy gradients in figure~X.
 
 \subsubsection{Experiments}
 
-In the discrete action setting, we test our approach on the Cart Pole and Lunar Lander environments as provided by the OpenAI gym~\cite{1606.01540}. In the continuous action setting, we test on the MuJoCo~\cite{todorov2012mujoco}-simulated environments Inverted Pendulum and Inverted Double Pendulum also found in the OpenAI gym.
+In the discrete action setting, we test our approach on the Cart Pole and Lunar Lander environments as provided by the OpenAI gym~\citep{1606.01540}. In the continuous action setting, we test on the MuJoCo~\citep{todorov2012mujoco}-simulated environments Inverted Pendulum and Inverted Double Pendulum also found in the OpenAI gym.
 
-In all tested environments we observe improved performance and sample efficiency using our method. The results of our experiments can be seen in figures \ref{fig:rl_results}, [CITE OTHER RELEVANT FIGURES] and table~\ref{tab:rl_results}.
+In all tested environments we observe improved performance and sample efficiency using our method. The results of our experiments can be seen in figure~\ref{fig:rl_results}, [CITE OTHER RELEVANT FIGURES] and table~\ref{tab:rl_results}.
 
 We found that our estimator produced policy gradients with drastically reduced variance (see figure~\ref{fig:rl_var}) allowing for larger learning rates to be used while maintaining stable training. In both discrete environments our estimator achieved an over 2-times speedup in convergence over the baseline.
 
@@ -780,12 +819,22 @@ The foundation of our approach is the score function gradient estimator with a c
 This control variate is neural network which is trained directly to minimize the variance of the estimated gradients.
 The central result of this paper is that learning the function in the control variate leads to even better convergence properties and lower variance gradient estimates. 
 
-The scope and generality of our estimator opens up many new possibilities for models which can now be trained via gradient decent. For example, we could apply our estimator to train a VAE with continuous latent variables who's generative model is non-differentiable (a rendering engine perhaps). We also feel that there is much room to explore model design choices for the control variate and develop a greater understand the properties of the optimal control variate. 
+The scope and generality of our estimator opens up many new possibilities for models which can now be trained via gradient decent.
+For example, we could apply our estimator to train a VAE with continuous latent variables who's generative model is non-differentiable (a rendering engine perhaps).
+We also feel that there is much room to explore model design choices for the control variate and develop a greater understand the properties of the optimal control variate. 
 
+<<<<<<< HEAD
 We believe our results in reinforcement learning are quite promising and should motivate further research into using action-dependent control-variates for policy-gradient methods. We are interested in combining our approach with other popular variance reduction techniques such as generalized advantage estimation \cite{kimura2000analysis}. We are also interested in ways to train our control variate off-policy as in $Q$-prop~\cite{gu2016q}. We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail than we do now. 
+=======
+We believe our results in reinforcement learning are quite promising and should motivate further research into using action-dependent control-variates for policy-gradient methods.
+We are interested in combining our approach with other popular variance reduction techniques such as generalized advantage estimation~\citep{kimura2000analysis}.
+We are also interested in ways to train our control variate off-policy as in $Q$-prop~\citep{gu2016q}.
+We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail than we do now. 
+Other possible applications:
+>>>>>>> e27663857b6181d480c0ab7611c52307b388680e
 
 %\section*{Acknowledgements}  % Uncomment for arxiv
-%We thank Tian Qi Chen for helpful discussions.
+%We thank Tian Qi Chen, Elliot Creager, and Dougal Maclaurin for helpful discussions.
 
 \bibliography{bibliography}
 \bibliographystyle{iclr2018_conference}
@@ -928,12 +977,14 @@ Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:r
 In the one layer models we optimize the evidence lower bound (ELBO): $$\log p(x) \geq \mathcal{L}(\theta) = \E_{q(b|x)}[\log p(x|b) + \log p(b) - \log q(b|x)]$$ where $q(b_1|x) = \sigma(x\cdot W_q + \beta_q)$ and $p(x| b_1) = \sigma(b_1\cdot W_p + \beta_p)$ with weight matrices $W_q,W_p$ and bias vectors $\beta_q,\beta_p$.
 The parameters of the prior $p(b)$ are also learned.
 
-We run all models for $2,000,000$ iterations with a batch size of $24$. For the REBAR models, we tested learning rates in $\{.005, .001, .0005,  .0001, .00005\}$. 
+We run all models for $2,000,000$ iterations with a batch size of $24$.
+For the REBAR models, we tested learning rates in $\{.005, .001, .0005,  .0001, .00005\}$. 
 
-RELAX adds more hyperparameters.
+\RELAX{} adds more hyperparameters.
 These are the depth of the neural network component of our control variate $r_\rho$, the weight decay placed on the network, and the scaling on the learning rate for the control variate.
 We tested neural network models with $l$ layers of 200 units using the ReLU nonlinearity with $l \in \{2, 4\}$.
-We trained the control variate with weight decay in $\{.001, .0001\}$. We trained the control variate with learning rate scaling in $\{1, 10\}$.
+We trained the control variate with weight decay in $\{.001, .0001\}$.
+We trained the control variate with learning rate scaling in $\{1, 10\}$.
 
 To limit the size of hyperparameter search for the RELAX models, we only test the best performing learning rate for the REBAR baseline and the next largest learning rate in our search set.
 In many cases, we found that RELAX allowed our model to converge at learning rates which made the REBAR estimators diverge.
@@ -948,38 +999,47 @@ We run an identical hyperpameter search in the 2 layer model as we do in the 1 l
 
 
 \subsection{Discrete RL}
-In both the baseline A2C and RELAX models, the policy and control variate (value function in the baseline model) were 2 layer neural networks with 10 units per layer. The ReLU non linearity was used on all layers except for the output layer.
+In both the baseline A2C and RELAX models, the policy and control variate (value function in the baseline model) were 2 layer neural networks with 10 units per layer.
+The ReLU non linearity was used on all layers except for the output layer.
 
-For these tasks we estimate the policy gradient with a single monte-carlo sample. We run one episode of the environment to completion, compute the discounted rewards, and run one iteration of gradient decent. We believe using larger batches will improve performance but would less clearly demonstrate the potential of our method. 
+For these tasks we estimate the policy gradient with a single Monte Carlo sample.
+We run one episode of the environment to completion, compute the discounted rewards, and run one iteration of gradient decent.
+We believe using larger batches will improve performance but would less clearly demonstrate the potential of our method. 
 
 As our control variate does not have the same interpretation as the value function of A2C, it was not directly clear how to add reward bootstrapping and other variance reduction techniques common in RL into our model. We leave the task of incorporating these and other variance reduction techniques to future work.  
 
-Both models were trained with the RMSProp \cite{Tieleman2012} optimizer and a reward discount factor of $.99$ was used.
+Both models were trained with the RMSProp~\citep{Tieleman2012} optimizer and a reward discount factor of $.99$ was used.
 
-Both models have 2 hyperparameters to tune; the global learning rate and the scaling factor on the learning rate for the control variate (or value function). We complete a grid search for both parameters in $\{0.01, 0.003, 0.001\}$ and present the model which ``solves'' the task in the fewest number of episodes averaged over 5 random seeds. ``Solving'' the tasks was defined by the creators of the OpenAI gym \cite{1606.01540}. The Cart Pole task is considered solved if the agent receives an average reward greater than 195 over 100 consecutive episodes. The Lunar Lander task is considered solved if the agent receives an average reward greater than 200 over 100 consecutive epsidoes. 
+Both models have 2 hyperparameters to tune; the global learning rate and the scaling factor on the learning rate for the control variate (or value function).
+We complete a grid search for both parameters in $\{0.01, 0.003, 0.001\}$ and present the model which ``solves'' the task in the fewest number of episodes averaged over 5 random seeds.
+``Solving'' the tasks was defined by the creators of the OpenAI gym~\citep{1606.01540}.
+The Cart Pole task is considered solved if the agent receives an average reward greater than 195 over 100 consecutive episodes.
+The Lunar Lander task is considered solved if the agent receives an average reward greater than 200 over 100 consecutive episodes. 
 
-The Cart Pole experiments were run for 250,000 frames. The Lunar Lander experiments were run for 5,000,000 frames. 
+The Cart Pole experiments were run for 250,000 frames.
+The Lunar Lander experiments were run for 5,000,000 frames. 
 
 \subsection{Continuous RL}
-The continuous tasks uses both the value function and the control variate to enable bootstrapping, which is needed due to the increased complexity of the problem. Our model architecture is base on OpenAI's baseline\cite{?} code for ACKTR\cite{?}. The three models- policy, value, and control variate, are 2 layer neural networks with 64 hidden units per layer. The value and control variate networks are identical, with the ELU nonlinearity in each hidden layer. The policy network has Tanh nonlinearity. The policy network, which parameterizes the gaussian policy comprises of a network (with the architecture mentioned above) that outputs the mean, and a separate, trainable log standard deviation value that is not input dependent. All three networks have a linear output layer. We selected the batch size to be 2500, meaning for a fixed timestep (2500) we collect multiple rollouts of a task and update the networks' parameters with the batch of episodes. Per one policy update, we optimize both the value and control variate network multiple times. The number of times we train  the value network is fixed to 25, while for the control variate, it was chosen to be a hyperparameter. 
+The continuous tasks uses both the value function and the control variate to enable bootstrapping, which is needed due to the increased complexity of the problem. Our model architecture is based on OpenAI's baseline\citep{?} code for ACKTR\citep{?}.
+The three models- policy, value, and control variate, are 2 layer neural networks with 64 hidden units per layer.
+The value and control variate networks are identical, with the ELU nonlinearity in each hidden layer.
+The policy network has \texttt{tanh} nonlinearity.
+The policy network, which parameterizes the gaussian policy comprises of a network (with the architecture mentioned above) that outputs the mean, and a separate, trainable log standard deviation value that is not input dependent.
+All three networks have a linear output layer.
+We selected the batch size to be 2500, meaning for a fixed timestep (2500) we collect multiple rollouts of a task and update the networks' parameters with the batch of episodes.
+Per one policy update, we optimize both the value and control variate network multiple times.
+The number of times we train  the value network is fixed to 25, while for the control variate, it was chosen to be a hyperparameter. 
 %need to add information on whether we build on top of reinforce, or a2c or a2c+GAE
-All models were trained, each with a separate ADAM \cite{kingma2015adam} otimizer, with $\beta_1=0.9$, $\beta_2=0.999$, and $\epsilon=1e-08$. 
+All models were trained, each with a separate ADAM~\citep{kingma2015adam} otpimizer, with $\beta_1=0.9$, $\beta_2=0.999$, and $\epsilon=1e-08$. 
 
-The baseline A2C case has 2 hyperparameters to tune: the learning rate for the optimizer for the policy and value network. A grid search was done over the set: $\{0.03, 0.003, 0.003\}$. \RELAX has 4 hyperparameters to tune: 3 learning rates for the optimizer per network, and the number of training iterations of the control variate per policy gradient update. Due to the large number of hyperparameters, we restricted the size of the grid search set to $\{0.003, 0.0003\}$ for the learning rates, and $\{5, 25, 50\}$ for the control variate training iteration number. We picked the hyperparameter setting that yielded the shortest episode-to-completion time. As with the discrete case, we used the definition of completion defined by OpenAI gym\cite{1606.01540} for each task. 
+The baseline A2C case has 2 hyperparameters to tune: the learning rate for the optimizer for the policy and value network.
+A grid search was done over the set: $\{0.03, 0.003, 0.003\}$.
+\RELAX{} has 4 hyperparameters to tune: 3 learning rates for the optimizer per network, and the number of training iterations of the control variate per policy gradient update.
+Due to the large number of hyperparameters, we restricted the size of the grid search set to $\{0.003, 0.0003\}$ for the learning rates, and $\{5, 25, 50\}$ for the control variate training iteration number.
+We picked the hyperparameter setting that yielded the shortest episode-to-completion time.
+As with the discrete case, we used the definition of completion defined by OpenAI gym~\citep{1606.01540} for each task. 
 
-The Inverted Pendulum experiments were run for 1,000,000 frames. The Inverted Double Pendulum experiments were run for 10,000,000 frames.
+The Inverted Pendulum experiments were run for 1,000,000 frames.
+The Inverted Double Pendulum experiments were run for 10,000,000 frames.
 
 \end{document}
-
-%For all models, the policy and control variate were both neural networks with 2 layers of 10 units using the ReLU nonlinearity.
-%We first tuned the learning rate using the baseline A2C then ran \RELAX{} with the same learning rate. 
-%Again, we are aware that improved results could be obtained by further tuning the learning rate for \RELAX{} but we wanted to illustrate the improvement provided solely by the improved control variate. 
-
-%\paragraph{Experimental details}
-%We estimate the policy gradient using a single Monte Carlo sample produced from a one episode roll-out of the current policy.
-%We note that improved performance could be achieved by using more samples, but we intended to test our model in the highest-possible variance setting. 
-%In all experiments both the policy and control variate were two layer neural networks with RELU non-linearities. Each intermediate layer's output had dimension 10.
-%We searched over two hyper-parameters; the global learning rate and the scaling on the loss from the control variate or value function.
-%For each we tested values in $[.01, .003, .001]$.
-%Between our model and the baseline and the learning rates were also constant across tests making it that all improvements derive from having a lower variance estimate of the policy gradient.
-%Presented results are obtained by averaging over 5 runs with different random seeds. We run the CartPole and LunarLander for $250,000$ and $5,000,000$ time-steps respectively. 
