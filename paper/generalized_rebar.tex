@@ -483,13 +483,21 @@ While our method is applicable in both the continuous and discrete action domain
 \section{Applications}
 \label{Applications}
 %
-\begin{wrapfigure}[]{R}{0.50\textwidth}
-	\centering
-		\vspace{-3mm}
-	\hspace{-2.5mm}\includegraphics[width=0.50\columnwidth ]{figures/relaxations_t_499_which_2} 
-		\vspace*{-6mm}
-	\caption{ The relaxation for a toy loss function ${\mathcal{L}(\theta) = \E_{p(b|\theta)} [ (b - 0.499)^2 ]}$ using REINFORCE (blue), REBAR (green), and RELAX (red)} 
-	\label{learned-relaxations}
+\begin{wrapfigure}[16]{R}{0.50\textwidth}
+\centering
+\vspace{-10mm}
+\begin{tabular}{c}
+REINFORCE\\
+\hspace{-3mm}\includegraphics[width=0.50\columnwidth, clip, trim=0.5cm 8cm 0.8cm 0cm]{figures/relaxations_t_499_which_2}\\
+REBAR\\
+\hspace{-3mm}\includegraphics[width=0.50\columnwidth, clip, trim=0.5cm 5cm 0.8cm 4cm]{figures/relaxations_t_499_which_2}\\
+RELAX\\
+\hspace{-3mm}\includegraphics[width=0.50\columnwidth, clip, trim=0.5cm 0cm 0.8cm 7cm]{figures/relaxations_t_499_which_2}
+\end{tabular}
+\vspace*{-6mm}
+\caption{The optimal relaxation for a toy loss function, using different gradient estimators.}
+% ${\mathcal{L}(\theta) = \E_{p(b|\theta)} [ (b - 0.499)^2 ]}$ using REINFORCE (blue), REBAR (green), and RELAX (red)} 
+\label{learned-relaxations}
 \end{wrapfigure}
 %
 We demonstrate the effectiveness of our estimator on a number of challenging optimization problems. Following~\citet{tucker2017rebar} we begin with a simple toy example to illuminate the potential of our method and then continue to the more relevant problems of optimizing binary VAE's and reinforcement learning.
@@ -510,7 +518,7 @@ Next, we evaluate the \RELAX{} estimator on the task of training a variational a
 We reproduced a subset of the experiments from \citet{tucker2017rebar}, training models with 1 and 2 layers of 200 Bernoulli random variables with linear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
 Details of these models and our experimental procedure can be found in appendix~\ref{app_disc_vae}.
 
-To take advantage of the available structure in the loss function, we choose the form of our control variate to be $$ c_\phi(z) = f(\sigma_\lambda(z))+  \hat{r}_\rho(z) $$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function (the evidence lower-bound) evaluated at continuously relaxed inputs as in REBAR.  
+To take advantage of the available structure in the loss function, we choose the form of our control variate to be $c_\phi(z) = f(\sigma_\lambda(z))+  \hat{r}_\rho(z)$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function (the evidence lower-bound) evaluated at continuously relaxed inputs as in REBAR.  
 %
 In all experiments, the learned control variate improved the training and validation performance, over the state-of-the-art baseline of REBAR. 
 
@@ -518,11 +526,11 @@ In all experiments, the learned control variate improved the training and valida
 \centering
 \begin{tabular}{r l | c c c c c} 
 Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule 
-               & Nonlinear & $-102.2$ & $-101.5$ & -81.01 &  \textbf{-78.13} \\
+               & Nonlinear & $-102.2$ & $-101.5$ & -101.1  &  -81.01 &  \textbf{-78.13} \\
 \textbf{MNIST} & linear 1 layer  &-111.3 & $-112.5$ & $-111.7$  & -111.6 & \textbf{-111.20} \\ 
                & linear 2 Layer  &-99.62 & $-99.6$ & $-99.07$   & -98.22 & \textbf{-98.00} \\
 \midrule
-               & Nonlinear  & $-110.4$  & $-109.58$ &-62.28 & \textbf{-58.55} \\
+               & Nonlinear  & $-110.4$  & $-109.58$ & -108.72  & -62.28 & \textbf{-58.55} \\
 \textbf{Omniglot} & linear 1 layer &-117.23 & $-117.44$ & $-117.09$   & -116.63 & \textbf{-116.57} \\ 
                   & linear 2 Layer &-109.95 & $-109.98$ & $-109.55$  & -108.71 & \textbf{-108.54}
 \end{tabular}
