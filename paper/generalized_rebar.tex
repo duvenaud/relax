@@ -497,7 +497,7 @@ We demonstrate the effectiveness of our estimator on a number of challenging opt
 As a simple example, we follow \citet{tucker2017rebar} in minimizing $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where {$p(b|\theta) = \textnormal{Bernoulli}(b|\theta)$}.
 \citet{tucker2017rebar} set the target $t = .45$.
 We focus on the more challenging case where $t = .499$.
-Figures~\ref{first figure}a and \ref{first figure}b shows the relative performance and gradient log-variance of REINFORCE, REBAR, and RELAX.
+Figures~\ref{first figure}a and \ref{first figure}b show the relative performance and gradient log-variance of REINFORCE, REBAR, and RELAX.
 
 %With this setting of the target, REBAR and competing methods suffer from high variance and are unable to discover the optimal solution $\theta = 0$.
 %The fixed concrete relaxation of REBAR is unable to produce a gradient whose signal outweighs the sample noise and is therefore unable to solve this problem noticeably faster than REINFORCE.
