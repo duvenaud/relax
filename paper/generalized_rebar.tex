@@ -482,9 +482,7 @@ While our method is applicable in both the continuous and discrete action domain
 
 \section{Applications}
 \label{Applications}
-We demonstrate the effectiveness of our estimator on a number of challenging optimization problems. Following~\citet{tucker2017rebar} we begin with a simple toy example to illuminate the potential of our method and then continue to the more relevant problems of optimizing binary VAE's and reinforcement learning.
-
-\subsection{Toy experiment}
+%
 \begin{wrapfigure}[]{R}{0.50\textwidth}
 	\centering
 		\vspace{-3mm}
@@ -493,7 +491,11 @@ We demonstrate the effectiveness of our estimator on a number of challenging opt
 	\caption{ The relaxation for a toy loss function ${\mathcal{L}(\theta) = \E_{p(b|\theta)} [ (b - 0.499)^2 ]}$ using REINFORCE (blue), REBAR (green), and RELAX (red)} 
 	\label{learned-relaxations}
 \end{wrapfigure}
-We seek to minimize $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where {$p(b|\theta) = \textnormal{Bernoulli}(b|\theta)$}.
+%
+We demonstrate the effectiveness of our estimator on a number of challenging optimization problems. Following~\citet{tucker2017rebar} we begin with a simple toy example to illuminate the potential of our method and then continue to the more relevant problems of optimizing binary VAE's and reinforcement learning.
+
+\subsection{Toy experiment}
+As a simple example, we follow \citet{tucker2017rebar} in minimizing $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where {$p(b|\theta) = \textnormal{Bernoulli}(b|\theta)$}.
 \citet{tucker2017rebar} set the target $t = .45$.
 We focus on the more challenging case where $t = .499$.
 Figures~\ref{first figure}a and \ref{first figure}b and shows the relative performance and gradient log-variance of REINFORCE, REBAR, and RELAX.
@@ -515,32 +517,21 @@ In all experiments, the learned control variate improved the training and valida
 \begin{table}[h]
 \centering
 \begin{tabular}{r l | c c c c c} 
-Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule
-%Nonlinear      & $-102.2$ & $-101.5$ & -101.1  &  -81.01 &  \textbf{-78.13} \\
-\textbf{MNIST} & 1 layer  &-111.3 & $-112.5$ & $-111.7$  & -111.6 & \textbf{-111.20} \\ 
-               & 2 Layer  &-99.62 & $-99.6$ & $-99.07$   & -98.22 & \textbf{-98.00} \\
+Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule 
+               & Nonlinear & $-102.2$ & $-101.5$ & -81.01 &  \textbf{-78.13} \\
+\textbf{MNIST} & linear 1 layer  &-111.3 & $-112.5$ & $-111.7$  & -111.6 & \textbf{-111.20} \\ 
+               & linear 2 Layer  &-99.62 & $-99.6$ & $-99.07$   & -98.22 & \textbf{-98.00} \\
 \midrule
-%Nonlinear      & $-110.4$  & $-109.58$ & -108.72  & -62.28 & \textbf{-58.55} \\
-\textbf{Omniglot} & 1 layer &-117.23 & $-117.44$ & $-117.09$   & -116.63 & \textbf{-116.57} \\ 
-                  & 2 Layer &-109.95 & $-109.98$ & $-109.55$  & -108.71 & \textbf{-108.54}
+               & Nonlinear  & $-110.4$  & $-109.58$ &-62.28 & \textbf{-58.55} \\
+\textbf{Omniglot} & linear 1 layer &-117.23 & $-117.44$ & $-117.09$   & -116.63 & \textbf{-116.57} \\ 
+                  & linear 2 Layer &-109.95 & $-109.98$ & $-109.55$  & -108.71 & \textbf{-108.54}
 \end{tabular}
 \caption{Best obtained training objective.}
 \label{tab:vae tr}
 \end{table}
 
 
-\begin{table}[h]
-\centering
-\begin{tabular}{r l | c c} 
-  Dataset & Model & REBAR & RELAX \\\midrule
-\textbf{MNIST} & 1 layer  & -114.32 & \textbf{-113.62} \\ 
-& 2 Layer  & -101.20 & \textbf{-100.85} \\ \midrule
-\textbf{Omniglot} & 1 layer & -122.44 & \textbf{-122.11} \\ 
-& 2 Layer & -115.83 & \textbf{-115.42}
-\end{tabular}
-\caption{Best obtained validation objective.}
-\label{tab:vae val}
-\end{table}
+
 
 %In \citep{tucker2017rebar}, a separate REBAR estimator was used to estimate the gradients of each model parameter (each weight matrix and bias vector).
 %To apply our estimator to this formulation, we would need to learn a separate relaxation for each model parameter.
@@ -553,7 +544,7 @@ Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule
 %To provide a fair comparison, we re-implemented REBAR in this way (denoted REBAR-ours in table~\ref{tab:vae}).
 %We believe this explains the large difference in performance between our implementation and that of \citep{tucker2017rebar} for the nonlinear models since there are 3 layers of parameters that all share the same gradient estimator.
 %In the linear models, each layer has its own gradient estimator making our implementation closer to that of \citep{tucker2017rebar}.
-To obtain training curves we created our own implementation of REBAR, which gave identical or slightly improved performance to compared the implementation of \citet{tucker2017rebar}.
+To obtain training curves we created our own implementation of REBAR, which gave identical or improved performance to compared the implementation of \citet{tucker2017rebar}.
 
 While we obtained a modest improvement in training and validation scores (tables~\ref{tab:vae tr} and \ref{tab:vae val}), the most notable improvement provided by \RELAX{} is in its rate of convergence.
 Training curves for all models can be seen in figure~\ref{fig:vae curves}.
@@ -578,19 +569,6 @@ In all experiments, RELAX provides an increase in rate of convergence.
 %\label{fig:vae omni}
 %\end{figure}
 
-\begin{table}[h]
-\centering
-\begin{tabular}{r l | c c} 
- Dataset & Model  & REBAR & RELAX \\\midrule
-\textbf{MNIST} & 1 layer  & 857 & \textbf{531} \\ 
-& 2 Layer  & 900 & \textbf{620} \\
-\midrule
-\textbf{Omniglot} & 1 layer & 2086 & \textbf{566} \\ 
-& 2 Layer & 1027 & \textbf{673}
-\end{tabular}
-\caption{Epochs needed to achieve REBAR's best validation score.}
-\label{tab:vae epochs}
-\end{table}
 
 
 
@@ -606,12 +584,15 @@ Full details of our experiments can be found in Appendix~\ref{experiment appendi
 %We run the Cart-Pole and Lunar-Lander environments for 250 and 1000 episodes, respectively and plot reward and the log-variance of the policy gradients in figure~X.
 
 \subsubsection{Experiments}
+\label{experiments section}
+In the discrete action setting, we test our approach on the Cart Pole and Lunar Lander environments as provided by the OpenAI gym~\citep{1606.01540}.
+In the continuous action setting, we test on the MuJoCo~\citep{todorov2012mujoco}-simulated environments Inverted Pendulum and Inverted Double Pendulum also found in the OpenAI gym.
 
-In the discrete action setting, we test our approach on the Cart Pole and Lunar Lander environments as provided by the OpenAI gym~\citep{1606.01540}. In the continuous action setting, we test on the MuJoCo~\citep{todorov2012mujoco}-simulated environments Inverted Pendulum and Inverted Double Pendulum also found in the OpenAI gym.
+In all tested environments we observe improved performance and sample efficiency using our method.
+The results of our experiments can be seen in figure~\ref{fig:rl_results}, [CITE OTHER RELEVANT FIGURES] and table~\ref{tab:rl_results}.
 
-In all tested environments we observe improved performance and sample efficiency using our method. The results of our experiments can be seen in figure~\ref{fig:rl_results}, [CITE OTHER RELEVANT FIGURES] and table~\ref{tab:rl_results}.
-
-We found that our estimator produced policy gradients with drastically reduced variance (see figure~\ref{fig:rl_var}) allowing for larger learning rates to be used while maintaining stable training. In both discrete environments our estimator achieved an over 2-times speedup in convergence over the baseline.
+We found that our estimator produced policy gradients with drastically reduced variance (see figure~\ref{fig:rl_var}) allowing for larger learning rates to be used while maintaining stable training.
+In both discrete environments our estimator achieved an over 2-times speedup in convergence over the baseline.
 
 
 
@@ -655,21 +636,22 @@ LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $
 \section{Conclusions and future work}
 \label{conclusion}
 In this work we synthesized and generalized many of the standard approaches for constructing gradient estimators.
-We proposed a simple and generic gradient estimator that can be applied to expectations of known or black-box functions of discrete or continuous random variables. We also derive a simple extension to apply our method to reinforcement learning in both discrete and continuous action domains. 
-This approach is relatively simple to implement and adds minimal computational overhead. 
+We proposed a simple and generic gradient estimator that can be applied to expectations of known or black-box functions of discrete or continuous random variables.
+We also derive a simple extension to apply our method to reinforcement learning in both discrete- and continuous-action domains. 
+This approach is relatively simple to implement and adds little computational overhead. 
 
-The foundation of our approach is the score function gradient estimator with a control variate whose expectation can be estimated with low variance using the reparameterization trick.
-This control variate is neural network which is trained directly to minimize the variance of the estimated gradients.
-The central result of this paper is that learning the function in the control variate leads to even better convergence properties and lower variance gradient estimates. 
+%The foundation of our approach is the score function gradient estimator with a control variate whose expectation can be estimated with low variance using the reparameterization trick.
+%This control variate is neural network which is trained directly to minimize the variance of the estimated gradients.
+%The central result of this paper is that learning the function in the control variate leads to even better convergence properties and lower variance gradient estimates. 
 
 The scope and generality of our estimator opens up many new possibilities for models which can now be trained via gradient decent.
-For example, we could apply our estimator to train a VAE with continuous latent variables who's generative model is non-differentiable (a rendering engine perhaps).
-We also feel that there is much room to explore model design choices for the control variate and develop a greater understand the properties of the optimal control variate. 
+For example, we could apply our estimator to train a VAE with continuous latent variables whose generative model is non-differentiable (a rendering engine perhaps).
+We also feel that there is much room to explore model design choices for the control variate and to better understand the properties of the optimal control variate. 
 
-We believe our results in reinforcement learning are quite promising and should motivate further research into using action-dependent control-variates for policy-gradient methods.
+We believe our results in reinforcement learning are promising and should motivate further research into using action-dependent control-variates for policy-gradient methods.
 We are interested in combining our approach with other popular variance reduction techniques such as generalized advantage estimation~\citep{kimura2000analysis}.
 We are also interested in ways to train our control variate off-policy as in $Q$-prop~\citep{gu2016q}.
-We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail than we do now.
+We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail.
 
 %\section*{Acknowledgements}  % Uncomment for arxiv
 %We thank Tian Qi Chen, Elliot Creager, and Dougal Maclaurin for helpful discussions.
@@ -823,7 +805,36 @@ Then, by adding and subtracting the same term, we have
 Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:relaxrlproof}).
 \end{proof}
 
+\section{Further results on discrete variational autoencoders}
+\label{extra vae results}
 
+\begin{table}[h]
+\centering
+\begin{tabular}{r l | c c} 
+  Dataset & Model & REBAR & RELAX \\\midrule
+\textbf{MNIST} & 1 layer  & -114.32 & \textbf{-113.62} \\ 
+& 2 Layer  & -101.20 & \textbf{-100.85} \\ \midrule
+\textbf{Omniglot} & 1 layer & -122.44 & \textbf{-122.11} \\ 
+& 2 Layer & -115.83 & \textbf{-115.42}
+\end{tabular}
+\caption{Best obtained validation objective.}
+\label{tab:vae val}
+\end{table}
+
+
+\begin{table}[h]
+\centering
+\begin{tabular}{r l | c c} 
+ Dataset & Model  & REBAR & RELAX \\\midrule
+\textbf{MNIST} & 1 layer  & 857 & \textbf{531} \\ 
+& 2 Layer  & 900 & \textbf{620} \\
+\midrule
+\textbf{Omniglot} & 1 layer & 2086 & \textbf{566} \\ 
+& 2 Layer & 1027 & \textbf{673}
+\end{tabular}
+\caption{Epochs needed to achieve REBAR's best validation score.}
+\label{tab:vae epochs}
+\end{table}
 
 
 \section{Experimental Details}
