@@ -922,9 +922,9 @@ The Cart Pole experiments were run for 250,000 frames.
 The Lunar Lander experiments were run for 5,000,000 frames. 
 
 \subsection{Continuous RL}
-The continuous tasks uses both the value function and the control variate to enable bootstrapping, which is needed due to the increased complexity of the problem. Our model architecture is based on OpenAI's baseline\citep{?} code for ACKTR\citep{?}.
+The continuous tasks uses both the value function and the control variate to enable bootstrapping, which is needed due to the increased complexity of the problem. Our model architecture is based on OpenAI baseline \citep{baselines}.
 The three models- policy, value, and control variate, are 2 layer neural networks with 64 hidden units per layer.
-The value and control variate networks are identical, with the ELU nonlinearity in each hidden layer.
+The value and control variate networks are identical, with the ELU\citep{Clevert2016ELUs} nonlinearity in each hidden layer.
 The policy network has \texttt{tanh} nonlinearity.
 The policy network, which parameterizes the gaussian policy comprises of a network (with the architecture mentioned above) that outputs the mean, and a separate, trainable log standard deviation value that is not input dependent.
 All three networks have a linear output layer.
@@ -937,11 +937,11 @@ All models were trained, each with a separate ADAM~\citep{kingma2015adam} otpimi
 The baseline A2C case has 2 hyperparameters to tune: the learning rate for the optimizer for the policy and value network.
 A grid search was done over the set: $\{0.03, 0.003, 0.003\}$.
 \RELAX{} has 4 hyperparameters to tune: 3 learning rates for the optimizer per network, and the number of training iterations of the control variate per policy gradient update.
-Due to the large number of hyperparameters, we restricted the size of the grid search set to $\{0.003, 0.0003\}$ for the learning rates, and $\{5, 25, 50\}$ for the control variate training iteration number.
+Due to the large number of hyperparameters, we restricted the size of the grid search set to $\{0.003, 0.0003\}$ for the learning rates, and $\{10, 25, 50\}$ for the control variate training iteration number.
 We picked the hyperparameter setting that yielded the shortest episode-to-completion time.
 As with the discrete case, we used the definition of completion defined by OpenAI gym~\citep{1606.01540} for each task. 
 
 The Inverted Pendulum experiments were run for 1,000,000 frames.
-The Inverted Double Pendulum experiments were run for 10,000,000 frames.
+The Inverted Double Pendulum experiments were run for 50,000,000 frames.
 
 \end{document}
