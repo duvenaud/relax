@@ -164,7 +164,7 @@ There are several standard methods:
 One of the most generally-applicable gradient estimators is known as the score-function estimator, or REINFORCE~\citep{williams1992simple}:
 %
 \begin{align}
-\hat g_\textnormal{reinforce} =  f \left( b \right) \PT \log p(b | \theta), \qquad b \sim p(b | \theta)
+\hat g_\textnormal{REINFORCE} =  f \left( b \right) \PT \log p(b | \theta), \qquad b \sim p(b | \theta)
 \end{align}
 %
 This estimator is unbiased, but in general has high variance.
@@ -239,7 +239,7 @@ First, we consider the case where $b$ is continuous, but that $f$ cannot be diff
 We begin with the score-function gradient estimator:
 %
 \begin{align}
-\hat g_\textnormal{reinforce} = f \! \left( b \right) \PT \log p(b | \theta), \qquad b \sim p(b|\theta)
+\hat g_\textnormal{REINFORCE} = f \! \left( b \right) \PT \log p(b | \theta), \qquad b \sim p(b|\theta)
 \end{align}
 %
 Instead of differentiating through $f$, we build a surrogate of $f$ using a neural network $c_\phi$, and differentiate $c_\phi$ instead.
