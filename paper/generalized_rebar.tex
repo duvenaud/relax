@@ -594,12 +594,12 @@ Full details of our experiments can be found in Appendix~\ref{experiment appendi
 \subsubsection{Experiments}
 \label{experiments section}
 In the discrete action setting, we test our approach on the Cart Pole and Lunar Lander environments as provided by the OpenAI gym~\citep{1606.01540}.
-In the continuous action setting, we test on the MuJoCo~\citep{todorov2012mujoco}-simulated environments Inverted Pendulum and Inverted Double Pendulum also found in the OpenAI gym.
+In the continuous action setting, we test on the MuJoCo-simulated~\citep{todorov2012mujoco} environments Inverted Pendulum and Inverted Double Pendulum also found in the OpenAI gym.
 In all tested environments we observe improved performance and sample efficiency using our method.
 The results of our experiments can be seen in figure~\ref{fig:rl_results}, and table~\ref{tab:rl_results}.
 
 We found that our estimator produced policy gradients with drastically reduced variance (see figure~\ref{fig:rl_var}) allowing for larger learning rates to be used while maintaining stable training.
-In both discrete environments our estimator achieved an over 2-times speedup in convergence over the baseline.
+In both discrete environments our estimator achieved great than a 2-times speedup in convergence over the baseline.
 
 
 
