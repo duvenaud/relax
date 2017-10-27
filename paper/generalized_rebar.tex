@@ -634,20 +634,25 @@ LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $
 \renewcommand{\arraystretch}{0}
 \includegraphics[width=.25\linewidth]{figures/cp_paper} & 
 \includegraphics[width=.25\linewidth]{figures/ll_paper} &
-\includegraphics[width=.25\linewidth]{figures/ll_paper} & 
+\includegraphics[width=.25\linewidth]{figures/ip_paper} & 
 \includegraphics[width=.25\linewidth]{figures/ll_paper}\\
  \end{tabular}
-\caption{RL Experiments. Left to right: Cart Pole, Lunar Lander, Inverted Pendulum, Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles. Our model is in orange and the baseline is in blue.}
+\caption{RL Experiments. Left to right: Cart Pole, Lunar Lander, Inverted Pendulum, Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles.}
 \label{fig:rl_results}
 \end{figure}
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=.22\textwidth]{figures/cp_paper_var}
-\includegraphics[width=.22\textwidth]{figures/cp_paper_var}
-\includegraphics[width=.22\textwidth]{figures/cp_paper_var}
-\includegraphics[width=.22\textwidth]{figures/cp_paper_var}
-\caption{Variance of policy gradients (log scale). Left to right: Cart Pole, Lunar Lander, Inverted Pendulum, Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate 1 standard deviation. Our model is in orange and the baseline is in blue. After every 10th training episode 100 episodes were run and the sample log-variance is reported averaged over all policy parameters}
+\hspace*{-.3in}
+\begin{tabular}{cccc}
+\setlength{\tabcolsep}{10pt}
+\renewcommand{\arraystretch}{0}
+\includegraphics[width=.25\linewidth]{figures/cp_paper_var} & 
+\includegraphics[width=.25\linewidth]{figures/cp_paper_var} &
+\includegraphics[width=.25\linewidth]{figures/cp_paper_var} & 
+\includegraphics[width=.25\linewidth]{figures/cp_paper_var}\\
+ \end{tabular}
+\caption{Variance of policy gradients (log scale). In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate 1 standard deviation. After every 10th training episode 100 episodes were run and the sample log-variance is reported averaged over all policy parameters}
 \label{fig:rl_var}
 \end{figure}
 
