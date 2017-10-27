@@ -126,10 +126,14 @@ Furthermore, we derive improved variants of popular reinforcement learning metho
 %\end{itemize}
 
 \begin{figure}[h]
-	\hspace{-1em}
-%\centering
-\includegraphics[width=.5\textwidth]{figures/toy_losses_10000_0_499}
-\includegraphics[width=.5\textwidth]{figures/variance_100_t_499}
+\hspace{-1em}
+\centering
+\begin{tabular}{c c}
+\includegraphics[width=.48\textwidth]{figures/toy_losses_10000_0_499}
+&
+\includegraphics[width=.48\textwidth]{figures/variance_100_t_499}
+\end{tabular}
+\vspace{-1em}
 %\includegraphics[width=.325\textwidth]{figures/relaxations_t_499_which_2}
 \caption{
 \emph{Left:} Training curves comparing different gradient estimators on a toy problem: ${\mathcal{L}(\theta) = \E_{p(b|\theta)} [ (b - 0.499)^2 ]}$
@@ -212,20 +216,14 @@ Importantly, the new estimator has lower variance than $\hat g(b)$ if $\controlf
 \label{lax section}
 The reparameterization trick, while useful, is only applicable when $f$ is a known, differentiable function of a continuous random variable.
 For functions $f$ of discrete variables, gradient estimators based on continuous relaxations such as the concrete, or Gumbel-softmax relaxations~\cite{maddison2016concrete, jang2016categorical} are applicable only when $f$ is known.
-%These methods also require that $f$ is known and differentiable with respect to its inputs.
 Moreover, they require that $f$ be computable at and behave predictably at inputs outside of the domain of the function.
 These assumptions greatly restrict the space of functions for which we can apply these methods. 
 
 In this section, we introduce a gradient estimator for the expectation of a function $\PT \E_{p(b|\theta)}[f(b)]$ that can be applied even when $f$ is unknown, or not differentiable.
-%We make no assumptions about the structure of $f$ itself.
 This allows the estimator to be applied to a wide range of applications with little or no modification.
 Our estimator combines the score function estimator, the reparameterization trick, and control variates.
 We obtain an unbiased estimator whose variance can potentially be as low as the reparameterization-trick estimator, even when $f$ is not differentiable or not computable.
 
-%We begin with the case where $b$ is a reparameterizable continuous random variable.
-%We then handle the case where $b$ is discrete. 
-
-%\subsection{The \LAX{} estimator for continuous random variables}
 First, we consider the case where $b$ is continuous, but that $f$ cannot be differentiated.
 We begin with the score-function gradient estimator:
 %
@@ -241,28 +239,18 @@ Using the fact that the score-function estimator and reparameterization estimato
 \E_{p(\epsilon)} \left[ \frac{\partial c_\phi}{\partial b} \frac{\partial b(\theta, \epsilon)}{\partial \theta} \right]
 \end{align}
 %
-%
-%We first consider the case where $b$ is a continuous random variable.% and then when $b$ is discrete.
-%
-%\subsection{The \LAX{} estimator -- continuous case} 
-%\YW{The symbol $T$ usually refers to sufficient statistics. I don't think we should use it here for reparameterization. Also we should use a lower case letter.}
-%We wish to compute $\PT\E_{p(b;\theta)}[f(b)]$ where $p(b;\theta)$ is a distribution with continuous support that admits a reparameterization $b = g_\theta(\epsilon)$, where $\epsilon \sim p(\epsilon)$.
-%We assume that $f$ is a black-box, or involves operations such that $\PT f = 0$ almost everywhere or is not computable.
-%\YW{This is the motivation for our following proposal. But I find it's not motivated enough.  It sounds like an assumption. But we're actually looking at this type of problem. I suggest motivate this more in the introduction paragraph, background section. List some examples of such $f$.} 
-%Given the reparameterization, we can re-write this objective as an expectation over $\epsilon$ as  $\PT\E_{p(\epsilon)}[f(T(\epsilon, \theta)]$.
-%
-%Let $c_\phi$ be a differentiable function (such as a neural network) parametrized by $\phi$.
-%By REINFORCE, we have $\PT\E_{p(b;\theta)}[c_\phi(b)] = \E_{p(b;\theta)}[c_\phi(b)\LP{b;\theta}]$.
-%Hence, by adding and subtracting it, we have
-%
 %\begin{align}
 %\PT\E_{p(b;\theta)}[f(b)] &= \E_{p(b;\theta)}\left[ \left[f(b) - c_\phi(b)\right]\cdot\LP{b;\theta}\right]+\PT\E_{p(b;\theta)}[c_\phi(b)]\nonumber\\
 %&= \E_{p(\epsilon)} \left[ \left[f(g_\theta(\epsilon)) - c_\phi(g_\theta(\epsilon))\right]\cdot\LP{b} + \PT r(g_\theta(\epsilon))\right]\nonumber
 %\end{align}
 %
+<<<<<<< HEAD
 %Which allows us to define our estimator below as: 
 %
 We can simply add the score-function estimator and subtract the reparameterization estimator, to produce a gradient estimator which we call LAX:
+=======
+We can simply add the score-function estimator and subtract the reparameterization estimator, to get:
+>>>>>>> 82f924cccfae59e8d24d0fba04ea8cef2a0a75f4
 %
 \begin{align}
 \label{eq:cont_est}
@@ -270,6 +258,7 @@ We can simply add the score-function estimator and subtract the reparameterizati
 \end{align}
 %
 This gives an unbiased estimator for any choice of $c_\phi$.
+
 
 \subsection{Optimizing the gradient control variate with gradients}
 
@@ -279,7 +268,7 @@ We simply optimize $c_\phi$ using stochastic gradient descent, at the same time 
 
 To optimize $c_\phi$, we require the gradient of the variance of our gradient estimator.
 To estimate these gradients, we could simply differentiate through the empirical variance over each mini-batch.
-Or, following \cite{tucker2017rebar} and \cite{ruiz2016overdispersed}, we can construct an unbiased, single-sample estimator using the fact that our gradient estimator is unbiased.
+Or, following \cite{ruiz2016overdispersed} and \cite{tucker2017rebar}, we can construct an unbiased, single-sample estimator using the fact that our gradient estimator is unbiased.
 For any unbiased gradient estimator $\hat g$ with parameters $\phi$:
 %
 \begin{align}
@@ -763,8 +752,8 @@ LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $
 \centering
 \includegraphics[width=.22\textwidth]{figures/cp_paper}
 \includegraphics[width=.22\textwidth]{figures/ll_paper}
-\includegraphics[width=.22\textwidth]{figures/Inverted_Pendulum_A2C}
-\includegraphics[width=.22\textwidth]{figures/Inverted_Double_Pendulum_A2C}
+\includegraphics[width=.22\textwidth]{figures/Inverted_Pendulum_1mil}
+\includegraphics[width=.22\textwidth]{figures/Inverted_Double_Pendulum_10mil}
 \caption{RL Experiments. Left to right: Cart Pole, Lunar Lander, Inverted Pendulum, Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles. Our model is in orange and the baseline is in blue.}
 \label{fig:rl_results}
 \end{figure}
