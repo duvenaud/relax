@@ -587,7 +587,7 @@ In contrast, our method is a single-sample estimator.
 They introduce a sampling distribution, and optimize an objective similar to ours.
 \citet{wierstra2014natural} also introduce a sampling distribution to build a gradient estimator, and consider optimizing the sampling distribution.
 
-In the reinforcement learning setting, the work most similar to ours is $Q$-prop \cite{haarnoja2017reinforcement}.
+In the reinforcement learning setting, the work most similar to ours is $Q$-prop \citep{haarnoja2017reinforcement}.
 Like our method, $Q$-prop reduces the variance of the policy gradient with an learned, action-dependent control variate whose expectation is approximated via a monte-carlo sample from a taylor series expansion of the control variate.
 Unlike our method, their control variate is trained off-policy. While our method is applicable in both the continuous and discrete action domain, $Q$-prop is only applicable in environments with continuous actions. We are interested in the potential of training our control variate off-policy, but we leave that for further work. 
 
@@ -617,7 +617,8 @@ We demonstrate the effectiveness of our estimator on a number of challenging opt
 	\caption{ The relaxation for a toy loss function ${\mathcal{L}(\theta) = \E_{p(b|\theta)} [ (b - 0.499)^2 ]}$ using REINFORCE (blue), REBAR (green), and RELAX (red)} 
 	\label{learned-relaxations}
 \end{wrapfigure}
-We seek to minimize $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where {$p(b|\theta) = \textnormal{Bernoulli}(b|\theta)$}. \cite{tucker2017rebar} set the target $t = .45$.
+We seek to minimize $\mathbb{E}_{p(b|\theta)}[(b - t)^2]$ as a function of the parameter $\theta$ where {$p(b|\theta) = \textnormal{Bernoulli}(b|\theta)$}.
+\citet{tucker2017rebar} set the target $t = .45$.
 We focus on the more challenging case where $t = .499$.
 Figures~\ref{first figure}a and \ref{first figure}b and shows the relative performance and gradient variance of REINFORCE, REBAR, and RELAX.
 
@@ -631,13 +632,8 @@ Next, we evaluate the \RELAX{} estimator on the task of training a variational a
 We reproduced a subset of the experiments from \citet{tucker2017rebar}, training models with 1 and 2 layers of 200 Bernoulli random variables with linear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
 Details of these models and our experimental procedure can be found in appendix~\ref{app_disc_vae}.
 
-%them and a model with 1 layer of Bernoulli random variables with non-linear mappings between layers.
-
 To take advantage of the available structure in the loss function, we choose the form of our control variate to be $$ c_\phi(z) = f(\sigma_\lambda(z))+  \hat{r}_\rho(z) $$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function (the evidence lower-bound) evaluated at continuously relaxed inputs as in REBAR.  
-%We found that due to the complicated structure of the loss function, the RELAX estimator performed worse than REBAR. Instead we add a learned relaxation to REBAR's control variate which we denote relaxed-REBAR.
-%Our estimator takes the form of \eqref{eq:RELAX} with $$\bar \relaxed(z) = \relaxed(z) + f(\sigma_\lambda(z))$$ where $\relaxed(z)$ is a learned neural network and $f(\sigma_\lambda(z))$ is the Concrete relaxation of REBAR with temperature parameter $\lambda$.
 %
-%We compare  \cite{tucker2017rebar}.
 In all experiments, the learned control variate improved the training and validation performance, over the state-of-the-art baseline of REBAR. 
 
 \begin{table}[h]
@@ -725,18 +721,19 @@ In all experiments, RELAX provides an increase in rate of convergence.
 \subsection{Reinforcement learning}
 We apply our gradient estimator to a few simple reinforcement learning environments with discrete and continuous actions.
 We use the \RELAX{} and \LAX{} estimators for discrete and continuous actions, respectively.
-We compare with the advantage actor-critic algorithm (A2C)~\cite{sutton2000policy} as a baseline. Full details of our experiments can be found in Appendix~\ref{experiment appendix}.
+We compare with the advantage actor-critic algorithm (A2C)~\citep{sutton2000policy} as a baseline.
+Full details of our experiments can be found in Appendix~\ref{experiment appendix}.
 
 % <Dami: i took it out because it doesn't match with the continuous case, and we dont' have variance plots yet>We are aware that better results could be obtained with bootstrapping and larger batch sizes but we wanted to work in the highest possible variance setting to demonstrate the variance reduction capabilities of our approach.
 
-%We test our alrgorithm on the Cart-Pole and Lunar-Lander environments from the OpenAI Gym~\cite{1606.01540}.
+%We test our alrgorithm on the Cart-Pole and Lunar-Lander environments from the OpenAI Gym~\citep{1606.01540}.
 %We run the Cart-Pole and Lunar-Lander environments for 250 and 1000 episodes, respectively and plot reward and the log-variance of the policy gradients in figure~X.
 
 \subsubsection{Experiments}
 
-In the discrete action setting, we test our approach on the Cart Pole and Lunar Lander environments as provided by the OpenAI gym~\cite{1606.01540}. In the continuous action setting, we test on the MuJoCo~\cite{todorov2012mujoco}-simulated environments Inverted Pendulum and Inverted Double Pendulum also found in the OpenAI gym.
+In the discrete action setting, we test our approach on the Cart Pole and Lunar Lander environments as provided by the OpenAI gym~\citep{1606.01540}. In the continuous action setting, we test on the MuJoCo~\citep{todorov2012mujoco}-simulated environments Inverted Pendulum and Inverted Double Pendulum also found in the OpenAI gym.
 
-In all tested environments we observe improved performance and sample efficiency using our method. The results of our experiments can be seen in figures \ref{fig:rl_results}, [CITE OTHER RELEVANT FIGURES] and table~\ref{tab:rl_results}.
+In all tested environments we observe improved performance and sample efficiency using our method. The results of our experiments can be seen in figure~\ref{fig:rl_results}, [CITE OTHER RELEVANT FIGURES] and table~\ref{tab:rl_results}.
 
 We found that our estimator produced policy gradients with drastically reduced variance (see figure~\ref{fig:rl_var}) allowing for larger learning rates to be used while maintaining stable training. In both discrete environments our estimator achieved an over 2-times speedup in convergence over the baseline.
 
@@ -948,12 +945,14 @@ Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:r
 In the one layer models we optimize the evidence lower bound (ELBO): $$\log p(x) \geq \mathcal{L}(\theta) = \E_{q(b|x)}[\log p(x|b) + \log p(b) - \log q(b|x)]$$ where $q(b_1|x) = \sigma(x\cdot W_q + \beta_q)$ and $p(x| b_1) = \sigma(b_1\cdot W_p + \beta_p)$ with weight matrices $W_q,W_p$ and bias vectors $\beta_q,\beta_p$.
 The parameters of the prior $p(b)$ are also learned.
 
-We run all models for $2,000,000$ iterations with a batch size of $24$. For the REBAR models, we tested learning rates in $\{.005, .001, .0005,  .0001, .00005\}$. 
+We run all models for $2,000,000$ iterations with a batch size of $24$.
+For the \REBAR{} models, we tested learning rates in $\{.005, .001, .0005,  .0001, .00005\}$. 
 
-RELAX adds more hyperparameters.
+\RELAX{} adds more hyperparameters.
 These are the depth of the neural network component of our control variate $r_\rho$, the weight decay placed on the network, and the scaling on the learning rate for the control variate.
 We tested neural network models with $l$ layers of 200 units using the ReLU nonlinearity with $l \in \{2, 4\}$.
-We trained the control variate with weight decay in $\{.001, .0001\}$. We trained the control variate with learning rate scaling in $\{1, 10\}$.
+We trained the control variate with weight decay in $\{.001, .0001\}$.
+We trained the control variate with learning rate scaling in $\{1, 10\}$.
 
 To limit the size of hyperparameter search for the RELAX models, we only test the best performing learning rate for the REBAR baseline and the next largest learning rate in our search set.
 In many cases, we found that RELAX allowed our model to converge at learning rates which made the REBAR estimators diverge.
@@ -968,38 +967,47 @@ We run an identical hyperpameter search in the 2 layer model as we do in the 1 l
 
 
 \subsection{Discrete RL}
-In both the baseline A2C and RELAX models, the policy and control variate (value function in the baseline model) were 2 layer neural networks with 10 units per layer. The ReLU non linearity was used on all layers except for the output layer.
+In both the baseline A2C and RELAX models, the policy and control variate (value function in the baseline model) were 2 layer neural networks with 10 units per layer.
+The ReLU non linearity was used on all layers except for the output layer.
 
-For these tasks we estimate the policy gradient with a single monte-carlo sample. We run one episode of the environment to completion, compute the discounted rewards, and run one iteration of gradient decent. We believe using larger batches will improve performance but would less clearly demonstrate the potential of our method. 
+For these tasks we estimate the policy gradient with a single Monte Carlo sample.
+We run one episode of the environment to completion, compute the discounted rewards, and run one iteration of gradient decent.
+We believe using larger batches will improve performance but would less clearly demonstrate the potential of our method. 
 
 As our control variate does not have the same interpretation as the value function of A2C, it was not directly clear how to add reward bootstrapping and other variance reduction techniques common in RL into our model. We leave the task of incorporating these and other variance reduction techniques to future work.  
 
-Both models were trained with the RMSProp \cite{Tieleman2012} optimizer and a reward discount factor of $.99$ was used.
+Both models were trained with the RMSProp~\citep{Tieleman2012} optimizer and a reward discount factor of $.99$ was used.
 
-Both models have 2 hyperparameters to tune; the global learning rate and the scaling factor on the learning rate for the control variate (or value function). We complete a grid search for both parameters in $\{0.01, 0.003, 0.001\}$ and present the model which ``solves'' the task in the fewest number of episodes averaged over 5 random seeds. ``Solving'' the tasks was defined by the creators of the OpenAI gym \cite{1606.01540}. The Cart Pole task is considered solved if the agent receives an average reward greater than 195 over 100 consecutive episodes. The Lunar Lander task is considered solved if the agent receives an average reward greater than 200 over 100 consecutive epsidoes. 
+Both models have 2 hyperparameters to tune; the global learning rate and the scaling factor on the learning rate for the control variate (or value function).
+We complete a grid search for both parameters in $\{0.01, 0.003, 0.001\}$ and present the model which ``solves'' the task in the fewest number of episodes averaged over 5 random seeds.
+``Solving'' the tasks was defined by the creators of the OpenAI gym~\citep{1606.01540}.
+The Cart Pole task is considered solved if the agent receives an average reward greater than 195 over 100 consecutive episodes.
+The Lunar Lander task is considered solved if the agent receives an average reward greater than 200 over 100 consecutive episodes. 
 
-The Cart Pole experiments were run for 250,000 frames. The Lunar Lander experiments were run for 5,000,000 frames. 
+The Cart Pole experiments were run for 250,000 frames.
+The Lunar Lander experiments were run for 5,000,000 frames. 
 
 \subsection{Continuous RL}
-The continuous tasks uses both the value function and the control variate to enable bootstrapping, which is needed due to the increased complexity of the problem. Our model architecture is base on OpenAI's baseline\cite{?} code for ACKTR\cite{?}. The three models- policy, value, and control variate, are 2 layer neural networks with 64 hidden units per layer. The value and control variate networks are identical, with the ELU nonlinearity in each hidden layer. The policy network has Tanh nonlinearity. The policy network, which parameterizes the gaussian policy comprises of a network (with the architecture mentioned above) that outputs the mean, and a separate, trainable log standard deviation value that is not input dependent. All three networks have a linear output layer. We selected the batch size to be 2500, meaning for a fixed timestep (2500) we collect multiple rollouts of a task and update the networks' parameters with the batch of episodes. Per one policy update, we optimize both the value and control variate network multiple times. The number of times we train  the value network is fixed to 25, while for the control variate, it was chosen to be a hyperparameter. 
+The continuous tasks uses both the value function and the control variate to enable bootstrapping, which is needed due to the increased complexity of the problem. Our model architecture is based on OpenAI's baseline\citep{?} code for ACKTR\citep{?}.
+The three models- policy, value, and control variate, are 2 layer neural networks with 64 hidden units per layer.
+The value and control variate networks are identical, with the ELU nonlinearity in each hidden layer.
+The policy network has \texttt{tanh} nonlinearity.
+The policy network, which parameterizes the gaussian policy comprises of a network (with the architecture mentioned above) that outputs the mean, and a separate, trainable log standard deviation value that is not input dependent.
+All three networks have a linear output layer.
+We selected the batch size to be 2500, meaning for a fixed timestep (2500) we collect multiple rollouts of a task and update the networks' parameters with the batch of episodes.
+Per one policy update, we optimize both the value and control variate network multiple times.
+The number of times we train  the value network is fixed to 25, while for the control variate, it was chosen to be a hyperparameter. 
 %need to add information on whether we build on top of reinforce, or a2c or a2c+GAE
-All models were trained, each with a separate ADAM \cite{kingma2015adam} otimizer, with $\beta_1=0.9$, $\beta_2=0.999$, and $\epsilon=1e-08$. 
+All models were trained, each with a separate ADAM~\citep{kingma2015adam} otpimizer, with $\beta_1=0.9$, $\beta_2=0.999$, and $\epsilon=1e-08$. 
 
-The baseline A2C case has 2 hyperparameters to tune: the learning rate for the optimizer for the policy and value network. A grid search was done over the set: $\{0.03, 0.003, 0.003\}$. \RELAX has 4 hyperparameters to tune: 3 learning rates for the optimizer per network, and the number of training iterations of the control variate per policy gradient update. Due to the large number of hyperparameters, we restricted the size of the grid search set to $\{0.003, 0.0003\}$ for the learning rates, and $\{5, 25, 50\}$ for the control variate training iteration number. We picked the hyperparameter setting that yielded the shortest episode-to-completion time. As with the discrete case, we used the definition of completion defined by OpenAI gym\cite{1606.01540} for each task. 
+The baseline A2C case has 2 hyperparameters to tune: the learning rate for the optimizer for the policy and value network.
+A grid search was done over the set: $\{0.03, 0.003, 0.003\}$.
+\RELAX{} has 4 hyperparameters to tune: 3 learning rates for the optimizer per network, and the number of training iterations of the control variate per policy gradient update.
+Due to the large number of hyperparameters, we restricted the size of the grid search set to $\{0.003, 0.0003\}$ for the learning rates, and $\{5, 25, 50\}$ for the control variate training iteration number.
+We picked the hyperparameter setting that yielded the shortest episode-to-completion time.
+As with the discrete case, we used the definition of completion defined by OpenAI gym~\citep{1606.01540} for each task. 
 
-The Inverted Pendulum experiments were run for 1,000,000 frames. The Inverted Double Pendulum experiments were run for 10,000,000 frames.
+The Inverted Pendulum experiments were run for 1,000,000 frames.
+The Inverted Double Pendulum experiments were run for 10,000,000 frames.
 
 \end{document}
-
-%For all models, the policy and control variate were both neural networks with 2 layers of 10 units using the ReLU nonlinearity.
-%We first tuned the learning rate using the baseline A2C then ran \RELAX{} with the same learning rate. 
-%Again, we are aware that improved results could be obtained by further tuning the learning rate for \RELAX{} but we wanted to illustrate the improvement provided solely by the improved control variate. 
-
-%\paragraph{Experimental details}
-%We estimate the policy gradient using a single Monte Carlo sample produced from a one episode roll-out of the current policy.
-%We note that improved performance could be achieved by using more samples, but we intended to test our model in the highest-possible variance setting. 
-%In all experiments both the policy and control variate were two layer neural networks with RELU non-linearities. Each intermediate layer's output had dimension 10.
-%We searched over two hyper-parameters; the global learning rate and the scaling on the loss from the control variate or value function.
-%For each we tested values in $[.01, .003, .001]$.
-%Between our model and the baseline and the learning rates were also constant across tests making it that all improvements derive from having a lower variance estimate of the policy gradient.
-%Presented results are obtained by averaging over 5 runs with different random seeds. We run the CartPole and LunarLander for $250,000$ and $5,000,000$ time-steps respectively. 
