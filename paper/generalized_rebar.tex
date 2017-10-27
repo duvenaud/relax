@@ -553,11 +553,16 @@ In all experiments, RELAX provides an increase in rate of convergence.
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=.22\textwidth]{figures/MNIST_L1}
-\includegraphics[width=.22\textwidth]{figures/MNIST_L2}
-\includegraphics[width=.22\textwidth]{figures/OMNIGLOT_L1}
-\includegraphics[width=.22\textwidth]{figures/OMNIGLOT_L2}
-\caption{Training curves for VAE Experiments. Left to right: MNIST 1 Layer, MNIST 2 Layer, Omniglot 1 Layer, Omniglot 2 Layer. The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
+\hspace*{-1.1in}
+\begin{tabular}{cccc}
+\setlength{\tabcolsep}{10pt}
+\renewcommand{\arraystretch}{0}
+\includegraphics[width=.31\textwidth]{figures/MNIST_L1} &
+\includegraphics[width=.31\textwidth]{figures/MNIST_L2} &
+\includegraphics[width=.33\textwidth]{figures/OMNIGLOT_L1} &
+\includegraphics[width=.31\textwidth]{figures/OMNIGLOT_L2}\\
+ \end{tabular}
+\caption{Training curves for VAE Experiments. L1 represents the 1 layer linear model and L2 represents the 2 layer linear model. The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
 \label{fig:vae curves}
 \end{figure}
 
@@ -609,14 +614,14 @@ Definition of solving each task can be found in appendix~\ref{experiment appendi
 
 \begin{figure}[!htb]
 \centering
-\hspace*{-.8in}
+\hspace*{-.9in}
 \begin{tabular}{cccc}
 \setlength{\tabcolsep}{10pt}
 \renewcommand{\arraystretch}{0}
-\includegraphics[width=.28\linewidth]{figures/cp_paper} & 
-\includegraphics[width=.27\linewidth]{figures/ll_paper} &
-\includegraphics[width=.29\linewidth]{figures/ip_paper} & 
-\includegraphics[width=.27\linewidth]{figures/idp_paper}\\
+\includegraphics[width=.30\linewidth]{figures/cp_paper} & 
+\includegraphics[width=.29\linewidth]{figures/ll_paper} &
+\includegraphics[width=.31\linewidth]{figures/ip_paper} & 
+\includegraphics[width=.29\linewidth]{figures/idp_paper}\\
  \end{tabular}
 \caption{RL Experiments. Left to right: Cart Pole, Lunar Lander, Inverted Pendulum, Inverted Double Pendulum. In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate the 25th and 75th percentiles.}
 \label{fig:rl_results}
@@ -624,14 +629,14 @@ Definition of solving each task can be found in appendix~\ref{experiment appendi
 
 \begin{figure}[h]
 \centering
-\hspace*{-.3in}
+\hspace*{-.9in}
 \begin{tabular}{cccc}
 \setlength{\tabcolsep}{10pt}
 \renewcommand{\arraystretch}{0}
-\includegraphics[width=.25\linewidth]{figures/cp_paper_var} & 
-\includegraphics[width=.25\linewidth]{figures/cp_paper_var} &
-\includegraphics[width=.25\linewidth]{figures/cp_paper_var} & 
-\includegraphics[width=.25\linewidth]{figures/cp_paper_var}\\
+\includegraphics[width=.29\linewidth]{figures/cp_paper_var} & 
+\includegraphics[width=.29\linewidth]{figures/ll_paper_var} &
+\includegraphics[width=.29\linewidth]{figures/ip_paper_var} & 
+\includegraphics[width=.27\linewidth]{figures/idp_paper_var}\\
  \end{tabular}
 \caption{Variance of policy gradients (log scale). In each curve, the center line indicates the mean reward over 5 random seeds. The opaque bars indicate 1 standard deviation. After every 10th training episode 100 episodes were run and the sample log-variance is reported averaged over all policy parameters}
 \label{fig:rl_var}
