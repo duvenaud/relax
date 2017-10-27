@@ -142,7 +142,7 @@ Furthermore, we derive improved variants of popular reinforcement learning metho
 \section{Background: Gradient estimators}
 How can we choose the parameters of a distribution to maximize an expectation?
 This problem comes up in reinforcement learning, where we must choose the parameters $\theta$ of a policy distribution $\pi(a|s, \theta)$ to maximize the expected reward $\mathbb{E}_{\tau \sim \pi} \left[ R \right]$ over state-action trajectories $\tau$.
-It also comes up in fitting latent-variable models, when we wish to maximize the marginal probability ${p(x|\theta) = \sum p(x|z) p(z|\theta) = \mathbb{E}_{p(z|\theta)} \left[ p(x|z) \right]}$.
+It also comes up in fitting latent-variable models, when we wish to maximize the marginal probability ${p(x|\theta) = \sum_z p(x|z) p(z|\theta) = \mathbb{E}_{p(z|\theta)} \left[ p(x|z) \right]}$.
 In this paper, we'll consider the general problem of optimizing
 %
 \begin{align}
@@ -151,7 +151,7 @@ In this paper, we'll consider the general problem of optimizing
 %
 %Later, we will discuss the case when $\loss{}$ depends directly on $\theta$.
 
-When the parameters $\theta$ are high-dimensional, gradient-based optimization is a appealing because it provides information about how to adjust each parameter individually.
+When the parameters $\theta$ are high-dimensional, gradient-based optimization is appealing because it provides information about how to adjust each parameter individually.
 Stochastic optimization is essential for scalablility, but is only guaranteed to converge to a fixed point of the original objective when the stochastic gradients $\hat g$ are unbiased, i.e. ${\mathbb{E} \left[ \hat g \right] = \PT \mathbb{E}_{p(b|\theta)} \left[ f(b) \right]}$~\citep{robbins1951stochastic}.
 
 %Below we review past work in gradient estimation.
@@ -181,7 +181,7 @@ When $f$ is continuous and differentiable, and the latent variables $b$ can be w
 \end{align}
 %
 This gradient estimator is often used when training high-dimensional, continuous latent-variable models, such as variational autoencoders or GANs.
-One intuition for why this gradient estimator is preferable to REINFORCE is that it depends on $\partial f / \partial b$, which exposes the dependence of $f$ on $b$.
+One intuition for why this gradient estimator is preferable to REINFORCE is that it depends on $\frac{\partial f}{\partial b}$, which exposes the dependence of $f$ on $b$.
 % NOTE for revision: last sentence is confusing. What is the advantage of exposing the dependence of f on b for a gradient estimator?
 
 \paragraph{Control variates}
@@ -214,13 +214,13 @@ The reparameterization trick, while useful, is only applicable when $f$ is a kno
 For functions $f$ of discrete variables, gradient estimators based on continuous relaxations such as the concrete, or Gumbel-softmax relaxations~\cite{maddison2016concrete, jang2016categorical} are applicable only when $f$ is known.
 %These methods also require that $f$ is known and differentiable with respect to its inputs.
 Moreover, they require that $f$ be computable at and behave predictably at inputs outside of the domain of the function.
-While these assumptions often hold, they greatly restrict the space of functions for which we can apply these methods. 
+These assumptions greatly restrict the space of functions for which we can apply these methods. 
 
 In this section, we introduce a gradient estimator for the expectation of a function $\PT \E_{p(b|\theta)}[f(b)]$ that can be applied even when $f$ is unknown, or not differentiable.
 %We make no assumptions about the structure of $f$ itself.
 This allows the estimator to be applied to a wide range of applications with little or no modification.
 Our estimator combines the score function estimator, the reparameterization trick, and control variates.
-We obtain an unbiased estimator whose variance can potentially be as low as reparameterization-trick estimator, even when $f$ is not differentiable or not computable.
+We obtain an unbiased estimator whose variance can potentially be as low as the reparameterization-trick estimator, even when $f$ is not differentiable or not computable.
 
 %We begin with the case where $b$ is a reparameterizable continuous random variable.
 %We then handle the case where $b$ is discrete. 
@@ -262,7 +262,7 @@ Using the fact that the score-function estimator and reparameterization estimato
 %
 %Which allows us to define our estimator below as: 
 %
-We can simply add the score-function estimator and subtract the reparameterization estimator, to get:
+We can simply add the score-function estimator and subtract the reparameterization estimator, to produce a gradient estimator which we call LAX:
 %
 \begin{align}
 \label{eq:cont_est}
@@ -294,7 +294,7 @@ For any unbiased gradient estimator $\hat g$ with parameters $\phi$:
 %
 Thus, an unbiased single-sample estimate of the gradient of the variance of $\hat g$ is given by {$2 \hat g \frac{\partial \hat g}{\partial \phi}$}.
 
-This method of directly minimizing the variance of the gradient estimator stands in contrast to other methods such as Q-Prop~\citep{gu2016q} and advantage actor-critic~\citep{mnih2016asynchronous}, which train the control variate to minimize the squared error $(f(b) - c_\phi(b))^2$.
+This method of directly minimizing the variance of the gradient estimator stands in contrast to other methods such as Q-Prop~\citep{gu2016q} and advantage actor-critic~\citep{sutton2000policy}, which train the control variate to minimize the squared error $(f(b) - c_\phi(b))^2$.
 Our algorithm, which jointly optimizes the parameters $\theta$ and the surrogate $c_\phi$ is given in Algorithm~\ref{lax}.
 %[Todo: talk about the variance of the gradient estimator of the variance of the gradient estimators?]
 
@@ -347,7 +347,7 @@ Specifically, we evaluate our control variate both at a relaxed input $z \sim p(
 Thus we define our estimator as
 %
 \begin{align}
-\hat g_\textnormal{RELAX} = \left[ f(b) - c_\phi(\hat{z}) \right] \PT \log p(b|\theta) + \PT c_\phi(z) - \PT c_\phi (\tilde{z}) \\
+\hat g_\textnormal{RELAX} = \left[ f(b) - c_\phi(\tilde{z}) \right] \PT \log p(b|\theta) + \PT c_\phi(z) - \PT c_\phi (\tilde{z}) \\
 \qquad b = H(z), z \sim p(z|\theta), \tilde{z} \sim p(z|b, \theta) \nonumber
 \end{align}
 %
@@ -495,7 +495,7 @@ By reinforcement learning, we refer to the problem of optimizing the parameters 
 In this setting, the random variable being integrated over is $\tau$, which denotes a series of actions and states $[(s_1, a_1), (s_2, a_2), ..., (s_T, a_T)]$.
 The function whose expectation is being optimized, $R$, maps $\tau$ to the sum of rewards ${R(\tau) = \sum_{t=1}^{T} r_t(s_t, a_t)}$.
 
-Again, we want to estimate the gradient of an expectation of a black-box function: $\nicefrac{\partial \mathbb{E}_{p(\tau|\theta)}[R(\tau)]}{\partial \theta}$.
+Again, we want to estimate the gradient of an expectation of a black-box function: $ \PT \E_{p(\tau|\theta)}[R(\tau)]$.
 The \emph{de facto} standard approach is the advantage actor-critic estimator (A2C)~\citep{sutton2000policy}:% which is the standard policy gradient algorithm. 
 %We seek to compute
 %
