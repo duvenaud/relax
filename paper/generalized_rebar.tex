@@ -164,7 +164,7 @@ There are several standard methods:
 One of the most generally-applicable gradient estimators is known as the score-function estimator, or REINFORCE~\citep{williams1992simple}:
 %
 \begin{align}
-\hat g_\textnormal{REINFORCE} =  f \left( b \right) \PT \log p(b | \theta), \qquad b \sim p(b | \theta)
+\hat g_\textnormal{REINFORCE}[f] =  f \left( b \right) \PT \log p(b | \theta), \qquad b \sim p(b | \theta)
 \end{align}
 %
 This estimator is unbiased, but in general has high variance.
@@ -175,7 +175,7 @@ When $f$ is continuous and differentiable, and the latent variables $b$ can be w
 %
 \begin{align}
 %\hat g_\textnormal{reparam} = \frac{\partial f \left( b(\theta, \epsilon) \right)}{\partial \theta}, \qquad \epsilon \sim p(\epsilon)
-\hat g_\textnormal{reparam}
+\hat g_\textnormal{reparam}[f]
 = \PT f \left( b \right)
 = \frac{\partial f}{\partial T}\frac{\partial T}{\partial \theta} , 
 \qquad \epsilon \sim p(\epsilon) 
@@ -236,33 +236,36 @@ Our estimator combines the score function estimator, the reparameterization tric
 We obtain an unbiased estimator whose variance can potentially be as low as the reparameterization-trick estimator, even when $f$ is not differentiable or not computable.
 
 First, we consider the case where $b$ is continuous, but that $f$ cannot be differentiated.
-We begin with the score-function gradient estimator:
+%We begin with the score-function gradient estimator:
 %
-\begin{align}
-\hat g_\textnormal{REINFORCE} = f \! \left( b \right) \PT \log p(b | \theta), \qquad b \sim p(b|\theta)
-\end{align}
+%\begin{align}
+%\hat g_\textnormal{REINFORCE} = f \! \left( b \right) \PT \log p(b | \theta), \qquad b \sim p(b|\theta)
+%\end{align}
 %
 Instead of differentiating through $f$, we build a surrogate of $f$ using a neural network $c_\phi$, and differentiate $c_\phi$ instead.
-Using the fact that the score-function estimator and reparameterization estimator have the same expectation:
+Since the score-function estimator and reparameterization estimator have the same expectation,
 %
-\begin{align}
-\E_{p(\epsilon)} \left[ c_\phi ( b(\epsilon, \theta)) \PT \log p(b | \theta) \right] =
-\E_{p(\epsilon)} \left[ \frac{\partial c_\phi}{\partial b} \frac{\partial b(\theta, \epsilon)}{\partial \theta} \right]
-\end{align}
+%\begin{align}
+%\E_{p(\epsilon)} \left[ c_\phi ( b(\epsilon, \theta)) \PT \log p(b | \theta) \right] =
+%\E_{p(\epsilon)} \left[ \frac{\partial c_\phi}{\partial b} \frac{\partial b(\theta, \epsilon)}{\partial \theta} \right]
+%\end{align}
 %
 %\begin{align}
 %\PT\E_{p(b;\theta)}[f(b)] &= \E_{p(b;\theta)}\left[ \left[f(b) - c_\phi(b)\right]\cdot\LP{b;\theta}\right]+\PT\E_{p(b;\theta)}[c_\phi(b)]\nonumber\\
 %&= \E_{p(\epsilon)} \left[ \left[f(g_\theta(\epsilon)) - c_\phi(g_\theta(\epsilon))\right]\cdot\LP{b} + \PT r(g_\theta(\epsilon))\right]\nonumber
 %\end{align}
 %
-We can simply add the score-function estimator and subtract the reparameterization estimator, to produce a gradient estimator which we call LAX:
+we can simply subtract the score-function estimator for $c_\phi$ and add the reparameterization estimator for $c_\phi$, to produce a gradient estimator which we call LAX:
 %
 \begin{align}
 \label{eq:cont_est}
-\hat g_\LAX = \left[ f(b) -c_\phi(b) \right] \PT \log p(b|\theta) + \PT c_\phi(b) \qquad b = T(\theta, \epsilon), \epsilon \sim p(\epsilon).
+\hat g_\LAX &= 
+g_\textnormal{REINFORCE}[f] - g_\textnormal{REINFORCE}[c_\phi] + g_\textnormal{reparam}[c_\phi] \nonumber\\
+&= \left[ f(b) -c_\phi(b) \right] \PT \log p(b|\theta) + \PT c_\phi(b) \qquad b = T(\theta, \epsilon), \epsilon \sim p(\epsilon).
 \end{align}
 %
-This estimator is unbiased for any choice of $c_\phi$ and when $c_\phi = f$, our estimator becomes the reparameterization estimator for $c_\phi$. Thus our estimator can have variance at least as low as the reparameterization estimator. 
+This estimator is unbiased for any choice of $c_\phi$ and when $c_\phi = f$, our estimator becomes the reparameterization estimator for $c_\phi$.
+Thus our estimator can have variance at least as low as the reparameterization estimator. 
 
 
 \subsection{Optimizing the gradient control variate with gradients}
@@ -474,7 +477,7 @@ While our method is applicable in both the continuous and discrete action domain
 \section{Applications}
 \label{Applications}
 %
-\begin{wrapfigure}[16]{R}{0.50\textwidth}
+\begin{wrapfigure}[21]{R}{0.50\textwidth}
 \centering
 \vspace{-10mm}
 \begin{tabular}{c}
@@ -486,7 +489,9 @@ RELAX\\
 \hspace{-3mm}\includegraphics[width=0.50\columnwidth, clip, trim=0.5cm 0cm 0.8cm 7.2cm]{figures/relaxations_t_499_which_2}
 \end{tabular}
 \vspace*{-6mm}
-\caption{The optimal relaxation for a toy loss function, using different gradient estimators.}
+\caption{The optimal relaxation for a toy loss function, using different gradient estimators.
+Because REBAR uses the concrete relaxation of $f$, which happens to be implemented as a quadratic function, the optimal relaxation is constrained to be a warped quadratic.
+In contrast, RELAX can choose a free-form relaxation.}
 % ${\mathcal{L}(\theta) = \E_{p(b|\theta)} [ (b - 0.499)^2 ]}$ using REINFORCE (blue), REBAR (green), and RELAX (red)} 
 \label{learned-relaxations}
 \end{wrapfigure}
