@@ -757,13 +757,14 @@ $$ z = \log \frac{\theta}{1 - \theta} + \log \frac{u}{1-u}, \qquad u \sim \text{
 $$ 
 We can sample from $p(z|b, \theta)$ with 
 \[
-\tilde{z} =    \left\{
+v' =    \left\{
 \begin{array}{ll}
       v\cdot\theta & b = 0 \\
       v(1-\theta) + \theta & b = 1 \\
 \end{array} 
 \right.
 \]
+$$ \tilde{z} = \log \frac{\theta}{1 - \theta} + \log \frac{v'}{1-v'},$$
 where $v \sim \text{uniform}[0, 1]$.
 
 \paragraph{Categorical} When $p(b|\theta)$ is a Categorical distribution where $\theta_i = p(b=i|\theta)$, we let $H(z) = \text{argmax}(z)$ and we sample from $p(z|\theta)$ with 
