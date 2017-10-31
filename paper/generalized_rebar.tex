@@ -73,8 +73,7 @@
 Optimizing control variates for \\ black-box gradient estimation}
 % Optimizing gradient control variates\\ for black-box expectations}
 
-\author{
-  Will S. Grathwohl, Dami Choi, Yuhuai Wu, Geoff Roeder, David Duvenaud \\
+\author{Will Grathwohl, Dami Choi, Yuhuai Wu, Geoff Roeder, David Duvenaud \\
   University of Toronto\\
   Vector Institute\\
   Toronto, ON \\
@@ -82,7 +81,7 @@ Optimizing control variates for \\ black-box gradient estimation}
 }
 
 
-\iclrfinalcopy 
+%\iclrfinalcopy 
 
 \begin{document}
 \maketitle
@@ -512,7 +511,7 @@ Figure~\ref{learned-relaxations} plots the learned surrogate $c_\phi$ for a fixe
 
 \subsection{Discrete variational autoencoder}
 Next, we evaluate the \RELAX{} estimator on the task of training a variational autoencoder~\citep{kingma2013autoencoding, rezende2014stochastic} with Bernoulli latent variables.
-We reproduced the experiments from \citet{tucker2017rebar}, training models with 1 or 2 layers of 200 Bernoulli random variables with linear or nonlinear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
+We reproduced the variational autoencoder experiments from \citet{tucker2017rebar}, training models with 1 or 2 layers of 200 Bernoulli random variables with linear or nonlinear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
 Details of these models and our experimental procedure can be found in appendix~\ref{app_disc_vae}.
 
 To take advantage of the available structure in the loss function, we choose the form of our control variate to be $c_\phi(z) = f(\sigma_\lambda(z))+  \hat{r}_\rho(z)$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function (the evidence lower-bound) evaluated at continuously relaxed inputs as in REBAR.  
@@ -531,7 +530,7 @@ Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule
 \textbf{Omniglot} & linear 1 layer &-117.23 & $-117.44$ & $-117.09$   & -116.63 & \textbf{-116.57} \\ 
                   & linear 2 layer &-109.95 & $-109.98$ & $-109.55$  & -108.71 & \textbf{-108.54}
 \end{tabular}
-\caption{Best obtained training objective.}
+\caption{Best obtained training objective for discrete variational autoencoders.}
 \label{tab:vae tr}
 \end{table}
 
@@ -671,8 +670,8 @@ We are interested in combining our approach with other popular variance reductio
 We are also interested in ways to train our control variate off-policy as in $Q$-prop~\citep{gu2016q}.
 We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail.
 
-\section*{Acknowledgements}  % Uncomment for arxiv
-We thank Tian Qi Chen, Elliot Creager, and Dougal Maclaurin for helpful discussions.
+%\section*{Acknowledgements}  % Uncomment for arxiv
+%We thank Tian Qi Chen, Elliot Creager, and Dougal Maclaurin for helpful discussions.
 
 \bibliography{bibliography}
 \bibliographystyle{iclr2018_conference}
