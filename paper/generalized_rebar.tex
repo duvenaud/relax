@@ -764,8 +764,7 @@ v' =    \left\{
 \end{array} 
 \right.
 \]
-$$ \tilde{z} = \log \frac{\theta}{1 - \theta} + \log \frac{v'}{1-v'},$$
-where $v \sim \text{uniform}[0, 1]$.
+$$ \tilde{z} = \log \frac{\theta}{1 - \theta} + \log \frac{v'}{1-v'}, \qquad v \sim \text{uniform}[0, 1].$$
 
 \paragraph{Categorical} When $p(b|\theta)$ is a Categorical distribution where $\theta_i = p(b=i|\theta)$, we let $H(z) = \text{argmax}(z)$ and we sample from $p(z|\theta)$ with 
 $$ z = \log\theta -\log(-\log u), \qquad u \sim \text{uniform}[0,1]^k
