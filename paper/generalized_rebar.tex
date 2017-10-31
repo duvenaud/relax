@@ -74,14 +74,15 @@ Optimizing control variates for \\ black-box gradient estimation}
 % Optimizing gradient control variates\\ for black-box expectations}
 
 \author{
-  Will S. Grathwohl\thanks{Use footnote for providing further
-    information about author (webpage, alternative
-    address)---\emph{not} for acknowledging funding agencies.} \\
+  Will S. Grathwohl\thanks{Correspondence to Will Grathwohl}, Dami Choi, Yuhuai Wu, Geoff Roeder, David Duvenaud \\
   University of Toronto\\
   Vector Institute\\
   Toronto, ON \\
-  \texttt{wgrathwohl@cs.toronto.edu} \\
+  \texttt{\{wgrathwohl, choidami, ywu, roeder, duvenaud\}@cs.toronto.edu} \\
 }
+
+
+\iclrfinalcopy 
 
 \begin{document}
 \maketitle
@@ -511,12 +512,12 @@ Figure~\ref{learned-relaxations} plots the learned surrogate $c_\phi$ for a fixe
 
 \subsection{Discrete variational autoencoder}
 Next, we evaluate the \RELAX{} estimator on the task of training a variational autoencoder~\citep{kingma2013autoencoding, rezende2014stochastic} with Bernoulli latent variables.
-We reproduced a subset of the experiments from \citet{tucker2017rebar}, training models with 1 and 2 layers of 200 Bernoulli random variables with linear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
+We reproduced a subset of the experiments from \citet{tucker2017rebar}, training models with 1 or 2 layers of 200 Bernoulli random variables with linear or nonlinear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
 Details of these models and our experimental procedure can be found in appendix~\ref{app_disc_vae}.
 
 To take advantage of the available structure in the loss function, we choose the form of our control variate to be $c_\phi(z) = f(\sigma_\lambda(z))+  \hat{r}_\rho(z)$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function (the evidence lower-bound) evaluated at continuously relaxed inputs as in REBAR.  
 %
-In all experiments, the learned control variate improved the training and validation performance, over the state-of-the-art baseline of REBAR. 
+In all experiments, the learned control variate improved the training performance, over the state-of-the-art baseline of REBAR. In both linear models, we achieved improved validation performance as well increased convergence speed. We believe the decrease in validation performance for the nonlinear models was due to regularization effects of the increased variance of the baseline gradient estimator. We leave exploring this phenomenon to further work. 
 
 \begin{table}[h]
 \centering
@@ -524,11 +525,11 @@ In all experiments, the learned control variate improved the training and valida
 Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule 
                & Nonlinear & $-102.2$ & $-101.5$ & -101.1  &  -81.01 &  \textbf{-78.13} \\
 \textbf{MNIST} & linear 1 layer  &-111.3 & $-112.5$ & $-111.7$  & -111.6 & \textbf{-111.20} \\ 
-               & linear 2 Layer  &-99.62 & $-99.6$ & $-99.07$   & -98.22 & \textbf{-98.00} \\
+               & linear 2 layer  &-99.62 & $-99.6$ & $-99.07$   & -98.22 & \textbf{-98.00} \\
 \midrule
                & Nonlinear  & $-110.4$  & $-109.58$ & -108.72  & -62.28 & \textbf{-58.55} \\
 \textbf{Omniglot} & linear 1 layer &-117.23 & $-117.44$ & $-117.09$   & -116.63 & \textbf{-116.57} \\ 
-                  & linear 2 Layer &-109.95 & $-109.98$ & $-109.55$  & -108.71 & \textbf{-108.54}
+                  & linear 2 layer &-109.95 & $-109.98$ & $-109.55$  & -108.71 & \textbf{-108.54}
 \end{tabular}
 \caption{Best obtained training objective.}
 \label{tab:vae tr}
@@ -568,7 +569,7 @@ In all experiments, RELAX provides an increase in rate of convergence.
 \includegraphics[width=.35\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/OMNIGLOT_L1}
 %\includegraphics[width=.31\textwidth, clip, trim=3mm 3mm 3mm 3mm]{figures/OMNIGLOT_L2}\\
 \end{tabular}
-\caption{Training curves for the one-layer VAE Experiments with the 1 layer linear model.
+\caption{Training curves for the VAE Experiments with the 1 layer linear model.
 %L1 represents the 1 layer linear model and L2 represents the 2 layer linear model.
 The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
 \label{fig:vae_curves}
@@ -670,8 +671,8 @@ We are interested in combining our approach with other popular variance reductio
 We are also interested in ways to train our control variate off-policy as in $Q$-prop~\citep{gu2016q}.
 We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail.
 
-%\section*{Acknowledgements}  % Uncomment for arxiv
-%We thank Tian Qi Chen, Elliot Creager, and Dougal Maclaurin for helpful discussions.
+\section*{Acknowledgements}  % Uncomment for arxiv
+We thank Tian Qi Chen, Elliot Creager, and Dougal Maclaurin for helpful discussions.
 
 \bibliography{bibliography}
 \bibliographystyle{iclr2018_conference}
@@ -850,10 +851,12 @@ Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:r
 \centering
 \begin{tabular}{r l | c c} 
   Dataset & Model & REBAR & RELAX \\\midrule
-\textbf{MNIST} & 1 layer  & -114.32 & \textbf{-113.62} \\ 
-& 2 Layer  & -101.20 & \textbf{-100.85} \\ \midrule
-\textbf{Omniglot} & 1 layer & -122.44 & \textbf{-122.11} \\ 
-& 2 Layer & -115.83 & \textbf{-115.42}
+ & 1 layer linear  & -114.32 & \textbf{-113.62} \\ 
+\textbf{MNIST} & 2 layer linear  & -101.20 & \textbf{-100.85}\\
+& Nonlinear & \textbf{-111.12} & 127.51 \\ \midrule
+ & 1 layer linear & -122.44 & \textbf{-122.11} \\ 
+\textbf{Omniglot}& 2 layer linear & -115.83 & \textbf{-115.42}\\
+& Nonlinear& \textbf{-127.51} & 128.20
 \end{tabular}
 \caption{Best obtained validation objective.}
 \label{tab:vae val}
@@ -864,13 +867,15 @@ Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:r
 \centering
 \begin{tabular}{r l | c c} 
  Dataset & Model  & REBAR & RELAX \\\midrule
-\textbf{MNIST} & 1 layer  & 857 & \textbf{531} \\ 
-& 2 Layer  & 900 & \textbf{620} \\
+ & 1 layer  & 857 & \textbf{531} \\ 
+\textbf{MNIST} & 2 layer  & 900 & \textbf{620} \\
+& Nonlinear & \textbf{331} & - \\
 \midrule
-\textbf{Omniglot} & 1 layer & 2086 & \textbf{566} \\ 
-& 2 Layer & 1027 & \textbf{673}
+& 1 layer & 2086 & \textbf{566} \\ 
+\textbf{Omniglot}  & 2 layer & 1027 & \textbf{673}\\
+& Nonlinear & \textbf{368} & - 
 \end{tabular}
-\caption{Epochs needed to achieve REBAR's best validation score.}
+\caption{Epochs needed to achieve REBAR's best validation score. ``-'' indicates that the nonlinear RELAX models achieved lower validation scores than REBAR.}
 \label{tab:vae epochs}
 \end{table}
 
@@ -891,6 +896,22 @@ Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:r
 %L1 represents the 1 layer linear model and L2 represents the 2 layer linear model.
 The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
 \label{fig:vae curves2}
+\end{figure}
+
+\begin{figure}
+\centering
+\hspace*{-.5in}
+\setlength{\tabcolsep}{10pt}
+\renewcommand{\arraystretch}{0}
+\begin{tabular}{ccc}
+& MNIST & Omniglot \\
+\rotatebox{90}{\qquad \qquad \qquad \small -ELBO} & 
+\includegraphics[width=.31\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/MNIST_NL1} &
+\includegraphics[width=.31\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/OMNIGLOT_NL1}\\
+\end{tabular}
+\caption{Training curves for the VAE Experiments with the 1 layer nonlinear model.
+The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
+\label{fig:vae curves3}
 \end{figure}
 
 
