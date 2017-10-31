@@ -512,7 +512,7 @@ Figure~\ref{learned-relaxations} plots the learned surrogate $c_\phi$ for a fixe
 
 \subsection{Discrete variational autoencoder}
 Next, we evaluate the \RELAX{} estimator on the task of training a variational autoencoder~\citep{kingma2013autoencoding, rezende2014stochastic} with Bernoulli latent variables.
-We reproduced a subset of the experiments from \citet{tucker2017rebar}, training models with 1 or 2 layers of 200 Bernoulli random variables with linear or nonlinear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
+We reproduced the experiments from \citet{tucker2017rebar}, training models with 1 or 2 layers of 200 Bernoulli random variables with linear or nonlinear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
 Details of these models and our experimental procedure can be found in appendix~\ref{app_disc_vae}.
 
 To take advantage of the available structure in the loss function, we choose the form of our control variate to be $c_\phi(z) = f(\sigma_\lambda(z))+  \hat{r}_\rho(z)$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function (the evidence lower-bound) evaluated at continuously relaxed inputs as in REBAR.  
@@ -552,9 +552,9 @@ Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule
 To obtain training curves we created our own implementation of REBAR, which gave identical or slightly improved performance compared to the implementation of \citet{tucker2017rebar}.
 
 While we obtained a modest improvement in training and validation scores (tables~\ref{tab:vae tr} and \ref{tab:vae val}), the most notable improvement provided by \RELAX{} is in its rate of convergence.
-Training curves for the linear models can be seen in figure~\ref{fig:vae_curves} and in appendix~\ref{extra vae results}.
+Training curves for all models can be seen in figure~\ref{fig:vae_curves} and in appendix~\ref{extra vae results}.
 In table~\ref{tab:vae epochs} we compare the number of training epochs that are required to match the best validation score of REBAR.
-In all experiments, RELAX provides an increase in rate of convergence. 
+In both linear models, RELAX provides an increase in rate of convergence. 
 
 \begin{figure}
 \centering
@@ -920,7 +920,7 @@ The horizontal dashed line indicates the lowest validation error obtained by REB
 
 \subsection{Discrete VAE}
 \label{app_disc_vae}
-In the one layer models we optimize the evidence lower bound (ELBO): $$\log p(x) \geq \mathcal{L}(\theta) = \E_{q(b|x)}[\log p(x|b) + \log p(b) - \log q(b|x)]$$ where $q(b_1|x) = \sigma(x\cdot W_q + \beta_q)$ and $p(x| b_1) = \sigma(b_1\cdot W_p + \beta_p)$ with weight matrices $W_q,W_p$ and bias vectors $\beta_q,\beta_p$.
+In the 1 layer linear models we optimize the evidence lower bound (ELBO): $$\log p(x) \geq \mathcal{L}(\theta) = \E_{q(b|x)}[\log p(x|b) + \log p(b) - \log q(b|x)]$$ where $q(b_1|x) = \sigma(x\cdot W_q + \beta_q)$ and $p(x| b_1) = \sigma(b_1\cdot W_p + \beta_p)$ with weight matrices $W_q,W_p$ and bias vectors $\beta_q,\beta_p$.
 The parameters of the prior $p(b)$ are also learned.
 
 We run all models for $2,000,000$ iterations with a batch size of $24$.
@@ -939,9 +939,12 @@ We believe further improvement could be achieved by tuning this parameter.
 All presented results are from the models which achieve the highest ELBO on the validation data.
 
 \subsubsection{Two layer model}
-In the two layer models we optimize the ELBO $$\mathcal{L}(\theta) = \E_{q(b_2|b_1)q(b_1|x)}[\log p(x|b_1) + \log p(b_1|b_2) + \log p(b_2) - \log q(b_1|x) - \log q(b_2|b_1)]$$ where $q(b_1|x) = \sigma(x\cdot W_{q_1} + \beta_{q_1})$, $q(b_2|b_1) = \sigma(b_1\cdot W_{q_2} + \beta_{q_2})$, $p(x| b_1) = \sigma(b_1\cdot W_{p_1} + \beta_{p_1})$, and $p(b_1| b_2) = \sigma(b_2\cdot W_{p_2} + \beta_{p_2})$ with weight matrices $W_{q_1},W_{q_2},W_{p_1},W_{p_2}$ and biases $\beta_{q_1},\beta_{q_2},\beta_{p_1},\beta_{p_2}$. As in the one layer model, the prior $p(b_2)$ is also learned.
+In the two layer linear models we optimize the ELBO $$\mathcal{L}(\theta) = \E_{q(b_2|b_1)q(b_1|x)}[\log p(x|b_1) + \log p(b_1|b_2) + \log p(b_2) - \log q(b_1|x) - \log q(b_2|b_1)]$$ where $q(b_1|x) = \sigma(x\cdot W_{q_1} + \beta_{q_1})$, $q(b_2|b_1) = \sigma(b_1\cdot W_{q_2} + \beta_{q_2})$, $p(x| b_1) = \sigma(b_1\cdot W_{p_1} + \beta_{p_1})$, and $p(b_1| b_2) = \sigma(b_2\cdot W_{p_2} + \beta_{p_2})$ with weight matrices $W_{q_1},W_{q_2},W_{p_1},W_{p_2}$ and biases $\beta_{q_1},\beta_{q_2},\beta_{p_1},\beta_{p_2}$. As in the one layer model, the prior $p(b_2)$ is also learned.
 
-We run an identical hyperpameter search in the 2 layer model as we do in the 1 layer model. 
+\subsubsection{Nonlinear model}
+In the one layer nonlinear model, the mappings between random variables consist of 2 deterministic layers with 200 units using the hyperbolic-tangent nonlinearity followed by a linear layer with 200 units. 
+
+We run an identical hyperpameter search in all models. 
 
 
 \subsection{Discrete RL}
