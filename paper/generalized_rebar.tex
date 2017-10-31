@@ -517,7 +517,7 @@ Details of these models and our experimental procedure can be found in appendix~
 
 To take advantage of the available structure in the loss function, we choose the form of our control variate to be $c_\phi(z) = f(\sigma_\lambda(z))+  \hat{r}_\rho(z)$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function (the evidence lower-bound) evaluated at continuously relaxed inputs as in REBAR.  
 %
-In all experiments, the learned control variate improved the training performance, over the state-of-the-art baseline of REBAR. In both linear models, we achieved improved validation performance as well increased convergence speed. We believe the decrease in validation performance for the nonlinear models was due to regularization effects of the increased variance of the baseline gradient estimator. We leave exploring this phenomenon to further work. 
+In all experiments, the learned control variate improved the training performance, over the state-of-the-art baseline of REBAR. In both linear models, we achieved improved validation performance as well increased convergence speed. We believe the decrease in validation performance for the nonlinear models was due to overfitting caused by improved optimization of an under-regularized model. We leave exploring this phenomenon to further work. 
 
 \begin{table}[h]
 \centering
