@@ -23,6 +23,7 @@ def gs(x):
 
 def softplus(x):
     '''
+    lovingly copied from https://github.com/tensorflow/models/blob/master/research/rebar/utils.py
     Let m = max(0, x), then,
 
     sofplus(x) = log(1 + e(x)) = log(e(0) + e(x)) = log(e(m)(e(-m) + e(x-m)))
@@ -45,6 +46,7 @@ def bernoulli_loglikelihood_derivitive(b, log_alpha):
 
 
 def v_from_u(u, log_alpha, force_same=True):
+    # Lovingly copied from https://github.com/tensorflow/models/blob/master/research/rebar/rebar.py
     u_prime = tf.nn.sigmoid(-log_alpha)
     v_1 = (u - u_prime) / safe_clip(1 - u_prime)
     v_1 = tf.clip_by_value(v_1, 0, 1)
@@ -571,7 +573,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=None)
     parser.add_argument("--relaxation", type=str, default=None)
     parser.add_argument("--checkpoint_path", type=str, default=None)
-    parser.add_argument("--train_dir", type=str, default=None)
+    parser.add_argument("--train_dir", type=str, default="/tmp/test_RELAX")
     parser.add_argument("--model", type=str, default=None)
     parser.add_argument("--max_iters", type=int, default=None)
     parser.add_argument("--dataset", type=str, default=None)
@@ -580,20 +582,9 @@ if __name__ == "__main__":
     parser.add_argument("--Q_wd", type=float, default=0.0)
     FLAGS = parser.parse_args()
 
-
-    if FLAGS.train_dir is None:
-        td = "/ais/gobi5/wgrathwohl/rebar_experiments_IWAE_VALID/{}/{}/{}/lr_{}_var_lr_scale_{}_Q_depth_{}_Q_wd_{}_iters_{}".format(
-            FLAGS.dataset, FLAGS.model, FLAGS.relaxation,
-            str(FLAGS.lr).replace('.', 'p'), str(FLAGS.var_lr_scale).replace('.', 'p'),
-            FLAGS.Q_depth, str(FLAGS.Q_wd).replace('.', 'p'),
-            FLAGS.max_iters
-        )
-    else:
-        td = FLAGS.train_dir
-
+    td = FLAGS.train_dir
     print("Train Dir is {}".format(td))
     if os.path.exists(td):
-        1/0
         print("Deleting existing train dir")
         import shutil
         shutil.rmtree(td)
