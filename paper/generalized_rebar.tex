@@ -76,22 +76,22 @@ Optimizing control variates for \\ black-box gradient estimation}
 \author{Will Grathwohl, Dami Choi, Yuhuai Wu, Geoff Roeder, David Duvenaud \\
   University of Toronto\\
   Vector Institute\\
-  Toronto, ON \\
+%  Toronto, ON \\
   \texttt{\{wgrathwohl, choidami, ywu, roeder, duvenaud\}@cs.toronto.edu} \\
 }
 
 
-%\iclrfinalcopy 
+\iclrfinalcopy 
 
 \begin{document}
 \maketitle
 \begin{abstract}
 Gradient-based optimization is the foundation of deep learning and reinforcement learning.
 Even when the mechanism being optimized is unknown or not differentiable, optimization using high-variance or biased gradient estimates is still often the best strategy.
-We introduce a general framework for learning low-variance, unbiased gradient estimators for black-box functions of random variables, based on gradients of a learned function.
-These estimators can be jointly trained with model parameters or policies, and are applicable in both discrete and continuous settings.
-We give unbiased, adaptive analogs of state-of-the-art reinforcement learning methods such as advantage actor-critic.
-We also demonstrate this framework for training discrete latent-variable models.
+We introduce a general framework for learning low-variance, unbiased gradient estimators for black-box functions of random variables.
+Our method uses gradients of a neural network trained jointly with model parameters or policies, and is applicable in both discrete and continuous settings.
+We demonstrate this framework for training discrete latent-variable models.
+We also give an unbiased, action-conditional extension of the advantage actor-critic reinforcement learning algorithm.
 \end{abstract}
 
 
@@ -108,14 +108,15 @@ Much recent work has been devoted to constructing gradient estimators for these 
 In reinforcement learning, advantage actor-critic methods~\citep{sutton2000policy} give unbiased gradient estimates with reduced variance obtained by jointly optimizing the policy parameters with an estimate of the value function.
 In discrete latent-variable models, low-variance but biased gradient estimates can be given by continuous relaxations of discrete variables~\citep{maddison2016concrete, jang2016categorical}.
 
-A recent advance by \citet{tucker2017rebar} used a continuous relaxation to construct a control variate for functions of discrete random variables.
-Low-variance estimates of the expectation of the control variate can be computed using the reparameterization trick to produce an unbiased estimator with lower variance than previous methods.
-Furthermore, \citet{tucker2017rebar} showed how to tune the free parameters of these relaxations to minimize the estimator's variance during training.
+A recent advance by \citet{tucker2017rebar} used a continuous relaxation of discrete random variables to build an unbiased and lower-variance gradient estimator,
+%Low-variance estimates of the expectation of the control variate can be computed using the reparameterization trick to produce an unbiased estimator with lower variance than previous methods.
+%Furthermore, \citet{tucker2017rebar} 
+and showed how to tune the free parameters of these relaxations to minimize the estimator's variance during training.
 
 %\paragraph{Contributions}
-In this work we generalize the method of \citet{tucker2017rebar} to learn a free-form control variate parameterized by a neural network, giving a lower-variance, unbiased gradient estimator which can be applied to a wider variety of problems with greater flexibility.
-Most notably, our method is applicable even when no continuous relaxation is available, as in reinforcement learning or black box function optimization.
-Furthermore, we derive improved variants of popular reinforcement learning methods with unbiased, action-dependent gradient estimates and lower variance.%, and more stable training dynamics.
+We generalize the method of \citet{tucker2017rebar} to learn a free-form control variate parameterized by a neural network.
+This gives a lower-variance, unbiased gradient estimator which can be applied to a wider variety of problems.
+Most notably, our method is applicable even when no continuous relaxation is available, as in reinforcement learning or black-box function optimization.
 
 %\paragraph{Contributions}
 %\begin{itemize}
@@ -181,8 +182,9 @@ When $f$ is continuous and differentiable, and the latent variables $b$ can be w
 \qquad \epsilon \sim p(\epsilon) 
 \end{align}
 %
-This gradient estimator is often used when training high-dimensional, continuous latent-variable models, such as variational autoencoders or GANs \citep{goodfellow2014generative}.
-One intuition for why this gradient estimator is preferable to REINFORCE is that it depends on $\frac{\partial f}{\partial b}$, which exposes the dependence of $f$ on $b$.
+This gradient estimator is often used when training high-dimensional, continuous latent-variable models, such as variational autoencoders.
+% or GANs \citep{goodfellow2014generative}.
+One intuition for why this gradient estimator is preferable to REINFORCE is that it depends on ${\partial f} / {\partial b}$, which exposes the dependence of $f$ on $b$.
 % NOTE for revision: last sentence is confusing. What is the advantage of exposing the dependence of f on b for a gradient estimator?
 
 %The reparameterization trick, while useful, is only applicable when $f$ is a known, differentiable function of a continuous random variable.
@@ -230,32 +232,14 @@ Importantly, the new estimator has lower variance than $\hat g(b)$ if $\controlf
 \section{Constructing and optimizing a differentiable surrogate}
 \label{lax section}
 In this section, we introduce a gradient estimator for the expectation of a function $\PT \E_{p(b|\theta)}[f(b)]$ that can be applied even when $f$ is unknown, or not differentiable, or when $b$ is discrete.
-%This situation arises in reinforcement learning, trainin
-%This allows the estimator to be applied to a wide range of applications with little or no modification.
 Our estimator combines the score function estimator, the reparameterization trick, and control variates.
 We obtain an unbiased estimator whose variance can potentially be as low as the reparameterization-trick estimator, even when $f$ is not differentiable or not computable.
 
 First, we consider the case where $b$ is continuous, but that $f$ cannot be differentiated.
-%We begin with the score-function gradient estimator:
-%
-%\begin{align}
-%\hat g_\textnormal{REINFORCE} = f \! \left( b \right) \PT \log p(b | \theta), \qquad b \sim p(b|\theta)
-%\end{align}
-%
 Instead of differentiating through $f$, we build a surrogate of $f$ using a neural network $c_\phi$, and differentiate $c_\phi$ instead.
 Since the score-function estimator and reparameterization estimator have the same expectation,
-%
-%\begin{align}
-%\E_{p(\epsilon)} \left[ c_\phi ( b(\epsilon, \theta)) \PT \log p(b | \theta) \right] =
-%\E_{p(\epsilon)} \left[ \frac{\partial c_\phi}{\partial b} \frac{\partial b(\theta, \epsilon)}{\partial \theta} \right]
-%\end{align}
-%
-%\begin{align}
-%\PT\E_{p(b;\theta)}[f(b)] &= \E_{p(b;\theta)}\left[ \left[f(b) - c_\phi(b)\right]\cdot\LP{b;\theta}\right]+\PT\E_{p(b;\theta)}[c_\phi(b)]\nonumber\\
-%&= \E_{p(\epsilon)} \left[ \left[f(g_\theta(\epsilon)) - c_\phi(g_\theta(\epsilon))\right]\cdot\LP{b} + \PT r(g_\theta(\epsilon))\right]\nonumber
-%\end{align}
-%
-we can simply subtract the score-function estimator for $c_\phi$ and add the reparameterization estimator for $c_\phi$, to produce a gradient estimator which we call LAX:
+we can simply subtract the score-function estimator for $c_\phi$ and add back its reparameterization estimator.
+This gives a gradient estimator which we call LAX:
 %
 \begin{align}
 \label{eq:cont_est}
@@ -264,14 +248,13 @@ g_\textnormal{REINFORCE}[f] - g_\textnormal{REINFORCE}[c_\phi] + g_\textnormal{r
 &= \left[ f(b) -c_\phi(b) \right] \PT \log p(b|\theta) + \PT c_\phi(b) \qquad b = T(\theta, \epsilon), \epsilon \sim p(\epsilon).
 \end{align}
 %
-This estimator is unbiased for any choice of $c_\phi$ and when $c_\phi = f$, our estimator becomes the reparameterization estimator for $f$.
-Thus our estimator can have variance at least as low as the reparameterization estimator. 
+This estimator is unbiased for any choice of $c_\phi$.
+When $c_\phi = f$, then \LAX{} becomes the reparameterization estimator for $f$.
+Thus \LAX{} can have variance at least as low as the reparameterization estimator. 
 
 
 \subsection{Optimizing the gradient control variate with gradients}
-
 Since $\hat g_\LAX$ is unbiased for any choice of the surrogate $c_\phi$, the only remaining problem is to choose a $c_\phi$ that gives low variance to $\hat g_\LAX$.
-% and $\hat g_\RELAX{}$.
 How can we find a $\phi$ which gives our estimator low variance?
 We simply optimize $c_\phi$ using stochastic gradient descent, at the same time as we optimize the parameters of our model or policy.
 
@@ -334,11 +317,11 @@ The discrete version of the \LAX{} estimator is given by:
 \end{align}
 %
 This estimator is simple to implement and general.
-However, when $f = c_\phi$ we do not recover the reparameterization estimator as we do with LAX. To achieve this, we must be able  to replace the $\PT \log p(z|\theta)$ in the control variate with $\PT \log p(b|\theta)$. This is the motivation behind our next estimator which we call RELAX.
+However, when $f = c_\phi$ we do not recover the reparameterization estimator as we do with LAX. To achieve this, we must be able to replace the $\PT \log p(z|\theta)$ in the control variate with $\PT \log p(b|\theta)$. This is the motivation behind our next estimator, which we call RELAX.
 
 To construct a more powerful gradient estimator, we incorporate a further refinement due to~\cite{tucker2017rebar}.
 Specifically, we evaluate our control variate both at a relaxed input $z \sim p(z|\theta)$, and also at a relaxed input \emph{conditioned on the discrete variable $b$}, denoted $\tilde z \sim p(z|b, \theta)$. 
-Thus we define our estimator as
+Doing so gives us:
 %
 \begin{align}
 \hat g_\textnormal{RELAX} = \left[ f(b) - c_\phi(\tilde{z}) \right] \PT \log p(b|\theta) + \PT c_\phi(z) - \PT c_\phi (\tilde{z}) \\
@@ -411,6 +394,7 @@ This approach avoids unstable training dynamics, and doesn't require storage and
 
 Details of this derivation, as well as the discrete and conditionally reparameterized version of this estimator can be found in appendix~\ref{rl appendix}.
 
+
 \section{Scope and Limitations}
 \label{limitations}
 The work most related to ours is the recently-developed REBAR method~\citep{tucker2017rebar}, which inspired our work.
@@ -422,21 +406,20 @@ Furthermore, it depends on essentially undefined behavior of the function being 
 Because \LAX{} and \RELAX{} can construct a surrogate from scratch, they can be used for optimizing black-box functions, as in reinforcement learning settings where the reward is an unknown function of the environment.
 \LAX{} and \RELAX{} only require that we can query the function being optimized, and can sample from and differentiate $p(b|\theta)$.
 
-Can \RELAX{} be used to optimize deterministic black-box functions?
-The answer is yes, with the caveat that one must introduce stochasticity to the inputs.
+In principle one could use \RELAX{} to optimize deterministic black-box functions, but only by introducing stochasticity to the inputs.
 Thus, \RELAX{} is most suitable for problems where one is already optimizing a distribution over inputs, such as in inference or reinforcement learning.
 % Note that most optimal policies are deterministic?
 
 \paragraph{Direct dependence on parameters}
 Above, we assumed that the function $f$ being optimized does not depend directly on $\theta$, which is usually the case in black-box optimization settings.
-However, a dependence on $\theta$ can occur when training probabilistic models, or when we add a regularizer to a black-box optimization problem.
+However, a dependence on $\theta$ can occur when training probabilistic models, or when we add a regularizer. % to the parameters. %a black-box optimization problem.
 In both these settings, if the dependence on $\theta$ is known and differentiable, we can use the fact that
 %
 \begin{align}
 \PT \E_{p(b|\theta)}[f(b, \theta)] = \E_{p(b|\theta)}\left[\PT f(b, \theta) + f(b, \theta)\PT \log p(b|\theta) \right]
 \end{align}
 %
-and simply add the term $\PT f(b, \theta)$ to our gradient estimate.
+and simply add $\PT f(b, \theta)$ to any of the gradient estimators above to recover an unbiased estimator.
 
 
 \section{Related work}
@@ -652,23 +635,22 @@ After every 10th training episode 100 episodes were run and the sample log-varia
 
 \section{Conclusions and future work}
 \label{conclusion}
-In this work we synthesized and generalized many of the standard approaches for constructing gradient estimators.
-We proposed a simple and generic gradient estimator that can be applied to expectations of known or black-box functions of discrete or continuous random variables.
-We also derive a simple extension to apply our method to reinforcement learning in both discrete- and continuous-action domains. 
-This approach is relatively simple to implement and adds little computational overhead. 
+In this work we synthesized and generalized several standard approaches for constructing gradient estimators.
+We proposed a generic gradient estimator that can be applied to expectations of known or black-box functions of discrete or continuous random variables, and adds little computational overhead.
+We also derived a simple extension to reinforcement learning in both discrete and continuous-action domains. 
+%This approach is relatively simple to implement and adds little computational overhead. 
 
 %The foundation of our approach is the score function gradient estimator with a control variate whose expectation can be estimated with low variance using the reparameterization trick.
 %This control variate is neural network which is trained directly to minimize the variance of the estimated gradients.
 %The central result of this paper is that learning the function in the control variate leads to even better convergence properties and lower variance gradient estimates. 
 
-The scope and generality of our estimator opens up many new possibilities for models which can now be trained via gradient decent.
-For example, we could apply our estimator to train a VAE with continuous latent variables whose generative model is non-differentiable (a rendering engine perhaps).
-We also feel that there is much room to explore model design choices for the control variate and to better understand the properties of the optimal control variate. 
+The generality of this method opens up new possibilities for training non-differentiable models. % which can now be trained via gradient decent.
+For example, we could apply our estimator to continuous latent-variable models whose likelihood is non-differentiable, such as a 3D rendering engine.
+There is also room to explore architecture choices for the control variate.% and to better understand the properties of the optimal control variate. 
 
-We believe our results in reinforcement learning are promising and should motivate further research into using action-dependent control-variates for policy-gradient methods.
-We are interested in combining our approach with other popular variance reduction techniques such as generalized advantage estimation~\citep{kimura2000analysis}.
-We are also interested in ways to train our control variate off-policy as in $Q$-prop~\citep{gu2016q}.
-We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail.
+Our results may motivate further work using action-dependent control-variates for policy-gradient methods, and can be combined with other variance-reduction techniques such as generalized advantage estimation~\citep{kimura2000analysis}.
+One could also train our control variate off-policy, as in $Q$-prop~\citep{gu2016q}.
+%We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail.
 
 %\section*{Acknowledgements}  % Uncomment for arxiv
 %We thank Tian Qi Chen, Elliot Creager, and Dougal Maclaurin for helpful discussions.
