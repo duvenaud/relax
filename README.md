@@ -1,8 +1,5 @@
-# relaxed-rebar
-A repository for exploring ways to generalize the REBAR gradient estimator.
-
-Backpropagation through the Void:
-Optimizing control variates for black-box gradient estimation
+# Backpropagation through the Void: Optimizing control variates for black-box gradient estimation
+https://arxiv.org/abs/1711.00123
 
 by Will Grathwohl, Dami Choi, Yuhuai Wu, Geoff Roeder, David Duvenaud
 
