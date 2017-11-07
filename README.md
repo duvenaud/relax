@@ -12,4 +12,6 @@ We give unbiased, adaptive analogs of state-of-the-art reinforcement learning me
 We also demonstrate this framework for training discrete latent-variable models.
 
 
-Code for VAE Experiments lives here. The Discrete RL experiments can be found at: https://github.com/wgrathwohl/relax_a2c 
+Code for VAE Experiments lives here. The Discrete RL experiments can be found at: https://github.com/wgrathwohl/BackpropThroughTheVoidRL. 
+
+If you have any questions about the code or paper please contact Will Grathwohl (wgrathwohl@cs.toronto.edu). The code is in "research-state" at the moment and I will be updating it periodically. If you have questions feel free to email me and I will do my best to respond. -Will
