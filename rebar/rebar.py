@@ -93,6 +93,25 @@ def bar(params, est_params, noise, f):
         + eta * f_relax_grad
 
 
+# Experimental variant
+
+def rbar(params, est_params, noise, f):
+    log_temperature, log_eta = est_params
+    eta = np.exp(log_eta)
+    z = logistic_sample(noise, params)
+
+    def f_relax(params):
+        z = logistic_sample(noise, params)
+        relaxed_samples = relaxed_heaviside(z, log_temperature)
+        return f(params, relaxed_samples)
+
+    samples = bernoulli_sample(params, noise)
+    f_relaxed_eval, f_relax_grad = value_and_grad(f_relax)(params)
+    return (f(params, samples) + eta * f_relaxed_eval) * grad(logistic_logpdf)(z, params) + eta * f_relax_grad
+
+
+
+
 ############## Hooks into autograd ##############
 
 ###Set up Simple Monte Carlo functions that have different gradient estimators
@@ -124,6 +143,16 @@ def simple_mc_bar(params, est_params, noise_u, f):
 def bar_vjp(g, ans, vs, gvs, *args):
     return g * bar(*args)
 simple_mc_bar.defvjp(bar_vjp, argnum=0)
+
+
+@primitive
+def simple_mc_rbar(params, est_params, noise_u, f):
+    samples = bernoulli_sample(params, noise_u)
+    return f(params, samples)
+
+def rbar_vjp(g, ans, vs, gvs, *args):
+    return g * rbar(*args)
+simple_mc_rbar.defvjp(rbar_vjp, argnum=0)
 
 
 def rebar_v_vjp(g, ans, vs, gvs, *args):
