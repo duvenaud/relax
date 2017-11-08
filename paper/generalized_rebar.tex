@@ -630,7 +630,7 @@ After every 10th training episode 100 episodes were run and the sample log-varia
 \label{fig:rl_results}
 \end{figure}
 
-Code of all experiments can be found at \href{https://github.com/duvenaud/relax}{github.com/duvenaud/relax}.
+Code for all experiments can be found at \href{https://github.com/duvenaud/relax}{github.com/duvenaud/relax}.
 
 
 \section{Conclusions and future work}
@@ -653,7 +653,7 @@ One could also train our control variate off-policy, as in $Q$-prop~\citep{gu201
 %We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail.
 
 \section*{Acknowledgements}  % Uncomment for arxiv
-We thank Dougal Maclaurin, Tian Qi Chen, Elliot Creager, and Bowen Xu for helpful discussions.
+We thank Dougal Maclaurin, Tian Qi Chen, Elliot Creager, and Bowen Xu for helpful discussions. We would also like to thank Christopher Prohm for pointing out an error in one of our derivations. 
 
 \bibliography{bibliography}
 \bibliographystyle{iclr2018_conference}
@@ -759,7 +759,7 @@ Formally,
 v_i' =    \left\{
 \begin{array}{ll}
       v'_b & i = b \\
-      v_i\cdot(v_b)^{\frac{\theta_i}{\theta_b}} & i \neq b \\
+      v_i\cdot(v'_b)^{\frac{\theta_i}{\theta_b}} & i \neq b \\
 \end{array} 
 \right.
 \] 
