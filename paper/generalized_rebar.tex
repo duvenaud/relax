@@ -630,7 +630,7 @@ After every 10th training episode 100 episodes were run and the sample log-varia
 \label{fig:rl_results}
 \end{figure}
 
-
+Code of all experiments can be found at \href{https://github.com/duvenaud/relax}{github.com/duvenaud/relax}.
 
 
 \section{Conclusions and future work}
@@ -952,6 +952,8 @@ The Lunar Lander task is considered solved if the agent receives an average rewa
 
 The Cart Pole experiments were run for 250,000 frames.
 The Lunar Lander experiments were run for 5,000,000 frames. 
+
+The results presented for the CartPole and LunarLander environments were obtained using a slightly biased sampler for $p(z|b, \theta)$.
 
 \subsection{Continuous RL}
 The continuous tasks uses both the value function and the control variate to enable bootstrapping, which is needed due to the increased complexity of the problem.
