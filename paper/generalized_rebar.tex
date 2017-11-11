@@ -112,7 +112,7 @@ A recent advance by \citet{tucker2017rebar} used a continuous relaxation of disc
 %Low-variance estimates of the expectation of the control variate can be computed using the reparameterization trick to produce an unbiased estimator with lower variance than previous methods.
 %Furthermore, \citet{tucker2017rebar} 
 and showed how to tune the free parameters of these relaxations to minimize the estimator's variance during training.
-
+%
 %\paragraph{Contributions}
 We generalize the method of \citet{tucker2017rebar} to learn a free-form control variate parameterized by a neural network.
 This gives a lower-variance, unbiased gradient estimator which can be applied to a wider variety of problems.
@@ -214,16 +214,15 @@ Subtracting the control variate from our estimator and adding its mean gives us 
 \hat g_\textnormal{new}(b) = \hat g(b) - \controlf(b) + \mathbb{E}_{p(b)}[\controlf(b)]
 \end{align}
 %
-This new estimator has the same expectation as the old one:
+This new estimator has the same expectation as the old one, 
 %
-\begin{align}
-\mathbb{E}_{p(b)}\left[\hat g_\textnormal{new}(b) \right] 
-= \mathbb{E}_{p(b)}\left[\hat g(b) - \controlf(b) + \mathbb{E}_{p(b)} \left[ \controlf(b) \right] \right]
-%= \mathbb{E}_{p(b)}\left[f(b) \right] - \mathbb{E}_{p(b)} \left[ \controlf(b) \right] + \mathbb{E}_{p(b)} \left[ \controlf(b) \right]
-= \mathbb{E}_{p(b)}\left[ \hat g(b) \right]
-\end{align}
+%\begin{align}
+%\mathbb{E}_{p(b)}\left[\hat g_\textnormal{new}(b) \right] 
+%= \mathbb{E}_{p(b)}\left[\hat g(b) - \controlf(b) + \mathbb{E}_{p(b)} \left[ \controlf(b) \right] \right]
+%= \mathbb{E}_{p(b)}\left[ \hat g(b) \right]
+%\end{align}
 %
-Importantly, the new estimator has lower variance than $\hat g(b)$ if $\controlf(b)$ is positively correlated with $f(b)$.
+but has lower variance than $\hat g(b)$ if $\controlf(b)$ is positively correlated with $f(b)$.
 % NOTE for revision: 
 % I think it's important to stick to the standard definition of a control variate here, which includes the scalar constant eta
 % c(b) can be positively or negatively correlated with f(b) and still reduce variance if the control variate has a learned scalar like eta
@@ -233,7 +232,7 @@ Importantly, the new estimator has lower variance than $\hat g(b)$ if $\controlf
 \label{lax section}
 In this section, we introduce a gradient estimator for the expectation of a function $\PT \E_{p(b|\theta)}[f(b)]$ that can be applied even when $f$ is unknown, or not differentiable, or when $b$ is discrete.
 Our estimator combines the score function estimator, the reparameterization trick, and control variates.
-We obtain an unbiased estimator whose variance can potentially be as low as the reparameterization-trick estimator, even when $f$ is not differentiable or not computable.
+%In the continuous case, we obtain an unbiased estimator whose variance can potentially be as low as the reparameterization-trick estimator.%, even when $f$ is not differentiable or not computable.
 
 First, we consider the case where $b$ is continuous, but that $f$ cannot be differentiated.
 Instead of differentiating through $f$, we build a surrogate of $f$ using a neural network $c_\phi$, and differentiate $c_\phi$ instead.
@@ -439,7 +438,7 @@ They introduce a sampling distribution, and optimize an objective similar to our
 \citet{wierstra2014natural} also introduce a sampling distribution to build a gradient estimator, and consider optimizing the sampling distribution.
 
 In the reinforcement learning setting, the work most similar to ours is $Q$-prop \citep{haarnoja2017reinforcement}.
-Like our method, $Q$-prop reduces the variance of the policy gradient with an learned, action-dependent control variate whose expectation is approximated via a monte-carlo sample from a taylor series expansion of the control variate.
+Like our method, $Q$-prop reduces the variance of the policy gradient with a learned, action-dependent control variate whose expectation is approximated via a Monte Carlo sample from a taylor series expansion of the control variate.
 Unlike our method, their control variate is trained off-policy.
 While our method is applicable in both the continuous and discrete action domain, $Q$-prop is only applicable to continuous actions.
 %We are interested in the potential of training our control variate off-policy, but we leave that for further work. 
@@ -589,27 +588,12 @@ The results of our experiments can be seen in figure~\ref{fig:rl_results}, and t
 We found that our estimator produced policy gradients with drastically reduced variance (see figure~\ref{fig:rl_results}) allowing for larger learning rates to be used while maintaining stable training.
 In both discrete environments our estimator achieved great than a 2-times speedup in convergence over the baseline.
 
-
-
-\begin{table}[h]
-\centering
-\begin{tabular}{l | c c c c } 
-\textbf{Model} & Cart-pole & Lunar lander & Inverted pendulum & Inverted double pendulum \\\midrule
-A2C             & $1152 \pm 90$ & $162374 \pm 17241$                    & $9916 \pm 235$ & $78260 \pm 1877$  \\
-LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $\bm{60967 \pm 1669}$
-\end{tabular}
-\caption{Mean episodes to solve each task.
-Definition of solving each task can be found in appendix~\ref{experiment appendix}.}
-\label{tab:rl_results}
-\end{table}
-
-\newcommand{\rlfig}[1]{{\includegraphics[height=0.24\linewidth, clip, trim=3mm 3mm 3mm 3mm]{#1}}}
-
-\begin{figure}
+\newcommand{\rlfig}[1]{{\includegraphics[height=0.24\linewidth, clip, trim=3mm 3mm 3mm 3mm]{#1}}}%
+\begin{figure}%
 \centering
 \hspace*{-.1in}
 \setlength{\tabcolsep}{0pt}
-\begin{tabular}{ccccc}
+\begin{tabular}{ccccc}%
 %\renewcommand{\arraystretch}{0}
 & Cart-pole & Lunar lander & Inverted pendulum & Inverted double pendulum\\
 \rotatebox{90}{\qquad \qquad \small Reward} & \rlfig{figures/cp_paper} & 
@@ -630,6 +614,18 @@ After every 10th training episode 100 episodes were run and the sample log-varia
 \label{fig:rl_results}
 \end{figure}
 
+\begin{table}%
+\centering
+\begin{tabular}{l | c c c c }%
+\textbf{Model} & Cart-pole & Lunar lander & Inverted pendulum & Inverted double pendulum \\\midrule
+A2C             & $1152 \pm 90$ & $162374 \pm 17241$                    & $9916 \pm 235$ & $78260 \pm 1877$  \\
+LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $\bm{60967 \pm 1669}$
+\end{tabular}
+\caption{Mean episodes to solve tasks.
+Definitions of solving each task can be found in appendix~\ref{experiment appendix}.}
+\label{tab:rl_results}
+\end{table}
+
 Code for all experiments can be found at \href{https://github.com/duvenaud/relax}{github.com/duvenaud/relax}.
 
 
@@ -644,16 +640,18 @@ We also derived a simple extension to reinforcement learning in both discrete an
 %This control variate is neural network which is trained directly to minimize the variance of the estimated gradients.
 %The central result of this paper is that learning the function in the control variate leads to even better convergence properties and lower variance gradient estimates. 
 
-The generality of this method opens up new possibilities for training non-differentiable models. % which can now be trained via gradient decent.
-For example, we could apply our estimator to continuous latent-variable models whose likelihood is non-differentiable, such as a 3D rendering engine.
-There is also room to explore architecture choices for the control variate.% and to better understand the properties of the optimal control variate. 
-
-Our results may motivate further work using action-dependent control-variates for policy-gradient methods, and can be combined with other variance-reduction techniques such as generalized advantage estimation~\citep{kimura2000analysis}.
+%The generality of this method opens up new possibilities for training non-differentiable models. % which can now be trained via gradient decent.
+Future applications of this method could include training models with hard attention or memory indexing~\citep{zaremba2015reinforcement}.
+One could also apply our estimators to continuous latent-variable models whose likelihood is non-differentiable, such as a 3D rendering engine.
+There is also room to explore other architecture choices for the control variate.% and to better understand the properties of the optimal control variate. 
+%
+In the reinforcement learning setting, our method could be combined with other variance-reduction techniques such as generalized advantage estimation~\citep{kimura2000analysis}, or other optimization methods, such as KFAC~\citep{wu2017scalable}.
 One could also train our control variate off-policy, as in $Q$-prop~\citep{gu2016q}.
 %We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail.
 
-\section*{Acknowledgements}  % Uncomment for arxiv
-We thank Dougal Maclaurin, Tian Qi Chen, Elliot Creager, and Bowen Xu for helpful discussions. We would also like to thank Christopher Prohm for pointing out an error in one of our derivations. 
+\subsection*{Acknowledgements}  % Uncomment for arxiv
+We thank Dougal Maclaurin, Tian Qi Chen, Elliot Creager, and Bowen Xu for helpful discussions.
+We also thank Christopher Prohm for pointing out an error in one of our derivations. 
 
 \bibliography{bibliography}
 \bibliographystyle{iclr2018_conference}
@@ -937,7 +935,7 @@ In both the baseline A2C and RELAX models, the policy and control variate (value
 The ReLU non linearity was used on all layers except for the output layer.
 
 For these tasks we estimate the policy gradient with a single Monte Carlo sample.
-We run one episode of the environment to completion, compute the discounted rewards, and run one iteration of gradient decent.
+We run one episode of the environment to completion, compute the discounted rewards, and run one iteration of gradient descent.
 We believe using larger batches will improve performance but would less clearly demonstrate the potential of our method. 
 
 As our control variate does not have the same interpretation as the value function of A2C, it was not directly clear how to add reward bootstrapping and other variance reduction techniques common in RL into our model. We leave the task of incorporating these and other variance reduction techniques to future work.  
