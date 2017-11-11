@@ -86,10 +86,11 @@ Optimizing control variates for \\ black-box gradient estimation}
 \begin{document}
 \maketitle
 \begin{abstract}
-Gradient-based optimization is the foundation of deep learning and reinforcement learning.
-Even when the mechanism being optimized is unknown or not differentiable, optimization using high-variance or biased gradient estimates is still often the best strategy.
-We introduce a general framework for learning low-variance, unbiased gradient estimators for black-box functions of random variables.
-Our method uses gradients of a neural network trained jointly with model parameters or policies, and is applicable in both discrete and continuous settings.
+Gradient-based optimization is the foundation of deep learning and reinforcement learning, but is difficult to apply when the mechanism being optimized is unknown or not differentiable.
+%Even when the mechanism being optimized is unknown or not differentiable, optimization using high-variance or biased gradient estimates is still often the best strategy.
+We introduce a general framework for learning low-variance, unbiased gradient estimators, applicable to black-box functions of discrete or continuous random variables.
+Our method uses gradients of a surrogate neural network to construct a control variate, which is optimized jointly with the original parameters.
+%Our method applies to both continuous and discrete variables.
 We demonstrate this framework for training discrete latent-variable models.
 We also give an unbiased, action-conditional extension of the advantage actor-critic reinforcement learning algorithm.
 \end{abstract}
@@ -338,7 +339,7 @@ The variance-reduction objective introduced above allows us to use any different
 How should we choose the architecture of $c_\phi$?
 Ideally, we will take advantage of any known structure in $f$.
 
-If $f$ is a known, differentiable function of discrete random variables, we can use the concrete relaxation~\citep{jang2016categorical, maddison2016concrete} and let $c_\phi(z) = f(\sigma_\lambda(z))$.
+In the discrete setting, if $f$ is known and happens to be differentiable, we can use the concrete relaxation~\citep{jang2016categorical, maddison2016concrete} and let $c_\phi(z) = f(\sigma_\lambda(z))$.
 In this special case, our estimator is exactly the REBAR estimator.
 We are also free to add a learned component to the concrete relaxation and let $c_\phi(z) = f(\sigma_\lambda(z)) + {r}_\rho(z)$ where ${r}_\rho$ is a neural network with parameters~$\rho$.
 We took this approach in our experiments training discrete variational auto-encoders.
