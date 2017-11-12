@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 
 import autograd.numpy as np
 import autograd.numpy.random as npr
-from autograd.scipy.special import expit, logit
+from autograd.scipy.special import expit
 
 from autograd import grad
-from autograd.optimizers import adam
+from autograd.misc.optimizers import adam
 
 from rebar import simple_mc_rebar
 
@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     D = 100
     rs = npr.RandomState(0)
-    num_samples = 1
+    num_samples = 10
     init_params = (np.zeros(D), (1.0, 1.0))
 
     def objective(params, b):
@@ -28,7 +28,7 @@ if __name__ == '__main__':
         noise_u = rs.rand(num_samples, D)
         noise_v = rs.rand(num_samples, D)
         objective_vals = simple_mc_rebar(params, est_params, noise_u, noise_v, objective)
-        return np.mean(objective_vals)
+        return np.mean(objective_vals) + np.var(objective_vals)
 
     # Set up figure.
     fig = plt.figure(figsize=(8, 8), facecolor='white')
@@ -42,9 +42,9 @@ if __name__ == '__main__':
 
     temperatures = []
     etas = []
-    def callback(combined_params, t, gradient):
+    def callback(combined_params, t, combined_gradient):
         params, est_params = combined_params
-        grad_params = gradient[:D]
+        grad_params, grad_est = combined_gradient
         log_temperature, log_eta = est_params
         temperatures.append(np.exp(log_temperature))
         etas.append(np.exp(log_eta))

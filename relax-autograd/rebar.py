@@ -2,14 +2,15 @@ import autograd.numpy as np
 import autograd.numpy.random as npr
 
 from autograd.scipy.special import expit, logit
-from autograd import grad, primitive, value_and_grad, make_vjp
+from autograd.extend import primitive, defvjp
+from autograd import grad, elementwise_grad, value_and_grad, make_vjp
 
 
 def heaviside(z):
     return z >= 0
 
-def relaxed_heaviside(z, log_temperature):  # sigma_lambda in REBAR paper.
-    temperature = np.exp(log_temperature)   # TODO: get rid of naked exp
+def softmax(z, log_temperature):
+    temperature = np.exp(log_temperature)
     return expit(z / temperature)
 
 def logistic_sample(noise, mu=0, sigma=1):
@@ -23,7 +24,7 @@ def bernoulli_sample(logit_theta, noise):
     return logit(noise) < logit_theta  # heaviside(logistic_sample(logit_theta, noise))
 
 def relaxed_bernoulli_sample(logit_theta, noise, log_temperature):
-    return relaxed_heaviside(logistic_sample(noise, expit(logit_theta)), log_temperature)
+    return softmax(logistic_sample(noise, expit(logit_theta)), log_temperature)
 
 def conditional_noise(logit_theta, samples, noise):
     # Computes p(u|b), where b = H(z), z = logit_theta + logit(noise), p(u) = U(0, 1)
@@ -31,7 +32,7 @@ def conditional_noise(logit_theta, samples, noise):
     return samples * (noise * (1 - uprime) + uprime) + (1 - samples) * noise * uprime
 
 def bernoulli_logprob(logit_theta, targets):
-    # log Ber(targets | theta), targets are 0 or 1.
+    # log Bernoulli(targets | theta), targets are 0 or 1.
     return -np.logaddexp(0, -logit_theta * (targets * 2 - 1))
 
 
@@ -40,7 +41,7 @@ def bernoulli_logprob(logit_theta, targets):
 def reinforce(params, noise, f):
     samples = bernoulli_sample(params, noise)
     func_vals, grad_func_vals = value_and_grad(f)(params, samples)
-    return grad_func_vals + func_vals * grad(bernoulli_logprob)(params, samples)
+    return grad_func_vals + func_vals * elementwise_grad(bernoulli_logprob)(params, samples)
 
 
 ############### CONCRETE ###################
@@ -61,7 +62,7 @@ def rebar(params, est_params, noise_u, noise_v, f):
         cond_noise = conditional_noise(params, samples, noise_v)  # z tilde
         return concrete(params, log_temperature, cond_noise, f)
 
-    grad_concrete = grad(concrete)(params, log_temperature, noise_u, f)  # d_f(z) / d_theta
+    grad_concrete = elementwise_grad(concrete)(params, log_temperature, noise_u, f)  # d_f(z) / d_theta
     f_cond, grad_concrete_cond = value_and_grad(concrete_cond)(params)  # d_f(ztilde) / d_theta
     controlled_f = lambda params, samples: f(params, samples) - eta * f_cond
 
@@ -83,13 +84,13 @@ def bar(params, est_params, noise, f):
 
     def f_relax(params):
         z = logistic_sample(noise, params)
-        relaxed_samples = relaxed_heaviside(z, log_temperature)
+        relaxed_samples = softmax(z, log_temperature)
         return f(params, relaxed_samples)
 
     f_relaxed_eval, f_relax_grad = value_and_grad(f_relax)(params)
 
     return reinforce(params, noise, f) \
-        - eta * f_relaxed_eval * grad(logistic_logpdf, argnum=1)(z, params) \
+        - eta * f_relaxed_eval * elementwise_grad(logistic_logpdf, argnum=1)(z, params) \
         + eta * f_relax_grad
 
 
@@ -102,12 +103,52 @@ def rbar(params, est_params, noise, f):
 
     def f_relax(params):
         z = logistic_sample(noise, params)
-        relaxed_samples = relaxed_heaviside(z, log_temperature)
+        relaxed_samples = softmax(z, log_temperature)
         return f(params, relaxed_samples)
 
     samples = bernoulli_sample(params, noise)
     f_relaxed_eval, f_relax_grad = value_and_grad(f_relax)(params)
-    return (f(params, samples) + eta * f_relaxed_eval) * grad(logistic_logpdf)(z, params) + eta * f_relax_grad
+    return (f(params, samples) + eta * f_relaxed_eval) * elementwise_grad(logistic_logpdf)(z, params) + eta * f_relax_grad
+
+
+############### RELAX ######################
+# Uses a neural network for control variate instead of original objective
+
+def init_nn_params(scale, layer_sizes, rs=npr.RandomState(0)):
+    """Build a list of (weights, biases) tuples, one for each layer."""
+    return [(rs.randn(insize, outsize) * scale,   # weight matrix
+             rs.randn(outsize) * scale)           # bias vector
+            for insize, outsize in zip(layer_sizes[:-1], layer_sizes[1:])]
+
+def nn_predict(params, inputs):
+    for W, b in params:
+        outputs = np.dot(inputs, W) + b
+        inputs = np.tanh(outputs)
+    return outputs
+
+#def func_plus_nn(params, relaxed_samples, nn_scale, nn_params, f):
+#    return f(params, relaxed_samples) \
+#           + nn_scale * nn_predict(nn_params, relaxed_samples)
+
+def relax(params, est_params, noise_u, noise_v, f):
+    samples = bernoulli_sample(params, noise_u)
+    log_eta, log_temperature, log_nn_scale, nn_params = est_params
+    eta = np.exp(log_eta)
+    nn_scale = np.exp(log_nn_scale)
+
+    def f_relaxed(params, relaxed_samples):
+        return nn_scale * nn_predict(nn_params, relaxed_samples)
+
+    def concrete_cond(params):
+        cond_noise = conditional_noise(params, samples, noise_v)  # z tilde
+        return concrete(params, log_temperature, cond_noise, f_relaxed)
+
+    grad_concrete = elementwise_grad(concrete)(params, log_temperature, noise_u, f_relaxed)
+    f_cond, grad_concrete_cond = value_and_grad(concrete_cond)(params)
+    controlled_f = lambda params, samples: f(params, samples) - eta * f_cond
+
+    return reinforce(params, noise_u, controlled_f) \
+           + eta * grad_concrete - eta * grad_concrete_cond
 
 
 
@@ -120,9 +161,9 @@ def simple_mc_reinforce(params, noise, f):
     samples = bernoulli_sample(params, noise)
     return f(params, samples)
 
-def reinforce_vjp(g, ans, vs, gvs, *args):
-    return g * reinforce(*args)
-simple_mc_reinforce.defvjp(reinforce_vjp)
+def reinforce_vjp(ans, *args):
+    return lambda g: g * reinforce(*args)
+defvjp(simple_mc_reinforce, reinforce_vjp, argnums=[0])
 
 
 @primitive
@@ -130,9 +171,9 @@ def simple_mc_rebar(params, est_params, noise_u, noise_v, f):
     samples = bernoulli_sample(params, noise_u)
     return f(params, samples)
 
-def rebar_vjp(g, ans, vs, gvs, *args):
-    return g * rebar(*args)
-simple_mc_rebar.defvjp(rebar_vjp, argnum=0)
+def rebar_vjp(ans, *args):
+    return lambda g: g * rebar(*args)
+defvjp(simple_mc_rebar, rebar_vjp, None, argnums=[0, 1])
 #simple_mc_rebar.defvjp_is_zero(argnums=(1,))
 
 @primitive
@@ -140,9 +181,9 @@ def simple_mc_bar(params, est_params, noise_u, f):
     samples = bernoulli_sample(params, noise_u)
     return f(params, samples)
 
-def bar_vjp(g, ans, vs, gvs, *args):
-    return g * bar(*args)
-simple_mc_bar.defvjp(bar_vjp, argnum=0)
+def bar_vjp(ans, *args):
+    return lambda g: g * bar(*args)
+defvjp(simple_mc_bar, bar_vjp, argnums=[0])
 
 
 @primitive
@@ -150,19 +191,19 @@ def simple_mc_rbar(params, est_params, noise_u, f):
     samples = bernoulli_sample(params, noise_u)
     return f(params, samples)
 
-def rbar_vjp(g, ans, vs, gvs, *args):
-    return g * rbar(*args)
-simple_mc_rbar.defvjp(rbar_vjp, argnum=0)
+def rbar_vjp(ans, *args):
+    return lambda g: g * rbar(*args)
+defvjp(simple_mc_rbar, rbar_vjp, argnum=0)
 
 
-def rebar_v_vjp(g, ans, vs, gvs, *args):
+def rebar_v_vjp(ans, *args):
     # Unbiased estimator of grad of variance of rebar.
     grads = rebar(*args)
     grad_est = grad_of_var_of_grads(grads)
     est_params_vjp, _ = make_vjp(rebar, argnum=1)(*args)
     return est_params_vjp(grad_est)
 
-simple_mc_rebar.defvjp(rebar_v_vjp, argnum=1)
+#defvjp(simple_mc_rebar, rebar_v_vjp, argnum=1)
 
 def obj_rebar_estgrad_var(params, est_params, noise_u, noise_v, f):
     # To avoid recomputing things, here's a function that computes everything together
@@ -176,13 +217,12 @@ def obj_rebar_estgrad_var(params, est_params, noise_u, noise_v, f):
     obj, grads = rebar_list[0]
     vargrad = make_vjp(value_and_rebar)(est_params)(grad_of_var_of_grads(grads))
 
-    #vargrad = estgrad *
     var = np.var(grads, axis=0)
     return obj, grads, vargrad, var
 
 
 
-def rebar_var_vjp(g, ans, vs, gvs, *args):
+def rebar_var_vjp(ans, *args):
     # Unbiased estimator of grad of variance of rebar.
     _, grads, _ = ans
     _, _, var_g = g
@@ -205,121 +245,42 @@ def simple_mc_rebar_grads_var(*args):
     obj, grads = value_and_grad(simple_mc_rebar)(*args)
     return obj, grads, np.var(grads, axis=0)
 
-def rebar_obj_vjp((obj_g, rebar_g, var_g), (obj, grads, var), vs, gvs, *args):
-    return obj_g * grads
+def rebar_obj_vjp((obj, grads, var), *args):
+    return lambda (obj_g, rebar_g, var_g): obj_g * grads
 
-def rebar_var_vjp(g, ans, vs, gvs, *args):
+def rebar_var_vjp(ans, *args):
     # Unbiased estimator of grad of variance of rebar.
     _, grads, _ = ans
-    _, _, var_g = g
-    grad_est = 2 * var_g * grads / grads.shape[0]  # Formula from paper
-    est_params_vjp, _ = make_vjp(rebar, argnum=1)(*args)
-    return est_params_vjp(grad_est)
-simple_mc_rebar_grads_var.defvjp(rebar_obj_vjp, argnum=0)
-simple_mc_rebar_grads_var.defvjp(rebar_var_vjp, argnum=1)
+    def inner_grad((_1, _2, var_g)):
+        grad_est = 2 * var_g * grads / grads.shape[0]  # Formula from paper
+        est_params_vjp, _ = make_vjp(rebar, argnum=1)(*args)
+        return est_params_vjp(grad_est)
+    return inner_grad
+#simple_mc_rebar_grads_var.defvjp(rebar_obj_vjp, argnum=0)
+#simple_mc_rebar_grads_var.defvjp(rebar_var_vjp, argnum=1)
 
-
-
-############### SIMPLE REBAR ######################
-# Doesn't use concrete distribution at all, still unbiased
-
-def conditional_noise_uniform(logit_theta, samples, noise):
-    # Computes p(u|b) where b = H(u < theta), p(u) = U(0, 1)
-    # p(z | b = 0) = U(theta, 1)
-    # p(z | b = 1) = U(0, theta)
-    theta = expit(logit_theta)
-    return (1 - samples) * (noise * (1 - theta) + theta) + samples * noise * theta
-
-def simple_rebar(params, noise_u, noise_v, f):
-    samples = bernoulli_sample(params, noise_u)
-
-    def noise_cond(params):
-        cond_noise = conditional_noise_uniform(params, samples, noise_v)
-        return f(params, cond_noise)
-
-    grad_noise = grad(f)(params, noise_u)
-    f_cond, grad_noise_cond = value_and_grad(noise_cond)(params)
-    controlled_f = lambda params, samples: f(params, samples) - f_cond
-    return reinforce(params, noise_u, controlled_f) + grad_noise - grad_noise_cond
 
 @primitive
-def simple_mc_simple_rebar(params, noise_u, noise_v, f):
+def simple_mc_relax(params, est_params, noise_u, noise_v, f):
     samples = bernoulli_sample(params, noise_u)
     return f(params, samples)
 
-def simple_rebar_vjp(g, ans, vs, gvs, *args):
-    return g * simple_rebar(*args)
-simple_mc_simple_rebar.defvjp(simple_rebar_vjp, argnum=0)
-simple_mc_simple_rebar.defvjp_is_zero(argnums=(1,))
 
-
-
-############### GENERALIZED REBAR ######################
-# Uses a neural network for control variate instead of original objective
-# Question: Should f tilde depend on params?
-
-def init_nn_params(scale, layer_sizes, rs=npr.RandomState(0)):
-    """Build a list of (weights, biases) tuples, one for each layer."""
-    return [(rs.randn(insize, outsize) * scale,   # weight matrix
-             rs.randn(outsize) * scale)           # bias vector
-            for insize, outsize in zip(layer_sizes[:-1], layer_sizes[1:])]
-
-def nn_predict(params, inputs):
-    for W, b in params:
-        outputs = np.dot(inputs, W) + b
-        inputs = np.tanh(outputs)
-    return outputs
-
-def func_plus_nn(params, relaxed_samples, nn_scale, nn_params, f):
-    return f(params, relaxed_samples) \
-           + nn_scale * nn_predict(nn_params, relaxed_samples)
-
-def generalized_rebar(params, est_params, noise_u, noise_v, f):
-    samples = bernoulli_sample(params, noise_u)
-    log_eta, log_temperature, log_nn_scale, nn_params = est_params
-    eta = np.exp(log_eta)
-    nn_scale = np.exp(log_nn_scale)
-
-    def f_relaxed(params, relaxed_samples):
-        return func_plus_nn(params, relaxed_samples, nn_scale, nn_params, f)
-
-    def concrete_cond(params):
-        cond_noise = conditional_noise(params, samples, noise_v)  # z tilde
-        return concrete(params, log_temperature, cond_noise, f_relaxed)
-
-    grad_concrete = grad(concrete)(params, log_temperature, noise_u, f_relaxed)
-    f_cond, grad_concrete_cond = value_and_grad(concrete_cond)(params)
-    controlled_f = lambda params, samples: f(params, samples) - eta * f_cond
-
-    return reinforce(params, noise_u, controlled_f) \
-           + eta * grad_concrete - eta * grad_concrete_cond
-
-@primitive
-def simple_mc_generalized_rebar(params, est_params, noise_u, noise_v, f):
-    samples = bernoulli_sample(params, noise_u)
-    return f(params, samples)
-
-def generalized_rebar_vjp(g, ans, vs, gvs, *args):
-    return g * generalized_rebar(*args)
-simple_mc_generalized_rebar.defvjp(generalized_rebar_vjp, argnum=0)
-simple_mc_generalized_rebar.defvjp_is_zero(argnums=(1,))
+def relax_vjp(ans, *args):
+    return lambda g: g * relax(*args)
+defvjp(simple_mc_relax, relax_vjp, None, argnums=[0, 1])
 
 
 @primitive
-def gen_rebar_grads_var(*args):
+def relax_grads_var(*args):
     # Returns estimates of objective, gradients, and variance of gradients.
-    obj, grads = value_and_grad(simple_mc_generalized_rebar)(*args)
+    obj, grads = value_and_grad(simple_mc_relax)(*args)
     return obj, grads, np.var(grads, axis=0)
 
-def gen_rebar_var_vjp(g, ans, vs, gvs, *args):
-    # Unbiased estimator of grad of variance of rebar.
+def relax_var_vjp(g, ans, *args):  # Unbiased estimator of grad of variance of rebar.
     _, grads, _ = ans
-    _, _, var_g = g
-    grad_est = 2 * var_g * grads / grads.shape[0]  # Formula from paper
-    est_params_vjp, _ = make_vjp(generalized_rebar, argnum=1)(*args)
-    return est_params_vjp(grad_est)
-gen_rebar_grads_var.defvjp(rebar_obj_vjp, argnum=0)
-gen_rebar_grads_var.defvjp(gen_rebar_var_vjp, argnum=1)
-
-
-
+    def inner_grad((_1, _2, var_g)):
+        est_params_vjp, _ = make_vjp(relax, argnum=1)(*args)
+        return est_params_vjp(grad_of_var_of_grads(grads))
+    return inner_grad
+defvjp(relax_grads_var, rebar_obj_vjp, relax_var_vjp, argnums=[0, 1])

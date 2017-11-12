@@ -7,7 +7,7 @@ import autograd.numpy.random as npr
 from autograd.scipy.special import expit, logit
 
 from autograd import grad
-from autograd.optimizers import adam
+from autograd.misc.optimizers import adam
 
 from rebar import simple_mc_generalized_rebar, init_nn_params, func_plus_nn, gen_rebar_grads_var
 

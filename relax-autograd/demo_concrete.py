@@ -6,8 +6,8 @@ import autograd.numpy as np
 import autograd.numpy.random as npr
 from autograd.scipy.special import expit, logit
 
-from autograd import grad, value_and_grad
-from autograd.optimizers import adam
+from autograd import grad, elementwise_grad, value_and_grad
+from autograd.misc.optimizers import adam
 
 from rebar import concrete
 
@@ -45,9 +45,9 @@ if __name__ == '__main__':
     plt.show(block=False)
 
     temperatures = []
-    def callback(combined_params, t, gradient):
+    def callback(combined_params, t, combined_grads):
         params, temperature = combined_params
-        grad_params = gradient[:D]
+        grad_params, grad_temperature = combined_grads
         temperatures.append(temperature)
         if t % 10 == 0:
             objective_val, grad_vars = mc_objective_and_var(combined_params, t)
@@ -57,7 +57,7 @@ if __name__ == '__main__':
             ax1.set_ylabel('parameter values')
             ax1.set_ylim([0, 1])
             ax2.cla()
-            ax2.plot(grad_params, 'g')
+            ax2.plot(grad_params[0], 'g')
             ax2.set_ylabel('average gradient')
             ax3.cla()
             ax3.plot(grad_vars, 'b')
