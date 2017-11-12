@@ -152,14 +152,13 @@ It also comes up in fitting latent-variable models, when we wish to maximize the
 In this paper, we'll consider the general problem of optimizing
 %
 \begin{align}
-\mathcal{L}(\theta)=\expectedLoss{}.
+\mathcal{L}(\theta) = \expectedLoss{}.
 \end{align}
 
 When the parameters $\theta$ are high-dimensional, gradient-based optimization is appealing because it provides information about how to adjust each parameter individually.
-Stochastic optimization is essential for scalablility.
-However, it is only guaranteed to converge to a fixed point of the objective when the stochastic gradients $\hat g$ are unbiased, i.e. ${\mathbb{E} \left[ \hat g \right] = \PT \mathbb{E}_{p(b|\theta)} \left[ f(b) \right]}$~\citep{robbins1951stochastic}.
+Stochastic optimization is essential for scalablility, but is only guaranteed to converge to a fixed point of the objective when the stochastic gradients $\hat g$ are unbiased, i.e. ${\mathbb{E} \left[ \hat g \right] = \PT \mathcal{L}(\theta)}$~\citep{robbins1951stochastic}.
 
-How can we build unbiased, stochastic estimators of $\PT \mathcal{L}(\theta)$?
+How can we build unbiased, stochastic gradient estimators?
 There are several standard methods:
 
 \paragraph{The score-function gradient estimator}
@@ -207,9 +206,9 @@ One intuition for why this gradient estimator is preferable to REINFORCE is that
 
 
 \paragraph{Control variates}
-Control variates are a general method for reducing the variance of a Monte Carlo estimator.
-Given an estimator $\hat g(b)$, a control variate is a function $\controlf(b)$ with a known mean $\mathbb{E}_{p(b)} [ \controlf(b) ]$.
-Subtracting the control variate from our estimator and adding its mean gives us a new estimator:
+Control variates are a general method for reducing the variance of a stochastic estimator.
+A control variate is a function $\controlf(b)$ with a known mean $\mathbb{E}_{p(b)} [ \controlf(b) ]$.
+Given an estimator $\hat g(b)$, subtracting the control variate from this estimator and adding its mean gives us a new estimator:
 %
 \begin{align}
 \hat g_\textnormal{new}(b) = \hat g(b) - \controlf(b) + \mathbb{E}_{p(b)}[\controlf(b)]
@@ -223,7 +222,7 @@ This new estimator has the same expectation as the old one,
 %= \mathbb{E}_{p(b)}\left[ \hat g(b) \right]
 %\end{align}
 %
-but has lower variance than $\hat g(b)$ if $\controlf(b)$ is positively correlated with $f(b)$.
+but has lower variance if $\controlf(b)$ is positively correlated with $\hat g(b)$.
 % NOTE for revision: 
 % I think it's important to stick to the standard definition of a control variate here, which includes the scalar constant eta
 % c(b) can be positively or negatively correlated with f(b) and still reduce variance if the control variate has a learned scalar like eta
@@ -256,7 +255,7 @@ Thus \LAX{} can have variance at least as low as the reparameterization estimato
 \subsection{Optimizing the gradient control variate with gradients}
 Since $\hat g_\LAX$ is unbiased for any choice of the surrogate $c_\phi$, the only remaining problem is to choose a $c_\phi$ that gives low variance to $\hat g_\LAX$.
 How can we find a $\phi$ which gives our estimator low variance?
-We simply optimize $c_\phi$ using stochastic gradient descent, at the same time as we optimize the parameters of our model or policy.
+We simply optimize $c_\phi$ using stochastic gradient descent, at the same time as we optimize the parameters $\theta$ of our model or policy.
 
 To optimize $c_\phi$, we require the gradient of the variance of our gradient estimator.
 To estimate these gradients, we could simply differentiate through the empirical variance over each mini-batch.
@@ -569,6 +568,8 @@ The horizontal dashed line indicates the lowest validation error obtained by REB
 
 
 \subsection{Reinforcement learning}
+\label{experiments section}
+
 We apply our gradient estimator to a few simple reinforcement learning environments with discrete and continuous actions.
 We use the \RELAX{} and \LAX{} estimators for discrete and continuous actions, respectively.
 We compare with the advantage actor-critic algorithm (A2C)~\citep{sutton2000policy} as a baseline.
@@ -579,8 +580,6 @@ Full details of our experiments can be found in Appendix~\ref{experiment appendi
 %We test our alrgorithm on the Cart-Pole and Lunar-Lander environments from the OpenAI Gym~\citep{1606.01540}.
 %We run the Cart-Pole and Lunar-Lander environments for 250 and 1000 episodes, respectively and plot reward and the log-variance of the policy gradients in figure~X.
 
-\subsubsection{Experiments}
-\label{experiments section}
 In the discrete action setting, we test our approach on the Cart Pole and Lunar Lander environments as provided by the OpenAI gym~\citep{1606.01540}.
 In the continuous action setting, we test on the MuJoCo-simulated~\citep{todorov2012mujoco} environments Inverted Pendulum and Inverted Double Pendulum also found in the OpenAI gym.
 In all tested environments we observe improved performance and sample efficiency using our method.
