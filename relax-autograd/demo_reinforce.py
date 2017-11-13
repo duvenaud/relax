@@ -9,7 +9,7 @@ from autograd.scipy.special import expit
 from autograd import grad, value_and_grad
 from autograd.misc.optimizers import adam
 
-from rebar import simple_mc_reinforce
+from relax import simple_mc_reinforce
 
 if __name__ == '__main__':
 

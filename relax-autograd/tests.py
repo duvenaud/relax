@@ -4,15 +4,12 @@ from __future__ import print_function
 import autograd.numpy as np
 import autograd.numpy.random as npr
 from autograd.scipy.special import expit, logit
-from autograd import grad
+from autograd import grad, elementwise_grad
 
-from rebar import simple_mc_reinforce, concrete,\
-    simple_mc_rebar, simple_mc_rebar_grads_var,\
-    simple_mc_relax, init_nn_params, obj_rebar_estgrad_var,\
-    simple_mc_bar, simple_mc_rbar
+from relax import simple_mc_reinforce, concrete,\
+    simple_mc_rebar, rebar_grads_var, relax_grads_var, \
+    simple_mc_relax, init_nn_params
 
-def nd(f, x, eps=1e-4):
-    return (f(x + eps/2) - f(x - eps/2)) / eps
 
 if __name__ == '__main__':
     rs = npr.RandomState(0)
@@ -40,22 +37,16 @@ if __name__ == '__main__':
     print("Concrete, temp = 1 : {}".format(grad(mc)(params, lambda p, n, o: concrete(p, np.log(1), n, o))))
     print("Rebar, temp = 1    : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (np.log(1.0),  np.log(0.3)), n, rs.rand(num_samples, D), o))))
     print("Rebar, temp = 10   : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (np.log(10.0), np.log(0.3)), n, rs.rand(num_samples, D), o))))
-    print("Rebar, eta = 0     : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (np.log(1.0),  np.log(0.0)), n, rs.rand(num_samples, D), o))))
-    print("bar, temp = 1      : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_bar(p, (np.log(1.0),  np.log(0.3)), n, o))))
-    print("bar, temp = 10     : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_bar(p, (np.log(10.0), np.log(0.3)), n, o))))
-    print("bar, eta = 0       : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_bar(p, (np.log(1.0),  np.log(0.0)), n, o))))
-    print("rbar, temp = 1     : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rbar(p, (np.log(1.0),  np.log(0.3)), n, o))))
-    print("rbar, temp = 10    : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rbar(p, (np.log(10.0), np.log(0.3)), n, o))))
-    print("rbar, eta = 0      : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rbar(p, (np.log(1.0),  np.log(0.0)), n, o))))
+    print("Rebar, eta = 0     : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_rebar(p, (np.log(1.0),  np.log(0.0001)), n, rs.rand(num_samples, D), o))))
     nn_params = init_nn_params(0.1, [D, 5, 1])
-    print("Relax              : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_relax(p, (0, 0, 0, nn_params), n, rs.rand(num_samples, D), o))))
+    print("Relax              : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_relax(p, (0, 0, nn_params), n, rs.rand(num_samples, D), o))))
 
     def rebar_var_naive(est_params):
         rs = npr.RandomState(0)
         noise_u = rs.rand(num_samples, D)
         noise_v = rs.rand(num_samples, D)
         params_rep = np.tile(params, (num_samples, 1))
-        grad_vals = grad(simple_mc_rebar)(params_rep, est_params, noise_u, noise_v, objective)
+        grad_vals = elementwise_grad(simple_mc_rebar)(params_rep, est_params, noise_u, noise_v, objective)
         return np.mean(np.var(grad_vals, axis=0))
 
     def rebar_var_fancy(est_params):
@@ -63,22 +54,9 @@ if __name__ == '__main__':
         noise_u = rs.rand(num_samples, D)
         noise_v = rs.rand(num_samples, D)
         params_rep = np.tile(params, (num_samples, 1))
-        obj, grads, estgrad, var = obj_rebar_estgrad_var(params_rep, est_params, noise_u, noise_v, objective)
+        obj, grads, var = rebar_grads_var(params_rep, est_params, noise_u, noise_v, objective)
         return np.mean(var)
 
-    def rebar_estgrads_direct(est_params):
-        rs = npr.RandomState(0)
-        noise_u = rs.rand(num_samples, D)
-        noise_v = rs.rand(num_samples, D)
-        params_rep = np.tile(params, (num_samples, 1))
-        obj, grads, estgrad, var = obj_rebar_estgrad_var(params_rep, est_params, noise_u, noise_v, objective)
-        return np.mean(estgrad, axis=0)
-
-    print("\n\nGradient of variance:")
-    print("Numerical naive    : {}".format(np.array(nd(rebar_var_naive, (1.0,  0.3)))[0]))
-    print("Numerical fancy    : {}".format(np.array(nd(rebar_var_fancy, (1.0,  0.3)))[0]))
-    print("Autodiff           : {}".format(grad(rebar_var_naive)((1.0,  0.3))))
-    print("Formula from paper : {}".format(grad(rebar_var_fancy)((1.0,  0.3))))
-    print("Formula combined   : {}".format(rebar_estgrads_direct((1.0,  0.3))))
-    #print("Numerical implicit : {}".format(np.array(nd(rebar_var_implicit, (1.0,  0.3)))[0]))
-    #print("Autodiff implicit  : {}".format(grad(rebar_var_implicit)((1.0,  0.3))))
+    print("\n\nGradient of variance of gradient:")
+    print("Autodiff  : {}".format(grad(rebar_var_naive)((1.0,  0.3))))
+    print("Estimator : {}".format(grad(rebar_var_fancy)((1.0,  0.3))))

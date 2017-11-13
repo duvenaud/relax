@@ -9,7 +9,7 @@ from autograd.scipy.special import expit
 from autograd import grad
 from autograd.misc.optimizers import adam
 
-from rebar import simple_mc_rebar, rebar_grads_var
+from relax import simple_mc_rebar, rebar_grads_var
 
 if __name__ == '__main__':
 
@@ -32,10 +32,10 @@ if __name__ == '__main__':
 
     # Set up figure.
     fig = plt.figure(figsize=(8, 8), facecolor='white')
-    ax1 = fig.add_subplot(511, frameon=False)
-    ax2 = fig.add_subplot(512, frameon=False)
-    ax3 = fig.add_subplot(513, frameon=False)
-    ax4 = fig.add_subplot(514, frameon=False)
+    ax1 = fig.add_subplot(411, frameon=False)
+    ax2 = fig.add_subplot(412, frameon=False)
+    ax3 = fig.add_subplot(413, frameon=False)
+    ax4 = fig.add_subplot(414, frameon=False)
     plt.ion()
     plt.show(block=False)
 

@@ -66,8 +66,7 @@ def rebar(params, est_params, noise_u, noise_v, f):
     f_cond, grad_concrete_cond = value_and_grad(concrete_cond)(params)  # d_f(ztilde) / d_theta
     controlled_f = lambda params, samples: f(params, samples) - eta * f_cond
 
-    return reinforce(params, noise_u, controlled_f) \
-           + eta * grad_concrete - eta * grad_concrete_cond
+    return reinforce(params, noise_u, controlled_f) + eta * (grad_concrete - grad_concrete_cond)
 
 def grad_of_var_of_grads(grads):
     # For an unbiased gradient estimator, gives an unbiased
@@ -94,23 +93,20 @@ def nn_predict(params, inputs):
 
 def relax(params, est_params, noise_u, noise_v, f):
     samples = bernoulli_sample(params, noise_u)
-    log_eta, log_temperature, log_nn_scale, nn_params = est_params
-    eta = np.exp(log_eta)
-    nn_scale = np.exp(log_nn_scale)
+    log_eta, log_temperature, nn_params = est_params
 
-    def f_relaxed(params, relaxed_samples):
-        return nn_scale * nn_predict(nn_params, relaxed_samples)
+    def surrogate(params, relaxed_samples):
+        return np.exp(log_eta) * nn_predict(nn_params, relaxed_samples)
 
-    def concrete_cond(params):
+    def surrogate_cond(params):
         cond_noise = conditional_noise(params, samples, noise_v)  # z tilde
-        return concrete(params, log_temperature, cond_noise, f_relaxed)
+        return concrete(params, log_temperature, cond_noise, surrogate)
 
-    grad_concrete = elementwise_grad(concrete)(params, log_temperature, noise_u, f_relaxed)
-    f_cond, grad_concrete_cond = value_and_grad(concrete_cond)(params)
-    controlled_f = lambda params, samples: f(params, samples) - eta * f_cond
+    grad_surrogate = elementwise_grad(concrete)(params, log_temperature, noise_u, surrogate)
+    surrogate_cond, grad_surrogate_cond = value_and_grad(surrogate_cond)(params)
+    controlled_f = lambda params, samples: f(params, samples) - surrogate_cond
 
-    return reinforce(params, noise_u, controlled_f) \
-           + eta * grad_concrete - eta * grad_concrete_cond
+    return reinforce(params, noise_u, controlled_f) + grad_surrogate - grad_surrogate_cond
 
 
 

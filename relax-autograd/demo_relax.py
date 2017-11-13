@@ -9,7 +9,7 @@ from autograd.scipy.special import expit, logit
 from autograd import grad
 from autograd.misc.optimizers import adam
 
-from rebar import simple_mc_relax, init_nn_params, nn_predict, relax_grads_var
+from relax import simple_mc_relax, init_nn_params, nn_predict, relax_grads_var
 
 def make_one_d(f, d, full_d_input):
     def oned(one_d_input):
@@ -26,10 +26,11 @@ def map_and_stack(f):
 if __name__ == '__main__':
 
     D = 100
+    slice_dim = D / 2 - 1
     num_hidden_units = 5
     rs = npr.RandomState(0)
-    num_samples = 1
-    init_est_params = (1.0, 1.0, -1.0, init_nn_params(0.1, [D, num_hidden_units, 1]))
+    num_samples = 10
+    init_est_params = (0.0, 0.0, init_nn_params(0.1, [D, num_hidden_units, 1]))
     init_model_params = np.zeros(D)
     init_combined_params = (init_model_params, init_est_params)
 
@@ -53,12 +54,11 @@ if __name__ == '__main__':
 
     # Set up figure.
     fig = plt.figure(figsize=(8, 8), facecolor='white')
-    ax1 = fig.add_subplot(611, frameon=False)
-    ax2 = fig.add_subplot(612, frameon=False)
-    ax3 = fig.add_subplot(613, frameon=False)
-    ax4 = fig.add_subplot(614, frameon=False)
-    ax5 = fig.add_subplot(615, frameon=False)
-    ax6 = fig.add_subplot(616, frameon=False)
+    ax1 = fig.add_subplot(511, frameon=False)
+    ax2 = fig.add_subplot(512, frameon=False)
+    ax3 = fig.add_subplot(513, frameon=False)
+    ax4 = fig.add_subplot(514, frameon=False)
+    ax5 = fig.add_subplot(515, frameon=False)
 
     plt.ion()
     plt.show(block=False)
@@ -69,10 +69,9 @@ if __name__ == '__main__':
     def callback(combined_params, t, combined_gradient):
         params, est_params = combined_params
         grad_params, grad_est = combined_gradient
-        log_eta, log_temperature, log_nn_scale, nn_params = est_params
+        log_eta, log_temperature, nn_params = est_params
         etas.append(np.exp(log_eta))
         temperatures.append(np.exp(log_temperature))
-        nn_scales.append(np.exp(log_nn_scale))
         if t % 10 == 0:
             objective_val, grad_vars = mc_objective_and_var(combined_params, t)
             print("Iteration {} objective {}".format(t, objective_val))
@@ -92,21 +91,15 @@ if __name__ == '__main__':
             ax4.cla()
             ax4.plot(temperatures, 'b')
             ax4.set_ylabel('temperature')
+            ax4.set_xlabel('iteration')
+
             ax5.cla()
-            ax5.plot(etas, 'b')
-            ax5.set_ylabel('eta')
-            ax5.set_xlabel('iteration')
-            ax6.cla()
             xrange = np.linspace(0, 1, 200)
-            slide_d = D / 2 - 1
-            f = lambda b: objective(params, b)
-            f_tilde = lambda x: np.exp(log_nn_scale) * nn_predict(nn_params, x)
-            f_map       = map_and_stack(make_one_d(f,       slide_d, params))
-            f_tilde_map = map_and_stack(make_one_d(f_tilde, slide_d, params))
-            #ax6.plot(xrange, f_map(xrange), 'g')
-            ax6.plot(xrange, f_tilde_map(logit(xrange)), 'b')
-            ax6.set_ylabel('mean of f tilde 1d')
-            ax6.set_xlabel('relaxed sample')
+            f_tilde = lambda x: np.exp(log_eta) * nn_predict(nn_params, x)
+            f_tilde_map = map_and_stack(make_one_d(f_tilde, slice_dim, params))
+            ax5.plot(xrange, f_tilde_map(logit(xrange)), 'b')
+            ax5.set_ylabel('1d slide of surrogate')
+            ax5.set_xlabel('relaxed sample')
             plt.draw()
             plt.pause(1.0/30.0)
 
