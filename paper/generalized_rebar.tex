@@ -738,8 +738,8 @@ We can sample from $p(z|b, \theta)$ with
 \[
 v' =    \left\{
 \begin{array}{ll}
-      v\cdot\theta & b = 0 \\
-      v(1-\theta) + \theta & b = 1 \\
+      v\cdot(1-\theta) & b = 0 \\
+      v\cdot\theta + (1 - \theta) & b = 1 \\
 \end{array} 
 \right.
 \]
