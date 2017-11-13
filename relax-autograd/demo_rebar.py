@@ -9,7 +9,7 @@ from autograd.scipy.special import expit
 from autograd import grad
 from autograd.misc.optimizers import adam
 
-from rebar import simple_mc_rebar
+from rebar import simple_mc_rebar, rebar_grads_var
 
 if __name__ == '__main__':
 
@@ -27,8 +27,8 @@ if __name__ == '__main__':
         rs = npr.RandomState(t)
         noise_u = rs.rand(num_samples, D)
         noise_v = rs.rand(num_samples, D)
-        objective_vals = simple_mc_rebar(params, est_params, noise_u, noise_v, objective)
-        return np.mean(objective_vals) + np.var(objective_vals)
+        objective_vals, grads, variance_estimates = rebar_grads_var(params, est_params, noise_u, noise_v, objective)
+        return np.mean(objective_vals) + np.mean(variance_estimates)
 
     # Set up figure.
     fig = plt.figure(figsize=(8, 8), facecolor='white')
@@ -36,7 +36,6 @@ if __name__ == '__main__':
     ax2 = fig.add_subplot(512, frameon=False)
     ax3 = fig.add_subplot(513, frameon=False)
     ax4 = fig.add_subplot(514, frameon=False)
-    ax5 = fig.add_subplot(515, frameon=False)
     plt.ion()
     plt.show(block=False)
 
@@ -58,17 +57,13 @@ if __name__ == '__main__':
             ax2.cla()
             ax2.plot(grad_params, 'g')
             ax2.set_ylabel('average gradient')
-            #ax3.cla()
-            #ax3.plot(grad_vars, 'b')
-            #ax3.set_ylabel('gradient variance')
-            #ax3.set_xlabel('parameter index')
+            ax3.cla()
+            ax3.plot(temperatures, 'b')
+            ax3.set_ylabel('temperature')
             ax4.cla()
-            ax4.plot(temperatures, 'b')
-            ax4.set_ylabel('temperature')
-            ax5.cla()
-            ax5.plot(etas, 'b')
-            ax5.set_ylabel('eta')
-            ax5.set_xlabel('iteration')
+            ax4.plot(etas, 'b')
+            ax4.set_ylabel('eta')
+            ax4.set_xlabel('iteration')
 
             plt.draw()
             plt.pause(1.0/30.0)

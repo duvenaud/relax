@@ -3,7 +3,7 @@ import autograd.numpy.random as npr
 
 from autograd.scipy.special import expit, logit
 from autograd.extend import primitive, defvjp
-from autograd import grad, elementwise_grad, value_and_grad, make_vjp
+from autograd import elementwise_grad, value_and_grad, make_vjp
 
 
 def heaviside(z):
@@ -21,7 +21,7 @@ def logistic_logpdf(x, mu=0, scale=1):
     return -2 * np.logaddexp(y, -y) - np.log(scale)
 
 def bernoulli_sample(logit_theta, noise):
-    return logit(noise) < logit_theta  # heaviside(logistic_sample(logit_theta, noise))
+    return logit(noise) < logit_theta
 
 def relaxed_bernoulli_sample(logit_theta, noise, log_temperature):
     return softmax(logistic_sample(noise, expit(logit_theta)), log_temperature)
@@ -75,41 +75,6 @@ def grad_of_var_of_grads(grads):
     return 2 * grads / grads.shape[0]
 
 
-############### BAR ######################
-
-def bar(params, est_params, noise, f):
-    log_temperature, log_eta = est_params
-    eta = np.exp(log_eta)
-    z = logistic_sample(noise, params)
-
-    def f_relax(params):
-        z = logistic_sample(noise, params)
-        relaxed_samples = softmax(z, log_temperature)
-        return f(params, relaxed_samples)
-
-    f_relaxed_eval, f_relax_grad = value_and_grad(f_relax)(params)
-
-    return reinforce(params, noise, f) \
-        - eta * f_relaxed_eval * elementwise_grad(logistic_logpdf, argnum=1)(z, params) \
-        + eta * f_relax_grad
-
-
-# Experimental variant
-
-def rbar(params, est_params, noise, f):
-    log_temperature, log_eta = est_params
-    eta = np.exp(log_eta)
-    z = logistic_sample(noise, params)
-
-    def f_relax(params):
-        z = logistic_sample(noise, params)
-        relaxed_samples = softmax(z, log_temperature)
-        return f(params, relaxed_samples)
-
-    samples = bernoulli_sample(params, noise)
-    f_relaxed_eval, f_relax_grad = value_and_grad(f_relax)(params)
-    return (f(params, samples) + eta * f_relaxed_eval) * elementwise_grad(logistic_logpdf)(z, params) + eta * f_relax_grad
-
 
 ############### RELAX ######################
 # Uses a neural network for control variate instead of original objective
@@ -126,9 +91,6 @@ def nn_predict(params, inputs):
         inputs = np.tanh(outputs)
     return outputs
 
-#def func_plus_nn(params, relaxed_samples, nn_scale, nn_params, f):
-#    return f(params, relaxed_samples) \
-#           + nn_scale * nn_predict(nn_params, relaxed_samples)
 
 def relax(params, est_params, noise_u, noise_v, f):
     samples = bernoulli_sample(params, noise_u)
@@ -166,6 +128,8 @@ def reinforce_vjp(ans, *args):
 defvjp(simple_mc_reinforce, reinforce_vjp, argnums=[0])
 
 
+######## REBAR hooks ############
+
 @primitive
 def simple_mc_rebar(params, est_params, noise_u, noise_v, f):
     samples = bernoulli_sample(params, noise_u)
@@ -174,97 +138,32 @@ def simple_mc_rebar(params, est_params, noise_u, noise_v, f):
 def rebar_vjp(ans, *args):
     return lambda g: g * rebar(*args)
 defvjp(simple_mc_rebar, rebar_vjp, None, argnums=[0, 1])
-#simple_mc_rebar.defvjp_is_zero(argnums=(1,))
-
-@primitive
-def simple_mc_bar(params, est_params, noise_u, f):
-    samples = bernoulli_sample(params, noise_u)
-    return f(params, samples)
-
-def bar_vjp(ans, *args):
-    return lambda g: g * bar(*args)
-defvjp(simple_mc_bar, bar_vjp, argnums=[0])
 
 
 @primitive
-def simple_mc_rbar(params, est_params, noise_u, f):
-    samples = bernoulli_sample(params, noise_u)
-    return f(params, samples)
-
-def rbar_vjp(ans, *args):
-    return lambda g: g * rbar(*args)
-defvjp(simple_mc_rbar, rbar_vjp, argnum=0)
-
-
-def rebar_v_vjp(ans, *args):
-    # Unbiased estimator of grad of variance of rebar.
-    grads = rebar(*args)
-    grad_est = grad_of_var_of_grads(grads)
-    est_params_vjp, _ = make_vjp(rebar, argnum=1)(*args)
-    return est_params_vjp(grad_est)
-
-#defvjp(simple_mc_rebar, rebar_v_vjp, argnum=1)
-
-def obj_rebar_estgrad_var(params, est_params, noise_u, noise_v, f):
-    # To avoid recomputing things, here's a function that computes everything together
-    rebar_list = []
-    def value_and_rebar(est_params):
-        o, r = value_and_grad(simple_mc_rebar)(params, est_params, noise_u, noise_v, f)
-        rebar_list.append(r)
-        return r
-
-
-    obj, grads = rebar_list[0]
-    vargrad = make_vjp(value_and_rebar)(est_params)(grad_of_var_of_grads(grads))
-
-    var = np.var(grads, axis=0)
-    return obj, grads, vargrad, var
-
-
-
-def rebar_var_vjp(ans, *args):
-    # Unbiased estimator of grad of variance of rebar.
-    _, grads, _ = ans
-    _, _, var_g = g
-    grad_est = grad_of_var_of_grads(grads)
-    est_params_vjp, _ = make_vjp(rebar, argnum=1)(*args)
-    return est_params_vjp(grad_est)
-
-    def double_val_fun(*args):
-        val = fun(*args)
-        return make_tuple(val, unbox_if_possible(val))
-    gradval_and_val = grad_and_aux(double_val_fun, argnum)
-    flip = lambda x, y: make_tuple(y, x)
-    return lambda *args: flip(*gradval_and_val(*args))
-
-# This wrapper lets us implement the single-sample estimator
-# of the gradient of the variance of the gradient estimate from the paper.
-@primitive
-def simple_mc_rebar_grads_var(*args):
+def rebar_grads_var(*args):
     # Returns estimates of objective, gradients, and variance of gradients.
     obj, grads = value_and_grad(simple_mc_rebar)(*args)
     return obj, grads, np.var(grads, axis=0)
 
+def rebar_var_vjp(ans, *args):  # Unbiased estimator of grad of variance of rebar.
+    obj, grads, var = ans
+    def inner_grad((_1, _2, var_g)):
+        est_params_vjp, _ = make_vjp(rebar, argnum=1)(*args)
+        return est_params_vjp(var_g * grad_of_var_of_grads(grads))
+    return inner_grad
+
 def rebar_obj_vjp((obj, grads, var), *args):
     return lambda (obj_g, rebar_g, var_g): obj_g * grads
+defvjp(rebar_grads_var, rebar_obj_vjp, rebar_var_vjp, argnums=[0, 1])
 
-def rebar_var_vjp(ans, *args):
-    # Unbiased estimator of grad of variance of rebar.
-    _, grads, _ = ans
-    def inner_grad((_1, _2, var_g)):
-        grad_est = 2 * var_g * grads / grads.shape[0]  # Formula from paper
-        est_params_vjp, _ = make_vjp(rebar, argnum=1)(*args)
-        return est_params_vjp(grad_est)
-    return inner_grad
-#simple_mc_rebar_grads_var.defvjp(rebar_obj_vjp, argnum=0)
-#simple_mc_rebar_grads_var.defvjp(rebar_var_vjp, argnum=1)
 
+######### RELAX hooks ##########
 
 @primitive
 def simple_mc_relax(params, est_params, noise_u, noise_v, f):
     samples = bernoulli_sample(params, noise_u)
     return f(params, samples)
-
 
 def relax_vjp(ans, *args):
     return lambda g: g * relax(*args)
@@ -277,10 +176,13 @@ def relax_grads_var(*args):
     obj, grads = value_and_grad(simple_mc_relax)(*args)
     return obj, grads, np.var(grads, axis=0)
 
-def relax_var_vjp(g, ans, *args):  # Unbiased estimator of grad of variance of rebar.
-    _, grads, _ = ans
+def relax_var_vjp(ans, *args):  # Unbiased estimator of grad of variance of rebar.
+    obj, grads, var = ans
     def inner_grad((_1, _2, var_g)):
         est_params_vjp, _ = make_vjp(relax, argnum=1)(*args)
-        return est_params_vjp(grad_of_var_of_grads(grads))
+        return est_params_vjp(var_g * grad_of_var_of_grads(grads))
     return inner_grad
-defvjp(relax_grads_var, rebar_obj_vjp, relax_var_vjp, argnums=[0, 1])
+
+def relax_obj_vjp((obj, grads, var), *args):
+    return lambda (obj_g, _1, _2): obj_g * grads
+defvjp(relax_grads_var, relax_obj_vjp, relax_var_vjp, argnums=[0, 1])

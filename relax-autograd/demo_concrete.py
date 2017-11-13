@@ -57,7 +57,7 @@ if __name__ == '__main__':
             ax1.set_ylabel('parameter values')
             ax1.set_ylim([0, 1])
             ax2.cla()
-            ax2.plot(grad_params[0], 'g')
+            ax2.plot(grad_params, 'g')
             ax2.set_ylabel('average gradient')
             ax3.cla()
             ax3.plot(grad_vars, 'b')

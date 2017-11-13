@@ -9,7 +9,7 @@ from autograd.scipy.special import expit, logit
 from autograd import grad
 from autograd.misc.optimizers import adam
 
-from rebar import simple_mc_generalized_rebar, init_nn_params, func_plus_nn, gen_rebar_grads_var
+from rebar import simple_mc_relax, init_nn_params, nn_predict, relax_grads_var
 
 def make_one_d(f, d, full_d_input):
     def oned(one_d_input):
@@ -43,7 +43,7 @@ if __name__ == '__main__':
         noise_u = rs.rand(num_samples, D)
         noise_v = rs.rand(num_samples, D)
         objective_vals, grads, var = \
-            gen_rebar_grads_var(params_rep, est_params, noise_u, noise_v, objective)
+            relax_grads_var(params_rep, est_params, noise_u, noise_v, objective)
         return np.mean(objective_vals), var
 
     def combined_obj(combined_params, t):
@@ -66,13 +66,13 @@ if __name__ == '__main__':
     etas = []
     temperatures = []
     nn_scales = []
-    def callback(combined_params, t, gradient):
+    def callback(combined_params, t, combined_gradient):
         params, est_params = combined_params
+        grad_params, grad_est = combined_gradient
         log_eta, log_temperature, log_nn_scale, nn_params = est_params
         etas.append(np.exp(log_eta))
         temperatures.append(np.exp(log_temperature))
         nn_scales.append(np.exp(log_nn_scale))
-        grad_params = gradient[:D]
         if t % 10 == 0:
             objective_val, grad_vars = mc_objective_and_var(combined_params, t)
             print("Iteration {} objective {}".format(t, objective_val))
@@ -100,11 +100,11 @@ if __name__ == '__main__':
             xrange = np.linspace(0, 1, 200)
             slide_d = D / 2 - 1
             f = lambda b: objective(params, b)
-            f_tilde = lambda x: func_plus_nn(params, x, np.exp(log_nn_scale), nn_params, objective)
+            f_tilde = lambda x: np.exp(log_nn_scale) * nn_predict(nn_params, x)
             f_map       = map_and_stack(make_one_d(f,       slide_d, params))
             f_tilde_map = map_and_stack(make_one_d(f_tilde, slide_d, params))
-            ax6.plot(xrange, f_map(xrange), 'g')
-            ax6.plot(xrange, f_tilde_map(xrange), 'b')
+            #ax6.plot(xrange, f_map(xrange), 'g')
+            ax6.plot(xrange, f_tilde_map(logit(xrange)), 'b')
             ax6.set_ylabel('mean of f tilde 1d')
             ax6.set_xlabel('relaxed sample')
             plt.draw()
