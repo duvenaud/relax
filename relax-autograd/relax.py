@@ -84,10 +84,12 @@ def init_nn_params(scale, layer_sizes, rs=npr.RandomState(0)):
              rs.randn(outsize) * scale)           # bias vector
             for insize, outsize in zip(layer_sizes[:-1], layer_sizes[1:])]
 
+relu = lambda x: np.maximum(0, x)
+
 def nn_predict(params, inputs):
     for W, b in params:
         outputs = np.dot(inputs, W) + b
-        inputs = np.tanh(outputs)
+        inputs = relu(outputs)
     return outputs
 
 

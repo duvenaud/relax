@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 from __future__ import print_function
+import itertools
 
 import autograd.numpy as np
 import autograd.numpy.random as npr
@@ -19,12 +20,15 @@ if __name__ == '__main__':
     targets = rs.rand(D)
 
     def objective(params, b):
-        return np.sum((b - targets)**2, axis=-1, keepdims=True)
+        return np.sum((b - np.linspace(0.2, 0.9, D))**2, axis=-1, keepdims=True)
 
     def expected_objective(params):
-        return np.sum(expit(-params) * objective(params, 0) + expit(params) * objective(params, 1))
+        lst = list(itertools.product([0.0, 1.0], repeat=D))
+        return sum([objective(params, np.array(b)) * np.prod([expit(params[i] * (b[i] * 2.0 - 1.0))
+                                                              for i in range(D)])
+                    for b in lst])
 
-    def mc(params, estimator): # Simple Monte Carlo
+    def mc(params, estimator):  # Simple Monte Carlo
         rs = npr.RandomState(0)
         noise = rs.rand(num_samples, D)
         params_rep = np.tile(params, (num_samples, 1))
