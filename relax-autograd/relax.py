@@ -38,10 +38,9 @@ def bernoulli_logprob(logit_theta, targets):
 
 ############### REINFORCE ##################
 
-def reinforce(params, noise, f):
+def reinforce(params, noise, func_vals):
     samples = bernoulli_sample(params, noise)
-    func_vals, grad_func_vals = value_and_grad(f)(params, samples)
-    return grad_func_vals + func_vals * elementwise_grad(bernoulli_logprob)(params, samples)
+    return func_vals * elementwise_grad(bernoulli_logprob)(params, samples)
 
 
 ############### CONCRETE ###################
@@ -59,19 +58,13 @@ def rebar(params, est_params, noise_u, noise_v, f):
     samples = bernoulli_sample(params, noise_u)
 
     def concrete_cond(params):
-        cond_noise = conditional_noise(params, samples, noise_v)  # z tilde
+        cond_noise = conditional_noise(params, samples, noise_v)
         return concrete(params, log_temperature, cond_noise, f)
 
-    grad_concrete = elementwise_grad(concrete)(params, log_temperature, noise_u, f)  # d_f(z) / d_theta
-    f_cond, grad_concrete_cond = value_and_grad(concrete_cond)(params)  # d_f(ztilde) / d_theta
-    controlled_f = lambda params, samples: f(params, samples) - eta * f_cond
-
-    return reinforce(params, noise_u, controlled_f) + eta * (grad_concrete - grad_concrete_cond)
-
-def grad_of_var_of_grads(grads):
-    # For an unbiased gradient estimator, gives an unbiased
-    # single-sample estimate of the gradient of the variance of the gradients.
-    return 2 * grads / grads.shape[0]
+    grad_concrete = elementwise_grad(concrete)(params, log_temperature, noise_u, f)
+    f_cond, grad_concrete_cond = value_and_grad(concrete_cond)(params)
+    return reinforce(params, noise_u, f(params, samples) - eta * f_cond) + \
+           eta * (grad_concrete - grad_concrete_cond)
 
 
 
@@ -93,7 +86,7 @@ def nn_predict(params, inputs):
     return outputs
 
 
-def relax(params, est_params, noise_u, noise_v, f):
+def relax(params, est_params, noise_u, noise_v, func_vals):
     samples = bernoulli_sample(params, noise_u)
     log_eta, log_temperature, nn_params = est_params
 
@@ -106,9 +99,8 @@ def relax(params, est_params, noise_u, noise_v, f):
 
     grad_surrogate = elementwise_grad(concrete)(params, log_temperature, noise_u, surrogate)
     surrogate_cond, grad_surrogate_cond = value_and_grad(surrogate_cond)(params)
-    controlled_f = lambda params, samples: f(params, samples) - surrogate_cond
-
-    return reinforce(params, noise_u, controlled_f) + grad_surrogate - grad_surrogate_cond
+    return reinforce(params, noise_u, func_vals - surrogate_cond) + \
+           grad_surrogate - grad_surrogate_cond
 
 
 
@@ -121,8 +113,8 @@ def simple_mc_reinforce(params, noise, f):
     samples = bernoulli_sample(params, noise)
     return f(params, samples)
 
-def reinforce_vjp(ans, *args):
-    return lambda g: g * reinforce(*args)
+def reinforce_vjp(ans, params, noise, f):
+    return lambda g: g * reinforce(params, noise, ans)
 defvjp(simple_mc_reinforce, reinforce_vjp, argnums=[0])
 
 
@@ -137,23 +129,17 @@ def rebar_vjp(ans, *args):
     return lambda g: g * rebar(*args)
 defvjp(simple_mc_rebar, rebar_vjp, None, argnums=[0, 1])
 
+def rebar_all(*args):
+    # Returns objective, gradients, and gradients of variance of gradients.
+    obj = lambda: None
+    def do_rebar(*args):
+        obj.aux, inner_grads = value_and_grad(simple_mc_rebar)(*args)
+        return inner_grads
 
-@primitive
-def rebar_grads_var(*args):
-    # Returns estimates of objective, gradients, and variance of gradients.
-    obj, grads = value_and_grad(simple_mc_rebar)(*args)
-    return obj, grads, np.var(grads, axis=0)
+    var_vjp, grads = make_vjp(do_rebar, argnum=1)(*args)
+    d_var_d_est = var_vjp(2 * grads / grads.size)
 
-def rebar_var_vjp(ans, *args):  # Unbiased estimator of grad of variance of rebar.
-    obj, grads, var = ans
-    def inner_grad((_1, _2, var_g)):
-        est_params_vjp, _ = make_vjp(rebar, argnum=1)(*args)
-        return est_params_vjp(var_g * grad_of_var_of_grads(grads))
-    return inner_grad
-
-def rebar_obj_vjp((obj, grads, var), *args):
-    return lambda (obj_g, rebar_g, var_g): obj_g * grads
-defvjp(rebar_grads_var, rebar_obj_vjp, rebar_var_vjp, argnums=[0, 1])
+    return obj.aux, grads, d_var_d_est
 
 
 ######### RELAX hooks ##########
@@ -163,24 +149,17 @@ def simple_mc_relax(params, est_params, noise_u, noise_v, f):
     samples = bernoulli_sample(params, noise_u)
     return f(params, samples)
 
-def relax_vjp(ans, *args):
-    return lambda g: g * relax(*args)
+def relax_vjp(ans, params, est_params, noise_u, noise_v, f):
+    return lambda g: g * relax(params, est_params, noise_u, noise_v, ans)
 defvjp(simple_mc_relax, relax_vjp, None, argnums=[0, 1])
 
+def relax_all(*args):
+    # Returns objective, gradients, and gradients of variance of gradients.
+    obj = lambda: None
+    def do_relax(*args):
+        obj.aux, inner_grads = value_and_grad(simple_mc_relax)(*args)
+        return inner_grads
 
-@primitive
-def relax_grads_var(*args):
-    # Returns estimates of objective, gradients, and variance of gradients.
-    obj, grads = value_and_grad(simple_mc_relax)(*args)
-    return obj, grads, np.var(grads, axis=0)
-
-def relax_var_vjp(ans, *args):  # Unbiased estimator of grad of variance of rebar.
-    obj, grads, var = ans
-    def inner_grad((_1, _2, var_g)):
-        est_params_vjp, _ = make_vjp(relax, argnum=1)(*args)
-        return est_params_vjp(var_g * grad_of_var_of_grads(grads))
-    return inner_grad
-
-def relax_obj_vjp((obj, grads, var), *args):
-    return lambda (obj_g, _1, _2): obj_g * grads
-defvjp(relax_grads_var, relax_obj_vjp, relax_var_vjp, argnums=[0, 1])
+    var_vjp, grads = make_vjp(do_relax, argnum=1)(*args)
+    d_var_d_est = var_vjp(2 * grads / grads.size)
+    return obj.aux, grads, d_var_d_est

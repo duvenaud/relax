@@ -8,8 +8,8 @@ from autograd.scipy.special import expit, logit
 from autograd import grad, elementwise_grad
 
 from relax import simple_mc_reinforce, concrete,\
-    simple_mc_rebar, rebar_grads_var, relax_grads_var, \
-    simple_mc_relax, init_nn_params
+    simple_mc_relax, relax_all,\
+    simple_mc_rebar, init_nn_params, rebar_all
 
 
 if __name__ == '__main__':
@@ -17,18 +17,18 @@ if __name__ == '__main__':
     num_samples = 10000
     D = 3
     params = logit(rs.rand(D))
-    targets = rs.rand(D)
 
     def objective(params, b):
         return np.sum((b - np.linspace(0.2, 0.9, D))**2, axis=-1, keepdims=True)
 
     def expected_objective(params):
         lst = list(itertools.product([0.0, 1.0], repeat=D))
-        return sum([objective(params, np.array(b)) * np.prod([expit(params[i] * (b[i] * 2.0 - 1.0))
-                                                              for i in range(D)])
-                    for b in lst])
+        return sum([objective(params, np.array(b)) \
+                    * np.prod([expit(params[i] * (b[i] * 2.0 - 1.0))
+                               for i in range(D)]) for b in lst])
 
     def mc(params, estimator):  # Simple Monte Carlo
+        print("Calling MC")
         rs = npr.RandomState(0)
         noise = rs.rand(num_samples, D)
         params_rep = np.tile(params, (num_samples, 1))
@@ -45,22 +45,26 @@ if __name__ == '__main__':
     nn_params = init_nn_params(0.1, [D, 5, 1])
     print("Relax              : {}".format(grad(mc)(params, lambda p, n, o: simple_mc_relax(p, (0, 0, nn_params), n, rs.rand(num_samples, D), o))))
 
-    def rebar_var_naive(est_params):
+    def var_naive(est_params, method):
         rs = npr.RandomState(0)
         noise_u = rs.rand(num_samples, D)
         noise_v = rs.rand(num_samples, D)
         params_rep = np.tile(params, (num_samples, 1))
-        grad_vals = elementwise_grad(simple_mc_rebar)(params_rep, est_params, noise_u, noise_v, objective)
+        grad_vals = elementwise_grad(method)(params_rep, est_params, noise_u, noise_v, objective)
         return np.mean(np.var(grad_vals, axis=0))
 
-    def rebar_var_fancy(est_params):
+    def var_grads(est_params, method):
         rs = npr.RandomState(0)
         noise_u = rs.rand(num_samples, D)
         noise_v = rs.rand(num_samples, D)
         params_rep = np.tile(params, (num_samples, 1))
-        obj, grads, var = rebar_grads_var(params_rep, est_params, noise_u, noise_v, objective)
-        return np.mean(var)
+        obj, grads, vargrads = method(params_rep, est_params, noise_u, noise_v, objective)
+        return vargrads
 
-    print("\n\nGradient of variance of gradient:")
-    print("Autodiff  : {}".format(grad(rebar_var_naive)((1.0,  0.3))))
-    print("Estimator : {}".format(grad(rebar_var_fancy)((1.0,  0.3))))
+    print("\n\nGradient of variance of REBAR gradient:")
+    print("Autodiff  : {}".format(grad(var_naive)((1.0,  0.3), simple_mc_rebar)))
+    print("Direct    : {}".format(var_grads((1.0,  0.3), rebar_all)))
+
+    print("\n\nGradient of variance of RELAX gradient:")
+    print("Autodiff  : {}".format(grad(var_naive)((0.0, 0.0, nn_params), simple_mc_relax)))
+    print("Direct    : {}".format(var_grads((0.0, 0.0, nn_params), relax_all)))
