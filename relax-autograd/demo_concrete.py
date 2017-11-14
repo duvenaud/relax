@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 
 import autograd.numpy as np
 import autograd.numpy.random as npr
-from autograd.scipy.special import expit, logit
+from autograd.scipy.special import expit
 
-from autograd import grad, elementwise_grad, value_and_grad
+from autograd import grad, value_and_grad
 from autograd.misc.optimizers import adam
 
 from relax import concrete

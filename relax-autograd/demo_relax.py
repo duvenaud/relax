@@ -5,11 +5,9 @@ import matplotlib.pyplot as plt
 import autograd.numpy as np
 import autograd.numpy.random as npr
 from autograd.scipy.special import expit, logit
-
-from autograd import grad
 from autograd.misc.optimizers import adam
 
-from relax import simple_mc_relax, init_nn_params, nn_predict, relax_grads_var
+from relax import simple_mc_relax, init_nn_params, nn_predict, relax_all
 
 def make_one_d(f, d, full_d_input):
     def oned(one_d_input):
@@ -43,14 +41,11 @@ if __name__ == '__main__':
         rs = npr.RandomState(t)
         noise_u = rs.rand(num_samples, D)
         noise_v = rs.rand(num_samples, D)
-        objective_vals, grads, var = \
-            relax_grads_var(params_rep, est_params, noise_u, noise_v, objective)
-        return np.mean(objective_vals), var
+        return relax_all(params_rep, est_params, noise_u, noise_v, objective)
 
-    def combined_obj(combined_params, t):
-        # Combines objective value and variance of gradients.
-        obj_value, grad_variances = mc_objective_and_var(combined_params, t)
-        return obj_value + np.mean(grad_variances)
+    def combined_grad(combined_params, t):
+        obj_value, grad_obj, grad_var = mc_objective_and_var(combined_params, t)
+        return (np.mean(grad_obj, axis=0), grad_var)
 
     # Set up figure.
     fig = plt.figure(figsize=(8, 8), facecolor='white')
@@ -73,8 +68,8 @@ if __name__ == '__main__':
         etas.append(np.exp(log_eta))
         temperatures.append(np.exp(log_temperature))
         if t % 10 == 0:
-            objective_val, grad_vars = mc_objective_and_var(combined_params, t)
-            print("Iteration {} objective {}".format(t, objective_val))
+            objective_val, grads, est_grads = mc_objective_and_var(combined_params, t)
+            print("Iteration {} objective {}".format(t, np.mean(objective_val)))
             ax1.cla()
             ax1.plot(expit(params), 'r')
             ax1.set_ylabel('parameter values')
@@ -85,7 +80,7 @@ if __name__ == '__main__':
             ax2.set_ylabel('average gradient')
             ax2.set_xlabel('parameter index')
             ax3.cla()
-            ax3.plot(grad_vars, 'b')
+            ax3.plot(np.var(grads), 'b')
             ax3.set_ylabel('gradient variance')
             ax3.set_xlabel('parameter index')
             ax4.cla()
@@ -104,5 +99,5 @@ if __name__ == '__main__':
             plt.pause(1.0/30.0)
 
     print("Optimizing...")
-    adam(grad(combined_obj), init_combined_params, step_size=0.1, num_iters=2000, callback=callback)
+    adam(combined_grad, init_combined_params, step_size=0.1, num_iters=2000, callback=callback)
     plt.pause(10.0)
