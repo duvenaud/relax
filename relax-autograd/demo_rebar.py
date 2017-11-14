@@ -16,7 +16,7 @@ if __name__ == '__main__':
     num_samples = 10
     init_params = (np.zeros(D), (1.0, 1.0))
 
-    def objective(params, b):
+    def objective(b):
         return np.sum((b - np.linspace(0, 1, D))**2, axis=-1, keepdims=True)
 
     def mc_objective_and_var(combined_params, t):

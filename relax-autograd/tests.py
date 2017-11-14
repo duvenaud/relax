@@ -8,8 +8,8 @@ from autograd.scipy.special import expit, logit
 from autograd import grad
 
 from relax import simple_mc_reinforce, concrete,\
-    relax, relax_all, init_nn_params,\
-    rebar, , rebar_all
+    relax_all, init_nn_params,\
+    rebar, rebar_all
 
 
 if __name__ == '__main__':
@@ -18,14 +18,13 @@ if __name__ == '__main__':
     D = 3
     params = logit(rs.rand(D))
 
-    def objective(params, b):
+    def objective(b):
         return np.sum((b - np.linspace(0.2, 0.9, D))**2, axis=-1, keepdims=True)
 
     def expected_objective(params):
         lst = list(itertools.product([0.0, 1.0], repeat=D))
-        return sum([objective(params, np.array(b)) \
-                    * np.prod([expit(params[i] * (b[i] * 2.0 - 1.0))
-                               for i in range(D)]) for b in lst])
+        return sum([objective(np.array(b)) * np.prod([expit(params[i] * (b[i] * 2.0 - 1.0))
+                    for i in range(D)]) for b in lst])
 
     def mc(params, estimator):  # Simple Monte Carlo
         rs = npr.RandomState(0)

@@ -32,7 +32,7 @@ if __name__ == '__main__':
     init_model_params = np.zeros(D)
     init_combined_params = (init_model_params, init_est_params)
 
-    def objective(params, b):
+    def objective(b):
         return np.sum((b - np.linspace(0, 1, D))**2, axis=-1, keepdims=True)
 
     def mc_objective_and_var(combined_params, t):
