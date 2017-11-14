@@ -7,7 +7,7 @@ import autograd.numpy.random as npr
 from autograd.scipy.special import expit
 from autograd.misc.optimizers import adam
 
-from relax import simple_mc_rebar, rebar_all
+from relax import rebar_all
 
 if __name__ == '__main__':
 

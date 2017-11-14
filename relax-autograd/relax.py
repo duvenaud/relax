@@ -42,6 +42,17 @@ def reinforce(params, noise, func_vals):
     samples = bernoulli_sample(params, noise)
     return func_vals * elementwise_grad(bernoulli_logprob)(params, samples)
 
+# Set up Simple Monte Carlo function with reinforce estimator
+# so it can be used in larger stochastic computation graphs.
+@primitive
+def simple_mc_reinforce(params, noise, f):
+    samples = bernoulli_sample(params, noise)
+    return f(params, samples)
+
+def reinforce_vjp(ans, params, noise, f):
+    return lambda g: g * reinforce(params, noise, ans)
+defvjp(simple_mc_reinforce, reinforce_vjp, argnums=[0])
+
 
 ############### CONCRETE ###################
 
@@ -66,6 +77,13 @@ def rebar(params, est_params, noise_u, noise_v, f):
     return reinforce(params, noise_u, f(params, samples) - eta * f_cond) + \
            eta * (grad_concrete - grad_concrete_cond)
 
+def rebar_all(params, est_params, noise_u, noise_v, f):
+    # Returns objective, gradients, and gradients of variance of gradients.
+    samples = bernoulli_sample(params, noise_u)
+    func_vals = f(params, samples)
+    var_vjp, grads = make_vjp(rebar, argnum=1)(params, est_params, noise_u, noise_v, f)
+    d_var_d_est = var_vjp(2 * grads / grads.shape[0])
+    return func_vals, grads, d_var_d_est
 
 
 ############### RELAX ######################
@@ -85,7 +103,6 @@ def nn_predict(params, inputs):
         inputs = relu(outputs)
     return outputs
 
-
 def relax(params, est_params, noise_u, noise_v, func_vals):
     samples = bernoulli_sample(params, noise_u)
     log_eta, log_temperature, nn_params = est_params
@@ -102,64 +119,10 @@ def relax(params, est_params, noise_u, noise_v, func_vals):
     return reinforce(params, noise_u, func_vals - surrogate_cond) + \
            grad_surrogate - grad_surrogate_cond
 
-
-
-
-############## Hooks into autograd ##############
-
-###Set up Simple Monte Carlo functions that have different gradient estimators
-@primitive
-def simple_mc_reinforce(params, noise, f):
-    samples = bernoulli_sample(params, noise)
-    return f(params, samples)
-
-def reinforce_vjp(ans, params, noise, f):
-    return lambda g: g * reinforce(params, noise, ans)
-defvjp(simple_mc_reinforce, reinforce_vjp, argnums=[0])
-
-
-######## REBAR hooks ############
-
-@primitive
-def simple_mc_rebar(params, est_params, noise_u, noise_v, f):
-    samples = bernoulli_sample(params, noise_u)
-    return f(params, samples)
-
-def rebar_vjp(ans, *args):
-    return lambda g: g * rebar(*args)
-defvjp(simple_mc_rebar, rebar_vjp, None, argnums=[0, 1])
-
-def rebar_all(*args):
+def relax_all(params, est_params, noise_u, noise_v, f):
     # Returns objective, gradients, and gradients of variance of gradients.
-    obj = lambda: None
-    def do_rebar(*args):
-        obj.aux, inner_grads = value_and_grad(simple_mc_rebar)(*args)
-        return inner_grads
-
-    var_vjp, grads = make_vjp(do_rebar, argnum=1)(*args)
-    d_var_d_est = var_vjp(2 * grads / grads.size)
-
-    return obj.aux, grads, d_var_d_est
-
-
-######### RELAX hooks ##########
-
-@primitive
-def simple_mc_relax(params, est_params, noise_u, noise_v, f):
     samples = bernoulli_sample(params, noise_u)
-    return f(params, samples)
-
-def relax_vjp(ans, params, est_params, noise_u, noise_v, f):
-    return lambda g: g * relax(params, est_params, noise_u, noise_v, ans)
-defvjp(simple_mc_relax, relax_vjp, None, argnums=[0, 1])
-
-def relax_all(*args):
-    # Returns objective, gradients, and gradients of variance of gradients.
-    obj = lambda: None
-    def do_relax(*args):
-        obj.aux, inner_grads = value_and_grad(simple_mc_relax)(*args)
-        return inner_grads
-
-    var_vjp, grads = make_vjp(do_relax, argnum=1)(*args)
-    d_var_d_est = var_vjp(2 * grads / grads.size)
-    return obj.aux, grads, d_var_d_est
+    func_vals = f(params, samples)
+    var_vjp, grads = make_vjp(relax, argnum=1)(params, est_params, noise_u, noise_v, func_vals)
+    d_var_d_est = var_vjp(2 * grads / grads.shape[0])
+    return func_vals, grads, d_var_d_est

@@ -7,7 +7,7 @@ import autograd.numpy.random as npr
 from autograd.scipy.special import expit, logit
 from autograd.misc.optimizers import adam
 
-from relax import simple_mc_relax, init_nn_params, nn_predict, relax_all
+from relax import init_nn_params, nn_predict, relax_all
 
 def make_one_d(f, d, full_d_input):
     def oned(one_d_input):
