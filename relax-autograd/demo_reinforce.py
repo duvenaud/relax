@@ -6,10 +6,10 @@ import autograd.numpy as np
 import autograd.numpy.random as npr
 from autograd.scipy.special import expit
 
-from autograd import grad, value_and_grad
+from autograd import grad
 from autograd.misc.optimizers import adam
 
-from relax import simple_mc_reinforce
+from relax import bernoulli_sample, reinforce
 
 if __name__ == '__main__':
 
@@ -25,13 +25,14 @@ if __name__ == '__main__':
         params_rep = np.tile(params, (num_samples, 1))
         rs = npr.RandomState(t)
         noise_u = rs.rand(num_samples, D)
-        objective_vals, grads = \
-            value_and_grad(simple_mc_reinforce)(params_rep, noise_u, objective)
-        return np.mean(objective_vals), np.var(grads, axis=0)
+        samples = bernoulli_sample(params_rep, noise_u)
+        objective_vals = objective(samples)
+        grads = reinforce(params_rep, noise_u, objective_vals)
+        return np.mean(objective_vals), np.mean(grads, axis=0), np.var(grads, axis=0)
 
-    def combined_obj(params, t):
-        obj_value, grad_variances = mc_objective_and_var(params, t)
-        return obj_value
+    def obj_grads(params, t):
+        obj_value, grads, grad_variances = mc_objective_and_var(params, t)
+        return grads
 
     # Set up figure.
     fig = plt.figure(figsize=(8, 8), facecolor='white')
@@ -45,7 +46,7 @@ if __name__ == '__main__':
     def callback(params, t, gradient):
         grad_params = gradient[:D]
         if t % 10 == 0:
-            objective_val, grad_vars = mc_objective_and_var(params, t)
+            objective_val, grads, grad_vars = mc_objective_and_var(params, t)
             print("Iteration {} objective {}".format(t, objective_val))
             ax1.cla()
             ax1.plot(expit(params), 'r')
@@ -63,5 +64,5 @@ if __name__ == '__main__':
             plt.pause(1.0/30.0)
 
     print("Optimizing...")
-    adam(grad(combined_obj), init_params, step_size=0.1, num_iters=2000, callback=callback)
+    adam(obj_grads, init_params, step_size=0.1, num_iters=2000, callback=callback)
     plt.pause(10.0)

@@ -2,7 +2,6 @@ import autograd.numpy as np
 import autograd.numpy.random as npr
 
 from autograd.scipy.special import expit, logit
-from autograd.extend import primitive, defvjp
 from autograd import elementwise_grad, value_and_grad, make_vjp
 
 
@@ -42,16 +41,6 @@ def reinforce(params, noise, func_vals):
     samples = bernoulli_sample(params, noise)
     return func_vals * elementwise_grad(bernoulli_logprob)(params, samples)
 
-# Set up Simple Monte Carlo function with reinforce estimator
-# so it can be used in larger stochastic computation graphs.
-@primitive
-def simple_mc_reinforce(params, noise, f):
-    return f(bernoulli_sample(params, noise))
-
-def reinforce_vjp(ans, params, noise, f):
-    return lambda g: g * reinforce(params, noise, ans)
-defvjp(simple_mc_reinforce, reinforce_vjp, argnums=[0])
-
 
 ############### CONCRETE ###################
 
@@ -78,8 +67,7 @@ def rebar(params, est_params, noise_u, noise_v, f):
 
 def rebar_all(params, est_params, noise_u, noise_v, f):
     # Returns objective, gradients, and gradients of variance of gradients.
-    samples = bernoulli_sample(params, noise_u)
-    func_vals = f(samples)
+    func_vals = f(bernoulli_sample(params, noise_u))
     var_vjp, grads = make_vjp(rebar, argnum=1)(params, est_params, noise_u, noise_v, f)
     d_var_d_est = var_vjp(2 * grads / grads.shape[0])
     return func_vals, grads, d_var_d_est
@@ -104,10 +92,10 @@ def nn_predict(params, inputs):
 
 def relax(params, est_params, noise_u, noise_v, func_vals):
     samples = bernoulli_sample(params, noise_u)
-    log_eta, log_temperature, nn_params = est_params
+    log_temperature, nn_params = est_params
 
     def surrogate(relaxed_samples):
-        return np.exp(log_eta) * nn_predict(nn_params, relaxed_samples)
+        return nn_predict(nn_params, relaxed_samples)
 
     def surrogate_cond(params):
         cond_noise = conditional_noise(params, samples, noise_v)  # z tilde
@@ -120,8 +108,7 @@ def relax(params, est_params, noise_u, noise_v, func_vals):
 
 def relax_all(params, est_params, noise_u, noise_v, f):
     # Returns objective, gradients, and gradients of variance of gradients.
-    samples = bernoulli_sample(params, noise_u)
-    func_vals = f(samples)
+    func_vals = f(bernoulli_sample(params, noise_u))
     var_vjp, grads = make_vjp(relax, argnum=1)(params, est_params, noise_u, noise_v, func_vals)
     d_var_d_est = var_vjp(2 * grads / grads.shape[0])
     return func_vals, grads, d_var_d_est

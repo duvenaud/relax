@@ -28,7 +28,7 @@ if __name__ == '__main__':
     num_hidden_units = 5
     rs = npr.RandomState(0)
     num_samples = 10
-    init_est_params = (0.0, 0.0, init_nn_params(0.1, [D, num_hidden_units, 1]))
+    init_est_params = (0.0, init_nn_params(0.1, [D, num_hidden_units, 1]))
     init_model_params = np.zeros(D)
     init_combined_params = (init_model_params, init_est_params)
 
@@ -58,14 +58,12 @@ if __name__ == '__main__':
     plt.ion()
     plt.show(block=False)
 
-    etas = []
     temperatures = []
     nn_scales = []
     def callback(combined_params, t, combined_gradient):
         params, est_params = combined_params
         grad_params, grad_est = combined_gradient
-        log_eta, log_temperature, nn_params = est_params
-        etas.append(np.exp(log_eta))
+        log_temperature, nn_params = est_params
         temperatures.append(np.exp(log_temperature))
         if t % 10 == 0:
             objective_val, grads, est_grads = mc_objective_and_var(combined_params, t)
@@ -90,7 +88,7 @@ if __name__ == '__main__':
 
             ax5.cla()
             xrange = np.linspace(0, 1, 200)
-            f_tilde = lambda x: np.exp(log_eta) * nn_predict(nn_params, x)
+            f_tilde = lambda x: nn_predict(nn_params, x)
             f_tilde_map = map_and_stack(make_one_d(f_tilde, slice_dim, params))
             ax5.plot(xrange, f_tilde_map(logit(xrange)), 'b')
             ax5.set_ylabel('1d slide of surrogate')
