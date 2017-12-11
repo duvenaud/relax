@@ -267,12 +267,13 @@ For any unbiased gradient estimator $\hat g$ with parameters $\phi$:
 = \PPH \E[\hat g^2] - \PPH \E[\hat g]^2
 %= \PPH \E[\hat g^2] - \PPH \E_{p(b|\theta)}[f(b)]
 = \PPH \E[\hat g^2]
-= \E \left[ \PPH \hat g^2 \right]
-= \E \left[ 2 \hat g \frac{\partial \hat g}{\partial \phi} \right].
+= \E \left[ \PPH \hat g^2 \right].
+%= \E \left[ 2 \hat g \frac{\partial \hat g}{\partial \phi} \right].
 \label{eq:vargrad}
 \end{align}  % Do we need hats on these gs?  Or get rid of them elsewhere.
 %
-Thus, an unbiased single-sample estimate of the gradient of the variance of $\hat g$ is given by {$2 \hat g \frac{\partial \hat g}{\partial \phi}$}.
+Thus, an unbiased single-sample estimate of the gradient of the variance of $\hat g$ is given by $\partial \hat g^2 / \partial \phi$.
+%{$2 \hat g \frac{\partial \hat g}{\partial \phi}$}.
 
 This method of directly minimizing the variance of the gradient estimator stands in contrast to other methods such as Q-Prop~\citep{gu2016q} and advantage actor-critic~\citep{sutton2000policy}, which train the control variate to minimize the squared error $(f(b) - c_\phi(b))^2$.
 Our algorithm, which jointly optimizes the parameters $\theta$ and the surrogate $c_\phi$ is given in Algorithm~\ref{lax}.
