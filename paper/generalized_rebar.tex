@@ -750,19 +750,32 @@ $$ \tilde{z} = \log \frac{\theta}{1 - \theta} + \log \frac{v'}{1-v'}, \qquad v \
 $$ z = \log\theta -\log(-\log u), \qquad u \sim \text{uniform}[0,1]^k
 $$ where $k$ is the number of possible outcomes.
 
-To sample from $p(z|b, \theta)$ we sample a value $v'$ and compute $\tilde{z} = \log\theta -\log(-\log v')$. We note that in the unconditional case we would have $v'_b \sim \text{uniform}[0, 1]$ but in the conditional case $v'_b \sim \text{Beta}\left[1+\frac{1 - \theta_b}{\theta_b}, 1\right]$. We first sample $v'_b$ in this way. Then we can sample $v'_{i\neq b}$ by finding the point in $[0, 1]$ where $z_b = z_{i\neq b}$ and scaling a uniform random variable $v_i$ to be below that value. 
+To sample from $p(z|b, \theta)$, we note that the distribution of the max-gumbel, $\hat z_b$, is independent of $\theta$ and can be sampled as $\hat z_b = -\log (-\log v_b)$ where $v_b\sim \text{uniform}[0, 1]$. Then, the remaining $v_{i\neq b}$ can be sampled as before but with their underlying noise truncated so $\hat z_{i \neq b} < \hat z_b$. As shown in the appendix of \cite{tucker2017rebar}, we can then sample from $p(z|b, \theta)$ with:
 
-%Intuitively, to sample from $p(z|b, \theta)$ we should first sample $v\sim \text{uniform}[0, 1]^k$, then compute $g_b = \log\theta_b -\log(-\log(v_b))$. Then we must determine how to scale each $v_{i\neq b}$ such that $g_{i\neq b} < g_b$. We can define $v'$ such that
-Formally,
 \[
-v_i' =    \left\{
+\hat z_i =    \left\{
 \begin{array}{ll}
-      v'_b & i = b \\
-      v_i\cdot(v'_b)^{\frac{\theta_i}{\theta_b}} & i \neq b \\
+      -\log(-\log v_i )& i = b \\
+      -\log \left( -\frac{\log v_i}{\theta_i} - \log v_b \right) & i \neq b \\
 \end{array} 
 \right.
 \] 
-$$ v'_b \sim \text{Beta}\left[1+\frac{1 - \theta_b}{\theta_b}, 1\right], \qquad v_{i\neq b} \sim \text{uniform}[0, 1]$$ and then $\tilde{z} = \log\theta - \log(-\log v')$ which is our sample from $p(z|b, \theta)$. 
+where $v_i \sim \text{uniform}[0, 1]$.
+
+
+%To sample from $p(z|b, \theta)$ we sample a value $v'$ and compute $\tilde{z} = \log\theta -\log(-\log v')$. We note that in the unconditional case we would have $v'_b \sim \text{uniform}[0, 1]$ but in the conditional case $v'_b \sim \text{Beta}\left[1+\frac{1 - \theta_b}{\theta_b}, 1\right]$. We first sample $v'_b$ in this way. Then we can sample $v'_{i\neq b}$ by finding the point in $[0, 1]$ where $z_b = z_{i\neq b}$ and scaling a uniform random variable $v_i$ to be below that value. 
+
+%Intuitively, to sample from $p(z|b, \theta)$ we should first sample $v\sim \text{uniform}[0, 1]^k$, then compute $g_b = \log\theta_b -\log(-\log(v_b))$. Then we must determine how to scale each $v_{i\neq b}$ such that $g_{i\neq b} < g_b$. We can define $v'$ such that
+%Formally,
+%\[
+%v_i' =    \left\{
+%\begin{array}{ll}
+%      v'_b & i = b \\
+ %     v_i\cdot(v'_b)^{\frac{\theta_i}{\theta_b}} & i \neq b \\
+%\end{array} 
+%\right.
+%\] 
+%$$ v'_b \sim \text{Beta}\left[1+\frac{1 - \theta_b}{\theta_b}, 1\right], \qquad v_{i\neq b} \sim \text{uniform}[0, 1]$$ and then $\tilde{z} = \log\theta - \log(-\log v')$ which is our sample from $p(z|b, \theta)$. 
 
 %Let $G_{1:k} = -\log-\log(U_{i:k})$ be samples from the Gumbel distribution, and learnable parameters $(\alpha_1, \dots, \alpha_k)$ be interpreted as some unnormalized parameterization of the discrete distribution under consideration.
 %Then, consider the following sampling procedure: for each k, find the k that maximizes $\log \alpha_k - G_k$, and then set $D_k=1$ and $D_{i \neq k} = 0$. The Gumbel-Max trick states that sampling from the discrete distribution is equivalent to taking this argmax, that is, $p(D_k = 1) = \alpha_k / \sum_{i=1}^n \alpha_i$.
