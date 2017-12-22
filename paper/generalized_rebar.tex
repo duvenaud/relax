@@ -350,7 +350,7 @@ We took this simpler approach in our reinforcement learning experiments.
 \subsection{Reinforcement learning}
 We now describe how we apply the \LAX{} estimator in the reinforcement learning (RL) setting.
 By reinforcement learning, we refer to the problem of optimizing the parameters $\theta$ of a policy distribution $\pi(a | s, \theta)$ to maximize the sum of rewards.
-In this setting, the random variable being integrated over is $\tau$, which denotes a series of actions and states $[(s_1, a_1), (s_2, a_2), ..., (s_T, a_T)]$.
+In this setting, the random variable being integrated over is $\tau$, which denotes a series of $T$ actions and states $[(s_1, a_1), (s_2, a_2), ..., (s_T, a_T)]$.
 The function whose expectation is being optimized, $R$, maps $\tau$ to the sum of rewards ${R(\tau) = \sum_{t=1}^{T} r_t(s_t, a_t)}$.
 
 Again, we want to estimate the gradient of an expectation of a black-box function: $ \PT \E_{p(\tau|\theta)}[R(\tau)]$.
@@ -364,23 +364,23 @@ The \emph{de facto} standard approach is the advantage actor-critic estimator (A
 %
 %
 \begin{align}
-\hat g_{\textnormal{A2C}} = \sum_{t=1}^{\infty} \LL{t} \left[ \sum_{t'=t}^{\infty} r_{t'} - c_\phi(s_t) \right], \qquad a_t \sim \pi(a_t | s_t, \theta)
+\hat g_{\textnormal{A2C}} = \sum_{t=1}^{T} \LL{t} \left[ \sum_{t'=t}^{T} r_{t'} - c_\phi(s_t) \right], \qquad a_t \sim \pi(a_t | s_t, \theta)
 \label{eq:rl_a2c}
 \end{align}
 %
 Where $c_\phi(s_t)$ is an estimate of the state-value function, $c_\phi(s) \approx V^\pi(s) = \E_{\tau}[R|s_1=s].$
-This estimator is unbiased when $c$ does not depend on $a_t$.
-The main limitations of A2C are that $c$ does not depend on $a_t$, and that it's not obvious how to optimize $c$.
+This estimator is unbiased when $c_\phi$ does not depend on $a_t$.
+The main limitations of A2C are that $c_\phi$ does not depend on $a_t$, and that it's not obvious how to optimize $c_\phi$.
 Using the \LAX{} estimator addresses both of these problems.
 
-First, we assume $\pi(a_t|s_t)$ is reparameterizable, meaning that we can write $a_t = a(\epsilon_t, s_t, \theta)$, where $\epsilon_t$ does not depend on $\theta$.
+First, we assume $\pi(a_t|s_t, \theta)$ is reparameterizable, meaning that we can write $a_t = a(\epsilon_t, s_t, \theta)$, where $\epsilon_t$ does not depend on $\theta$.
 We again introduce a differentiable surrogate $c_\phi(a,s)$.
 Crucially, this surrogate is a function of the action as well as the state.
 
 Our estimator is defined as: 
 %
 \begin{align}
-\hat g_\LAX^{\RL} = \sum_{t=1}^{\infty} \LL{t} \left[ \sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} c_\phi(a_t, s_t), \\
+\hat g_\LAX^{\RL} = \sum_{t=1}^{T} \LL{t} \left[ \sum_{t'=t}^{T} r_{t'} - c_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} c_\phi(a_t, s_t), \\
 a_t = a(\epsilon_t,s_t, \theta) \qquad \epsilon_t \sim p(\epsilon_t)\nonumber.
 \label{eq:rl_est}
 \end{align}
@@ -425,7 +425,7 @@ and simply add $\PT f(b, \theta)$ to any of the gradient estimators above to rec
 \section{Related work}
 %There has been a great deal of other recent work in the area of gradient estimation.
 \citet{miller2017reducing} reduce the variance of reparameterization gradients in an orthogonal way to ours by approximating the gradient-generating procedure with a simple model and using that model as a control variate.
-NVIL~\citep{mnih2014neural} and VIMCO~\citep{mnih2016variational} provide reduced variance gradient estimation in the special case of discrete latent variable models and discrete latent variable models with Monte-Carlo objectives.
+NVIL~\citep{mnih2014neural} and VIMCO~\citep{mnih2016variational} provide reduced variance gradient estimation in the special case of discrete latent variable models and discrete latent variable models with Monte Carlo objectives.
 \citet{salimans2017evolution} estimate gradients using a form of finite differences, evaluating hundreds of different parameter values in parallel to construct a gradient estimate.
 In contrast, our method is a single-sample estimator.
 
@@ -439,7 +439,7 @@ They introduce a sampling distribution, and optimize an objective similar to our
 \citet{wierstra2014natural} also introduce a sampling distribution to build a gradient estimator, and consider optimizing the sampling distribution.
 
 In the reinforcement learning setting, the work most similar to ours is $Q$-prop \citep{haarnoja2017reinforcement}.
-Like our method, $Q$-prop reduces the variance of the policy gradient with a learned, action-dependent control variate whose expectation is approximated via a Monte Carlo sample from a taylor series expansion of the control variate.
+Like our method, $Q$-prop reduces the variance of the policy gradient with a learned, action-dependent control variate whose expectation is approximated via a Monte Carlo sample from a Taylor series expansion of the control variate.
 Unlike our method, their control variate is trained off-policy.
 While our method is applicable in both the continuous and discrete action domain, $Q$-prop is only applicable to continuous actions.
 %We are interested in the potential of training our control variate off-policy, but we leave that for further work. 
@@ -495,7 +495,7 @@ Figure~\ref{learned-relaxations} plots the learned surrogate $c_\phi$ for a fixe
 \subsection{Discrete variational autoencoder}
 Next, we evaluate the \RELAX{} estimator on the task of training a variational autoencoder~\citep{kingma2013autoencoding, rezende2014stochastic} with Bernoulli latent variables.
 We reproduced the variational autoencoder experiments from \citet{tucker2017rebar}, training models with 1 or 2 layers of 200 Bernoulli random variables with linear or nonlinear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
-Details of these models and our experimental procedure can be found in appendix~\ref{app_disc_vae}.
+Details of these models and our experimental procedure can be found in Appendix~\ref{app_disc_vae}.
 
 To take advantage of the available structure in the loss function, we choose the form of our control variate to be $c_\phi(z) = f(\sigma_\lambda(z))+  \hat{r}_\rho(z)$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function (the evidence lower-bound) evaluated at continuously relaxed inputs as in REBAR.  
 %
@@ -534,8 +534,8 @@ Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule
 To obtain training curves we created our own implementation of REBAR, which gave identical or slightly improved performance compared to the implementation of \citet{tucker2017rebar}.
 
 While we obtained a modest improvement in training and validation scores (tables~\ref{tab:vae tr} and \ref{tab:vae val}), the most notable improvement provided by \RELAX{} is in its rate of convergence.
-Training curves for all models can be seen in figure~\ref{fig:vae_curves} and in appendix~\ref{extra vae results}.
-In table~\ref{tab:vae epochs} we compare the number of training epochs that are required to match the best validation score of REBAR.
+Training curves for all models can be seen in Figure~\ref{fig:vae_curves} and in Appendix~\ref{extra vae results}.
+In Table~\ref{tab:vae epochs} we compare the number of training epochs that are required to match the best validation score of REBAR.
 In both linear models, RELAX provides an increase in rate of convergence. 
 
 \begin{figure}
@@ -584,9 +584,9 @@ Full details of our experiments can be found in Appendix~\ref{experiment appendi
 In the discrete action setting, we test our approach on the Cart Pole and Lunar Lander environments as provided by the OpenAI gym~\citep{1606.01540}.
 In the continuous action setting, we test on the MuJoCo-simulated~\citep{todorov2012mujoco} environments Inverted Pendulum and Inverted Double Pendulum also found in the OpenAI gym.
 In all tested environments we observe improved performance and sample efficiency using our method.
-The results of our experiments can be seen in figure~\ref{fig:rl_results}, and table~\ref{tab:rl_results}.
+The results of our experiments can be seen in Figure~\ref{fig:rl_results}, and Table~\ref{tab:rl_results}.
 
-We found that our estimator produced policy gradients with drastically reduced variance (see figure~\ref{fig:rl_results}) allowing for larger learning rates to be used while maintaining stable training.
+We found that our estimator produced policy gradients with drastically reduced variance (see Figure~\ref{fig:rl_results}) allowing for larger learning rates to be used while maintaining stable training.
 In both discrete environments our estimator achieved great than a 2-times speedup in convergence over the baseline.
 
 \newcommand{\rlfig}[1]{{\includegraphics[height=0.24\linewidth, clip, trim=3mm 3mm 3mm 3mm]{#1}}}%
@@ -623,7 +623,7 @@ A2C             & $1152 \pm 90$ & $162374 \pm 17241$                    & $9916 
 LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{6237 \pm 45}$ & $\bm{60967 \pm 1669}$
 \end{tabular}
 \caption{Mean episodes to solve tasks.
-Definitions of solving each task can be found in appendix~\ref{experiment appendix}.}
+Definitions of solving each task can be found in Appendix~\ref{experiment appendix}.}
 \label{tab:rl_results}
 \end{table}
 
@@ -646,7 +646,7 @@ Future applications of this method could include training models with hard atten
 One could also apply our estimators to continuous latent-variable models whose likelihood is non-differentiable, such as a 3D rendering engine.
 There is also room to explore other architecture choices for the control variate.% and to better understand the properties of the optimal control variate. 
 %
-In the reinforcement learning setting, our method could be combined with other variance-reduction techniques such as generalized advantage estimation~\citep{kimura2000analysis}, or other optimization methods, such as KFAC~\citep{wu2017scalable}.
+In the reinforcement learning setting, our method could be combined with other variance-reduction techniques such as generalized advantage estimation~\citep{kimura2000analysis, schulman2015high}, or other optimization methods, such as KFAC~\citep{wu2017scalable}.
 One could also train our control variate off-policy, as in $Q$-prop~\citep{gu2016q}.
 %We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail.
 
@@ -730,7 +730,7 @@ We prove that $\hat g_\textnormal{RELAX}$ is unbiased. Following~\cite{tucker201
 
 \section{Conditional Re-sampling for Discrete Random Variables}
 \label{resample}
-When applying the RELAX estimator to a function of discrete random variables $b \sim p(b|\theta)$, we require that there exists a distribution $p(z|\theta)$ and a deterministic mapping $H(z)$ such that if $z \sim p(z|\theta)$ then $H(z) = b \sim p(b|\theta)$. Treating both $b$ and $z$ as random, this procedure defines a probabalistic model $p(b, z | \theta) = p(b|z)p(z|\theta)$. The RELAX estimator requires reparameterized samples from $p(z|\theta)$ and $p(z|b,\theta)$. We describe how to sample from these distributions in the common cases of $p(b|\theta) = \text{Bernoulli}(\theta)$ and $p(b|\theta) = \text{Categorical}(\theta)$.
+When applying the RELAX estimator to a function of discrete random variables $b \sim p(b|\theta)$, we require that there exists a distribution $p(z|\theta)$ and a deterministic mapping $H(z)$ such that if $z \sim p(z|\theta)$ then $H(z) = b \sim p(b|\theta)$. Treating both $b$ and $z$ as random, this procedure defines a probabilistic model $p(b, z | \theta) = p(b|z)p(z|\theta)$. The RELAX estimator requires reparameterized samples from $p(z|\theta)$ and $p(z|b,\theta)$. We describe how to sample from these distributions in the common cases of $p(b|\theta) = \text{Bernoulli}(\theta)$ and $p(b|\theta) = \text{Categorical}(\theta)$.
 
 \paragraph{Bernoulli} When $p(b|\theta)$ is Bernoulli distribution we let $H(z) = \mathbb{I}(z>0)$ and we sample from $p(z|\theta)$ with 
 $$ z = \log \frac{\theta}{1 - \theta} + \log \frac{u}{1-u}, \qquad u \sim \text{uniform}[0,1].
@@ -750,7 +750,7 @@ $$ \tilde{z} = \log \frac{\theta}{1 - \theta} + \log \frac{v'}{1-v'}, \qquad v \
 $$ z = \log\theta -\log(-\log u), \qquad u \sim \text{uniform}[0,1]^k
 $$ where $k$ is the number of possible outcomes.
 
-To sample from $p(z|b, \theta)$, we note that the distribution of the max-gumbel, $\hat z_b$, is independent of $\theta$ and can be sampled as $\hat z_b = -\log (-\log v_b)$ where $v_b\sim \text{uniform}[0, 1]$. Then, the remaining $v_{i\neq b}$ can be sampled as before but with their underlying noise truncated so $\hat z_{i \neq b} < \hat z_b$. As shown in the appendix of \cite{tucker2017rebar}, we can then sample from $p(z|b, \theta)$ with:
+To sample from $p(z|b, \theta)$, we note that the distribution of the max-gumbel, $\hat z_b$, is independent of $\theta$ and can be sampled as $\hat z_b = -\log (-\log v_b)$ where $v_b\sim \text{uniform}[0, 1]$. Then, the remaining $v_{i\neq b}$ can be sampled as before but with their underlying noise truncated so $\hat z_{i \neq b} < \hat z_b$. As shown in the Appendix of \cite{tucker2017rebar}, we can then sample from $p(z|b, \theta)$ with:
 
 \[
 \hat z_i =    \left\{
@@ -795,7 +795,7 @@ We give the derivation of the \LAX{} estimator used for continuous RL tasks.
 \begin{theorem}
 The \LAX{} estimator,
 \begin{align}
-\hat g_\LAX^{\RL} = \sum_{t=1}^{\infty} \LL{t} \left[ \sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} c_\phi(a_t, s_t), \\
+\hat g_\LAX^{\RL} = \sum_{t=1}^{T} \LL{t} \left[ \sum_{t'=t}^{T} r_{t'} - c_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} c_\phi(a_t, s_t), \\
 a_t = a_t(\epsilon_t,s_t,\theta), \quad \epsilon_t \sim p(\epsilon_t)\nonumber,
 \end{align}
 is unbiased.
@@ -809,8 +809,8 @@ Note that by using the score-function estimator, for all $t$, we have
 Then, by adding and subtracting the same term, we have
 \begin{align*}
 \PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(\tau)}\Big[\LL{t} c_\phi(a_t, s_t)\Big]+\\&\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[c_\phi(a_t,s_t)\Big]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}c_\phi(a_t(\epsilon_t,s_t,\theta), s_t)\Big]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}c_\phi(a_t(\epsilon_t,s_t,\theta), s_t)\right]\nonumber
+&= \E_{p(\tau)}\left[ \sum_{t=1}^{T} \LL{t}\left(\sum_{t'=t}^{T} r_{t'} - c_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}c_\phi(a_t(\epsilon_t,s_t,\theta), s_t)\Big]\Big]\nonumber\\
+&= \E_{p(\tau)}\left[ \sum_{t=1}^{T} \LL{t}\left(\sum_{t'=t}^{T} r_{t'} - c_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}c_\phi(a_t(\epsilon_t,s_t,\theta), s_t)\right]\nonumber
 \end{align*}
 \end{proof}
 
@@ -818,7 +818,7 @@ In the discrete control setting, our policy parameterizes a soft-max distributio
 \begin{theorem}
 The \RELAX{} estimator,
 \begin{align}
-\hat g_\RELAX^{\RL} = \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - c_\phi(\tilde{z}_t, s_t)\right)-\frac{\partial}{\partial\theta}c_\phi(\tilde{z}_t, s_t)+\frac{\partial}{\partial\theta}c_\phi(z_t, s_t), \label{eq:relaxrlproof}\\
+\hat g_\RELAX^{\RL} = \sum_{t=1}^{T} \LL{t}\left(\sum_{t'=t}^{T} r_{t'} - c_\phi(\tilde{z}_t, s_t)\right)-\frac{\partial}{\partial\theta}c_\phi(\tilde{z}_t, s_t)+\frac{\partial}{\partial\theta}c_\phi(z_t, s_t), \label{eq:relaxrlproof}\\
 \tilde{z}_t \sim p(z_t|a_t,s_t), \qquad z_t \sim p(z_t|s_t)\nonumber, 
 \end{align}
 is unbiased.
@@ -834,8 +834,8 @@ Then, by adding and subtracting the same term, we have
 \begin{align*}
 \PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(a_{1:t},s_{1:t})}\Big[\LL{t} \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\Big]+\\
 &\sum_t\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\right)\right]\\&+\sum_t\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]\nonumber\\
-&= \E_{p(\tau)}\Big[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)\right)\\
+&= \E_{p(\tau)}\left[ \sum_{t=1}^{T} \LL{t}\left(\sum_{t'=t}^{T} r_{t'} - \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\right)\right]\\&+\sum_t\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]\nonumber\\
+&= \E_{p(\tau)}\Big[ \sum_{t=1}^{T} \LL{t}\left(\sum_{t'=t}^{T} r_{t'} - \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)\right)\\
 &-\frac{\partial}{\partial\theta}\E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]+\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]\nonumber
 \end{align*}
 Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:relaxrlproof}).
@@ -970,7 +970,7 @@ The results presented for the CartPole and LunarLander environments were obtaine
 \subsection{Continuous RL}
 The continuous tasks uses both the value function and the control variate to enable bootstrapping, which is needed due to the increased complexity of the problem.
 The three models- policy, value, and control variate, are 2 layer neural networks with 64 hidden units per layer.
-The value and control variate networks are identical, with the ELU\citep{Clevert2016ELUs} nonlinearity in each hidden layer.
+The value and control variate networks are identical, with the ELU~\citep{Clevert2016ELUs} nonlinearity in each hidden layer.
 The policy network has \texttt{tanh} nonlinearity.
 The policy network, which parameterizes the Gaussian policy comprises of a network (with the architecture mentioned above) that outputs the mean, and a separate, trainable log standard deviation value that is not input dependent.
 All three networks have a linear output layer.
