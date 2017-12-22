@@ -74,10 +74,8 @@ Optimizing control variates for \\ black-box gradient estimation}
 % Optimizing gradient control variates\\ for black-box expectations}
 
 \author{Will Grathwohl, Dami Choi, Yuhuai Wu, Geoff Roeder, David Duvenaud \\
-  University of Toronto\\
-  Vector Institute\\
-%  Toronto, ON \\
-  \texttt{\{wgrathwohl, choidami, ywu, roeder, duvenaud\}@cs.toronto.edu} \\
+University of Toronto and Vector Institute\\
+\texttt{\{wgrathwohl, choidami, ywu, roeder, duvenaud\}@cs.toronto.edu}
 }
 
 
@@ -291,10 +289,10 @@ Figure~\ref{learned-relaxations} shows the learned surrogate on a toy problem.
 \begin{algorithmic}
 \Require $f(\cdot)$, $\log p(b|\theta)$, reparameterized sampler $b = T(\theta, \epsilon)$, neural network $c_\phi(\cdot)$
 \While {not converged} 
-	\State $\epsilon_{i} \sim p(\epsilon)$ \Comment Sample noise
-	\State $b_i \leftarrow T(\epsilon_i, \theta)$ \Comment Compute input
-	\State  $g_\theta \leftarrow \left[f(b_i) - c_{\phi}(b_i) \right] \nabla_\theta \log p + \nabla_\theta c_\phi(b_i)$ \Comment Estimate gradient
-	\State  $g_\phi \leftarrow 2 g_\theta \frac{\partial g_\theta}{\partial \phi}$ \Comment Estimate gradient of variance of gradient
+	\State $\epsilon \sim p(\epsilon)$ \Comment Sample noise
+	\State $b \leftarrow T(\epsilon, \theta)$ \Comment Compute input
+	\State  $\hat g_\theta \leftarrow \left[f(b) - c_{\phi}(b) \right] \nabla_\theta \log p(b|\theta) + \nabla_\theta c_\phi(b)$ \Comment Estimate gradient of objective
+	\State  $\hat g_\phi \leftarrow \partial \hat g_\theta^2 / \partial \phi$ \Comment Estimate gradient of variance of gradient
 	\State $\theta \leftarrow \theta + \alpha_1 g_\theta$ \Comment Update parameters
 	\State $\phi \leftarrow \phi + \alpha_2 g_\phi$ \Comment Update control variate
 \EndWhile
@@ -377,7 +375,7 @@ First, we assume $\pi(a_t|s_t, \theta)$ is reparameterizable, meaning that we ca
 We again introduce a differentiable surrogate $c_\phi(a,s)$.
 Crucially, this surrogate is a function of the action as well as the state.
 
-Our estimator is defined as: 
+The extension of LAX to Markov decision processes is: 
 %
 \begin{align}
 \hat g_\LAX^{\RL} = \sum_{t=1}^{T} \LL{t} \left[ \sum_{t'=t}^{T} r_{t'} - c_\phi(a_t,s_t) \right] +\frac{\partial}{\partial\theta} c_\phi(a_t, s_t), \\
@@ -750,16 +748,19 @@ $$ \tilde{z} = \log \frac{\theta}{1 - \theta} + \log \frac{v'}{1-v'}, \qquad v \
 $$ z = \log\theta -\log(-\log u), \qquad u \sim \text{uniform}[0,1]^k
 $$ where $k$ is the number of possible outcomes.
 
-To sample from $p(z|b, \theta)$, we note that the distribution of the max-gumbel, $\hat z_b$, is independent of $\theta$ and can be sampled as $\hat z_b = -\log (-\log v_b)$ where $v_b\sim \text{uniform}[0, 1]$. Then, the remaining $v_{i\neq b}$ can be sampled as before but with their underlying noise truncated so $\hat z_{i \neq b} < \hat z_b$. As shown in the Appendix of \cite{tucker2017rebar}, we can then sample from $p(z|b, \theta)$ with:
 
-\[
+To sample from $p(z|b, \theta)$, we note that the distribution of the largest $\hat z_b$ is independent of $\theta$, and can be sampled as $\hat z_b = -\log (-\log v_b)$ where $v_b\sim \text{uniform}[0, 1]$.
+Then, the remaining $v_{i\neq b}$ can be sampled as before but with their underlying noise truncated so $\hat z_{i \neq b} < \hat z_b$. As shown in the appendix of \cite{tucker2017rebar}, we can then sample from $p(z|b, \theta)$ with:
+%
+\begin{align}
 \hat z_i =    \left\{
 \begin{array}{ll}
       -\log(-\log v_i )& i = b \\
       -\log \left( -\frac{\log v_i}{\theta_i} - \log v_b \right) & i \neq b \\
 \end{array} 
 \right.
-\] 
+\end{align}
+%
 where $v_i \sim \text{uniform}[0, 1]$.
 
 
@@ -809,8 +810,9 @@ Note that by using the score-function estimator, for all $t$, we have
 Then, by adding and subtracting the same term, we have
 \begin{align*}
 \PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(\tau)}\Big[\LL{t} c_\phi(a_t, s_t)\Big]+\\&\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[c_\phi(a_t,s_t)\Big]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^{T} \LL{t}\left(\sum_{t'=t}^{T} r_{t'} - c_\phi(a_t,s_t)\right)\right]+\sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}c_\phi(a_t(\epsilon_t,s_t,\theta), s_t)\Big]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^{T} \LL{t}\left(\sum_{t'=t}^{T} r_{t'} - c_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}c_\phi(a_t(\epsilon_t,s_t,\theta), s_t)\right]\nonumber
+&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t)\right)\right]\\
+& \qquad + \sum_t \E_{p(a_{1:t-1},s_{1:t})}\Big[\E_{p(\epsilon_t)}\Big[\frac{\partial}{\partial\theta}c_\phi(a_t(\epsilon_t,s_t,\theta), s_t)\Big]\Big]\nonumber\\
+&= \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - c_\phi(a_t,s_t)\right)+\frac{\partial}{\partial\theta}c_\phi(a_t(\epsilon_t,s_t,\theta), s_t)\right]\nonumber
 \end{align*}
 \end{proof}
 
@@ -827,16 +829,19 @@ is unbiased.
 Note that by using the score-function estimator, for all $t$, we have 
 %
 \begin{align*}
-\E_{p(a_{1:t},s_{1:t})}\Big[\LL{t} \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\Big] &= \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[\E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\Big]\Big]\\
+& \E_{p(a_{1:t},s_{1:t})}\Big[\LL{t} \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\Big]\\
+ &= \E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{\pi(a_t|s_t, \theta)}\Big[\E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\Big]\Big]\\
 &=\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]
 \end{align*}
 Then, by adding and subtracting the same term, we have
 \begin{align*}
-\PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]-\sum_t\E_{p(a_{1:t},s_{1:t})}\Big[\LL{t} \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\Big]+\\
-&\sum_t\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]\nonumber\\
-&= \E_{p(\tau)}\left[ \sum_{t=1}^{T} \LL{t}\left(\sum_{t'=t}^{T} r_{t'} - \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\right)\right]\\&+\sum_t\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]\nonumber\\
-&= \E_{p(\tau)}\Big[ \sum_{t=1}^{T} \LL{t}\left(\sum_{t'=t}^{T} r_{t'} - \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)\right)\\
-&-\frac{\partial}{\partial\theta}\E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]+\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]\nonumber
+\PT\E_{p(\tau)}[f(\tau)] &= \E_{p(\tau)}\left[f(\tau)\cdot\LP{\tau;\theta}\right]\\
+& \qquad -\sum_t\E_{p(a_{1:t},s_{1:t})}\Big[\LL{t} \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\Big]\\
+& \qquad + \sum_t\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]\nonumber\\
+& = \E_{p(\tau)}\left[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]\right)\right]\\
+& \qquad + \sum_t\E_{p(a_{1:t-1},s_{1:t})}\Big[\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]\nonumber\\
+& = \E_{p(\tau)}\Big[ \sum_{t=1}^{\infty} \LL{t}\left(\sum_{t'=t}^{\infty} r_{t'} - \E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)\right)\\
+& \qquad - \frac{\partial}{\partial\theta}\E_{p(z_t|a_t,s_t)}[c_\phi(z_t, s_t)]+\frac{\partial}{\partial\theta}\E_{p(z_t|s_t)}[c_\phi(z_t, s_t)]\Big]\nonumber
 \end{align*}
 Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:relaxrlproof}).
 \end{proof}
