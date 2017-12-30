@@ -570,9 +570,9 @@ The horizontal dashed line indicates the lowest validation error obtained by REB
 \label{experiments section}
 
 We apply our gradient estimator to a few simple reinforcement learning environments with discrete and continuous actions.
-We use the \RELAX{} and \LAX{} estimators for discrete and continuous actions, respectively.
-We compare with the advantage actor-critic algorithm (A2C)~\citep{sutton2000policy} as a baseline.
-Full details of our experiments can be found in Appendix~\ref{experiment appendix}.
+We use the \RELAX{} and \LAX{} estimators for discrete and continuous actions, respectively. We compare with the advantage actor-critic algorithm (A2C)~\citep{sutton2000policy} as a baseline. 
+
+As our control variate does not have the same interpretation as the value function of A2C, it was not directly clear how to add reward bootstrapping and other variance reduction techniques common in RL into our model. For instance, to do reward bootstrapping, we would need to use the state-value function. In the discrete experiments, due to the simplicity of the tasks, we chose not to use reward bootstrapping, and therefore omitted the use of state-value function. However, with the more complicated continuous tasks, we chose to use the value function to enable bootstrapping. In this case, the control variate was chose to be of the form: $c_\phi(a,s) = V(s) + \hat{c}(a,s)$, in which the $V(s)$ is trained just like the value function would be in A2C. Full details of our experiments can be found in Appendix~\ref{experiment appendix}.
 
 % <Dami: i took it out because it doesn't match with the continuous case, and we dont' have variance plots yet>We are aware that better results could be obtained with bootstrapping and larger batch sizes but we wanted to work in the highest possible variance setting to demonstrate the variance reduction capabilities of our approach.
 
@@ -957,7 +957,7 @@ For these tasks we estimate the policy gradient with a single Monte Carlo sample
 We run one episode of the environment to completion, compute the discounted rewards, and run one iteration of gradient descent.
 We believe using larger batches will improve performance but would less clearly demonstrate the potential of our method. 
 
-As our control variate does not have the same interpretation as the value function of A2C, it was not directly clear how to add reward bootstrapping and other variance reduction techniques common in RL into our model. We leave the task of incorporating these and other variance reduction techniques to future work.  
+%As our control variate does not have the same interpretation as the value function of A2C, it was not directly clear how to add reward bootstrapping and other variance reduction techniques common in RL into our model. We leave the task of incorporating these and other variance reduction techniques to future work.  
 
 Both models were trained with the RMSProp~\citep{Tieleman2012} optimizer and a reward discount factor of $.99$ was used.
 
@@ -973,7 +973,7 @@ The Lunar Lander experiments were run for 5,000,000 frames.
 The results presented for the CartPole and LunarLander environments were obtained using a slightly biased sampler for $p(z|b, \theta)$.
 
 \subsection{Continuous RL}
-The continuous tasks uses both the value function and the control variate to enable bootstrapping, which is needed due to the increased complexity of the problem.
+%The continuous tasks uses both the value function and the control variate to enable bootstrapping, which is needed due to the increased complexity of the problem.
 The three models- policy, value, and control variate, are 2 layer neural networks with 64 hidden units per layer.
 The value and control variate networks are identical, with the ELU~\citep{Clevert2016ELUs} nonlinearity in each hidden layer.
 The policy network has \texttt{tanh} nonlinearity.
@@ -986,13 +986,13 @@ The number of times we train  the value network is fixed to 25, while for the co
 All models were trained using ADAM~\citep{kingma2015adam}, with $\beta_1=0.9$, $\beta_2=0.999$, and $\epsilon=1e-08$. 
 
 The baseline A2C case has 2 hyperparameters to tune: the learning rate for the optimizer for the policy and value network.
-A grid search was done over the set: $\{0.03, 0.003, 0.003\}$.
+A grid search was done over the set: $\{0.03, 0.003, 0.0003\}$.
 \RELAX{} has 4 hyperparameters to tune: 3 learning rates for the optimizer per network, and the number of training iterations of the control variate per policy gradient update.
 Due to the large number of hyperparameters, we restricted the size of the grid search set to $\{0.003, 0.0003\}$ for the learning rates, and $\{10, 25, 50\}$ for the control variate training iteration number.
 We chose the hyperparameter setting that yielded the shortest episode-to-completion time averaged over 5 random seeds.
 As with the discrete case, we used the definition of completion defined by OpenAI gym~\citep{1606.01540} for each task. 
 
 The Inverted Pendulum experiments were run for 1,000,000 frames.
-The Inverted Double Pendulum experiments were run for 50,000,000 frames.
+The Inverted Double Pendulum experiments were run for 5,000,000 frames.
 
 \end{document}
