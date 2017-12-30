@@ -250,12 +250,13 @@ When $c_\phi = f$, then \LAX{} becomes the reparameterization estimator for $f$.
 Thus \LAX{} can have variance at least as low as the reparameterization estimator. 
 
 
-\subsection{Optimizing the gradient control variate with gradients}
+%\subsection{Optimizing the gradient control variate with gradients}
+\subsection{Gradient-based optimization of the control variate}
 Since $\hat g_\LAX$ is unbiased for any choice of the surrogate $c_\phi$, the only remaining problem is to choose a $c_\phi$ that gives low variance to $\hat g_\LAX$.
 How can we find a $\phi$ which gives our estimator low variance?
 We simply optimize $c_\phi$ using stochastic gradient descent, at the same time as we optimize the parameters $\theta$ of our model or policy.
 
-To optimize $c_\phi$, we require the gradient of the variance of our gradient estimator.
+To optimize $c_\phi$, we require the gradient of the variance of our estimator.
 To estimate these gradients, we could simply differentiate through the empirical variance over each mini-batch.
 Or, following \cite{ruiz2016overdispersed} and \cite{tucker2017rebar}, we can construct an unbiased, single-sample estimator using the fact that our gradient estimator is unbiased.
 For any unbiased gradient estimator $\hat g$ with parameters $\phi$:
@@ -404,8 +405,8 @@ Furthermore, it depends on essentially undefined behavior of the function being 
 Because \LAX{} and \RELAX{} can construct a surrogate from scratch, they can be used for optimizing black-box functions, as in reinforcement learning settings where the reward is an unknown function of the environment.
 \LAX{} and \RELAX{} only require that we can query the function being optimized, and can sample from and differentiate $p(b|\theta)$.
 
-In principle one could use \RELAX{} to optimize deterministic black-box functions, but only by introducing stochasticity to the inputs.
-Thus, \RELAX{} is most suitable for problems where one is already optimizing a distribution over inputs, such as in inference or reinforcement learning.
+%In principle one could use \RELAX{} to optimize deterministic black-box functions, but only by introducing stochasticity to the inputs.
+%Thus, \RELAX{} is most suitable for problems where one is already optimizing a distribution over inputs, such as in inference or reinforcement learning.
 % Note that most optimal policies are deterministic?
 
 \paragraph{Direct dependence on parameters}
@@ -495,7 +496,7 @@ Next, we evaluate the \RELAX{} estimator on the task of training a variational a
 We reproduced the variational autoencoder experiments from \citet{tucker2017rebar}, training models with 1 or 2 layers of 200 Bernoulli random variables with linear or nonlinear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
 Details of these models and our experimental procedure can be found in Appendix~\ref{app_disc_vae}.
 
-To take advantage of the available structure in the loss function, we choose the form of our control variate to be $c_\phi(z) = f(\sigma_\lambda(z))+  \hat{r}_\rho(z)$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function (the evidence lower-bound) evaluated at continuously relaxed inputs as in REBAR.  
+To take advantage of the available structure in the loss function, we choose the form of our control variate to be $c_\phi(z) = f(\sigma_\lambda(z))+  \hat{r}_\rho(z)$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function, the evidence lower-bound (ELBO), evaluated at continuously relaxed inputs as in REBAR.  
 %
 In all experiments, the learned control variate improved the training performance, over the state-of-the-art baseline of REBAR. In both linear models, we achieved improved validation performance as well increased convergence speed. We believe the decrease in validation performance for the nonlinear models was due to overfitting caused by improved optimization of an under-regularized model. We leave exploring this phenomenon to further work. 
 
@@ -511,7 +512,7 @@ Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule
 \textbf{Omniglot} & linear 1 layer &-117.23 & $-117.44$ & $-117.09$   & -116.63 & \textbf{-116.57} \\ 
                   & linear 2 layer &-109.95 & $-109.98$ & $-109.55$  & -108.71 & \textbf{-108.54}
 \end{tabular}
-\caption{Best obtained training objective for discrete variational autoencoders.}
+\caption{Highest training ELBO for discrete variational autoencoders.}
 \label{tab:vae tr}
 \end{table}
 
@@ -572,7 +573,7 @@ The horizontal dashed line indicates the lowest validation error obtained by REB
 We apply our gradient estimator to a few simple reinforcement learning environments with discrete and continuous actions.
 We use the \RELAX{} and \LAX{} estimators for discrete and continuous actions, respectively. We compare with the advantage actor-critic algorithm (A2C)~\citep{sutton2000policy} as a baseline. 
 
-As our control variate does not have the same interpretation as the value function of A2C, it was not directly clear how to add reward bootstrapping and other variance reduction techniques common in RL into our model. For instance, to do reward bootstrapping, we would need to use the state-value function. In the discrete experiments, due to the simplicity of the tasks, we chose not to use reward bootstrapping, and therefore omitted the use of state-value function. However, with the more complicated continuous tasks, we chose to use the value function to enable bootstrapping. In this case, the control variate was chose to be of the form: $c_\phi(a,s) = V(s) + \hat{c}(a,s)$, in which the $V(s)$ is trained just like the value function would be in A2C. Full details of our experiments can be found in Appendix~\ref{experiment appendix}.
+As our control variate does not have the same interpretation as the value function of A2C, it was not directly clear how to add reward bootstrapping and other variance reduction techniques common in RL into our model. For instance, to do reward bootstrapping, we would need to use the state-value function. In the discrete experiments, due to the simplicity of the tasks, we chose not to use reward bootstrapping, and therefore omitted the use of state-value function. However, with the more complicated continuous tasks, we chose to use the value function to enable bootstrapping. In this case, the control variate takes the form: $c_\phi(a,s) = V(s) + \hat{c}(a,s)$, where $V(s)$ is trained as it would be in A2C. Full details of our experiments can be found in Appendix~\ref{experiment appendix}.
 
 % <Dami: i took it out because it doesn't match with the continuous case, and we dont' have variance plots yet>We are aware that better results could be obtained with bootstrapping and larger batch sizes but we wanted to work in the highest possible variance setting to demonstrate the variance reduction capabilities of our approach.
 
@@ -605,7 +606,7 @@ In both discrete environments our estimator achieved great than a 2-times speedu
 \rlfig{figures/idp_paper_var}
 \end{tabular}
 \caption{\emph{Top row:} Reward curves.
-\emph{Bottom row:} Variance of policy gradients (log scale).
+\emph{Bottom row:} Log-variance of policy gradients.
 In each curve, the center line indicates the mean reward over 5 random seeds.
 The opaque bars in the top row indicate the 25th and 75th percentiles.
 The opaque bars in the bottom row indicate 1 standard deviation.
@@ -644,7 +645,8 @@ Future applications of this method could include training models with hard atten
 One could also apply our estimators to continuous latent-variable models whose likelihood is non-differentiable, such as a 3D rendering engine.
 There is also room to explore other architecture choices for the control variate.% and to better understand the properties of the optimal control variate. 
 %
-In the reinforcement learning setting, our method could be combined with other variance-reduction techniques such as generalized advantage estimation~\citep{kimura2000analysis, schulman2015high}, or other optimization methods, such as KFAC~\citep{wu2017scalable}.
+
+ In the reinforcement learning setting, our method could be combined with other variance-reduction techniques such as generalized advantage estimation~\citep{kimura2000analysis, schulman2015high}, or other optimization methods, such as KFAC~\citep{wu2017scalable}.
 One could also train our control variate off-policy, as in $Q$-prop~\citep{gu2016q}.
 %We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail.
 
@@ -860,7 +862,7 @@ Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:r
 \textbf{Omniglot}& 2 layer linear & -115.83 & \textbf{-115.42}\\
 & Nonlinear& \textbf{-127.51} & 128.20
 \end{tabular}
-\caption{Best obtained validation objective.}
+\caption{Highest obtained validation ELBO.}
 \label{tab:vae val}
 \end{table}
 
@@ -921,10 +923,6 @@ The horizontal dashed line indicates the lowest validation error obtained by REB
 \label{experiment appendix}
 
 \subsection{Discrete VAE}
-\label{app_disc_vae}
-In the 1 layer linear models we optimize the evidence lower bound (ELBO): $$\log p(x) \geq \mathcal{L}(\theta) = \E_{q(b|x)}[\log p(x|b) + \log p(b) - \log q(b|x)]$$ where $q(b_1|x) = \sigma(x\cdot W_q + \beta_q)$ and $p(x| b_1) = \sigma(b_1\cdot W_p + \beta_p)$ with weight matrices $W_q,W_p$ and bias vectors $\beta_q,\beta_p$.
-The parameters of the prior $p(b)$ are also learned.
-
 We run all models for $2,000,000$ iterations with a batch size of $24$.
 For the REBAR models, we tested learning rates in $\{.005, .001, .0005,  .0001, .00005\}$. 
 
@@ -939,8 +937,13 @@ In many cases, we found that RELAX allowed our model to converge at learning rat
 We believe further improvement could be achieved by tuning this parameter.
 
 All presented results are from the models which achieve the highest ELBO on the validation data.
+\label{app_disc_vae}
+\subsubsection{One layer linear model}
+In the 1 layer linear models we optimize the evidence lower bound (ELBO): $$\log p(x) \geq \mathcal{L}(\theta) = \E_{q(b|x)}[\log p(x|b) + \log p(b) - \log q(b|x)]$$ where $q(b_1|x) = \sigma(x\cdot W_q + \beta_q)$ and $p(x| b_1) = \sigma(b_1\cdot W_p + \beta_p)$ with weight matrices $W_q,W_p$ and bias vectors $\beta_q,\beta_p$.
+The parameters of the prior $p(b)$ are also learned.
 
-\subsubsection{Two layer model}
+
+\subsubsection{Two layer linear model}
 In the two layer linear models we optimize the ELBO $$\mathcal{L}(\theta) = \E_{q(b_2|b_1)q(b_1|x)}[\log p(x|b_1) + \log p(b_1|b_2) + \log p(b_2) - \log q(b_1|x) - \log q(b_2|b_1)]$$ where $q(b_1|x) = \sigma(x\cdot W_{q_1} + \beta_{q_1})$, $q(b_2|b_1) = \sigma(b_1\cdot W_{q_2} + \beta_{q_2})$, $p(x| b_1) = \sigma(b_1\cdot W_{p_1} + \beta_{p_1})$, and $p(b_1| b_2) = \sigma(b_2\cdot W_{p_2} + \beta_{p_2})$ with weight matrices $W_{q_1},W_{q_2},W_{p_1},W_{p_2}$ and biases $\beta_{q_1},\beta_{q_2},\beta_{p_1},\beta_{p_2}$. As in the one layer model, the prior $p(b_2)$ is also learned.
 
 \subsubsection{Nonlinear model}
@@ -959,7 +962,7 @@ We believe using larger batches will improve performance but would less clearly 
 
 %As our control variate does not have the same interpretation as the value function of A2C, it was not directly clear how to add reward bootstrapping and other variance reduction techniques common in RL into our model. We leave the task of incorporating these and other variance reduction techniques to future work.  
 
-Both models were trained with the RMSProp~\citep{Tieleman2012} optimizer and a reward discount factor of $.99$ was used.
+Both models were trained with the RMSProp~\citep{Tieleman2012} optimizer and a reward discount factor of $.99$ was used. Entropy regularization with a weight of $.01$ was used to  encourage exploration. 
 
 Both models have 2 hyperparameters to tune; the global learning rate and the scaling factor on the learning rate for the control variate (or value function).
 We complete a grid search for both parameters in $\{0.01, 0.003, 0.001\}$ and present the model which ``solves'' the task in the fewest number of episodes averaged over 5 random seeds.
