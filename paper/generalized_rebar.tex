@@ -137,7 +137,7 @@ Most notably, our method is applicable even when no continuous relaxation is ava
 %\includegraphics[width=.325\textwidth]{figures/relaxations_t_499_which_2}
 \caption{
 \emph{Left:} Training curves comparing different gradient estimators on a toy problem: ${\mathcal{L}(\theta) = \E_{p(b|\theta)} [ (b - 0.499)^2 ]}$
-\emph{Right:} Variance of each estimator's gradient.
+\emph{Right:} Log-variance of each estimator's gradient.
 }
 \label{first figure}
 \end{figure}
@@ -279,7 +279,7 @@ Our algorithm, which jointly optimizes the parameters $\theta$ and the surrogate
 
 \subsubsection{Optimal surrogate}
 What is the form of the variance-minimizing $c_\phi$?
-Inspecting the square of \eqref{eq:cont_est}, we can see that this loss encourages $c_\phi(b)$ to approximate $f(b)$, but with a weighting based on $\PT\log p(b)$.  % Todo: reword this awkward sentence.
+Inspecting the square of \eqref{eq:cont_est}, we can see that this loss encourages $c_\phi(b)$ to approximate $f(b)$, but with a weighting based on $\PT\log p(b|\theta)$.  % Todo: reword this awkward sentence.
 Moreover, as $c_\phi \rightarrow f$ then $\hat g_\textnormal{\LAX} \rightarrow \PT c_\phi$.
 Thus, this objective encourages a balance between the variance of the reparameterization estimator and the variance of the REINFORCE estimator.
 Figure~\ref{learned-relaxations} shows the learned surrogate on a toy problem.
@@ -339,7 +339,7 @@ Ideally, we will take advantage of any known structure in $f$.
 
 In the discrete setting, if $f$ is known and happens to be differentiable, we can use the concrete relaxation~\citep{jang2016categorical, maddison2016concrete} and let $c_\phi(z) = f(\sigma_\lambda(z))$.
 In this special case, our estimator is exactly the REBAR estimator.
-We are also free to add a learned component to the concrete relaxation and let $c_\phi(z) = f(\sigma_\lambda(z)) + {r}_\rho(z)$ where ${r}_\rho$ is a neural network with parameters~$\rho$.
+We are also free to add a learned component to the concrete relaxation and let $c_\phi(z) = f(\sigma_\lambda(z)) + {r}_\rho(z)$ where ${r}_\rho$ is a neural network with parameters~$\rho$ making $\phi = \{\rho, \lambda\}$.
 We took this approach in our experiments training discrete variational auto-encoders.
 If $f$ is unknown, we can simply let $c_\phi$ be a generic function approximator such as a neural network.
 We took this simpler approach in our reinforcement learning experiments.
@@ -951,7 +951,7 @@ We run an identical hyperpameter search in all models.
 
 \subsection{Discrete RL}
 In both the baseline A2C and RELAX models, the policy and control variate (value function in the baseline model) were 2 layer neural networks with 10 units per layer.
-The ReLU non linearity was used on all layers except for the output layer.
+The ReLU non linearity was used on all layers except for the output layer which was linear.
 
 For these tasks we estimate the policy gradient with a single Monte Carlo sample.
 We run one episode of the environment to completion, compute the discounted rewards, and run one iteration of gradient descent.
