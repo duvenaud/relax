@@ -934,7 +934,7 @@ We trained the control variate with learning rate scaling in $\{1, 10\}$.
 
 To limit the size of hyperparameter search for the RELAX models, we only test the best performing learning rate for the REBAR baseline and the next largest learning rate in our search set.
 In many cases, we found that RELAX allowed our model to converge at learning rates which made the REBAR estimators diverge.
-We believe further improvement could be achieved by tuning this parameter.
+We believe further improvement could be achieved by tuning this parameter. It should be noted that in our experiments, we found the RELAX method to be fairly insensitive to all hyperparameters other than learning rate. In general, we found the larger (4 layer) control variate architecture with weight decay of $.001$ and learning rate scaling of $1$ to work best, but only slightly outperformed other configurations.  
 
 All presented results are from the models which achieve the highest ELBO on the validation data.
 \label{app_disc_vae}
