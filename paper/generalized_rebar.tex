@@ -626,7 +626,7 @@ Definitions of solving each task can be found in Appendix~\ref{experiment append
 \label{tab:rl_results}
 \end{table}
 
-Code for all experiments can be found at \href{https://github.com/duvenaud/relax}{github.com/duvenaud/relax}.
+%Code for all experiments can be found at \href{https://github.com/duvenaud/relax}{github.com/duvenaud/relax}.
 
 
 \section{Conclusions and future work}
@@ -650,9 +650,9 @@ There is also room to explore other architecture choices for the control variate
 One could also train our control variate off-policy, as in $Q$-prop~\citep{gu2016q}.
 %We also feel that the relationship between our learned control variate and the action-value function (commonly denoted as $Q$) is worth exploring and understanding in greater detail.
 
-\subsection*{Acknowledgements}  % Uncomment for arxiv
-We thank Dougal Maclaurin, Tian Qi Chen, Elliot Creager, and Bowen Xu for helpful discussions.
-We also thank Christopher Prohm for pointing out an error in one of our derivations. 
+%\subsection*{Acknowledgements}  % Uncomment for arxiv
+%We thank Dougal Maclaurin, Tian Qi Chen, Elliot Creager, and Bowen Xu for helpful discussions.
+%We also thank Christopher Prohm for pointing out an error in one of our derivations. 
 
 \bibliography{bibliography}
 \bibliographystyle{iclr2018_conference}
@@ -818,7 +818,7 @@ Then, by adding and subtracting the same term, we have
 \end{align*}
 \end{proof}
 
-In the discrete control setting, our policy parameterizes a soft-max distribution which we use to sample actions. We define $z_t\sim p(z_t|s_t)$, which is equal to $\sigma (\log\pi - \log(-\log(u)))$ where $u\sim \text{Unif}[0, 1]$, $a_t = \text{argmax}(z_t)$, $\sigma$ is the soft-max function. We also define $\tilde{z_t} \sim p(z_t|a_t,s_t)$ and uses the same reparametrization trick for sampling $\tilde{z_t}$ as explicated in Appendix \ref{resample}.
+In the discrete control setting, our policy parameterizes a soft-max distribution which we use to sample actions. We define $z_t\sim p(z_t|s_t)$, which is equal to $\sigma (\log\pi - \log(-\log(u)))$ where $u\sim \text{uniform}[0, 1]$, $a_t = \text{argmax}(z_t)$, $\sigma$ is the soft-max function. We also define $\tilde{z_t} \sim p(z_t|a_t,s_t)$ and uses the same reparametrization trick for sampling $\tilde{z_t}$ as explicated in Appendix \ref{resample}.
 \begin{theorem}
 The \RELAX{} estimator,
 \begin{align}
