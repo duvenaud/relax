@@ -643,7 +643,8 @@ We also derived a simple extension to reinforcement learning in both discrete an
 %The generality of this method opens up new possibilities for training non-differentiable models. % which can now be trained via gradient decent.
 Future applications of this method could include training models with hard attention or memory indexing~\citep{zaremba2015reinforcement}.
 One could also apply our estimators to continuous latent-variable models whose likelihood is non-differentiable, such as a 3D rendering engine.
-There is also room to explore other architecture choices for the control variate.% and to better understand the properties of the optimal control variate. 
+Extensions to the reparameterization gradient estimator~\citep{ruiz2016generalized, naesseth2017reparameterization} could also be applied to increase the scope of distributions that can be modeled. 
+%There is also room to explore other architecture choices for the control variate.% and to better understand the properties of the optimal control variate. 
 %
 
  In the reinforcement learning setting, our method could be combined with other variance-reduction techniques such as generalized advantage estimation~\citep{kimura2000analysis, schulman2015high}, or other optimization methods, such as KFAC~\citep{wu2017scalable}.
