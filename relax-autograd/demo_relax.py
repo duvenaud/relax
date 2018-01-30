@@ -24,7 +24,7 @@ def map_and_stack(f):
 if __name__ == '__main__':
 
     D = 100
-    slice_dim = D / 2 - 1
+    slice_dim = D // 2 - 1
     num_hidden_units = 5
     rs = npr.RandomState(0)
     num_samples = 10
