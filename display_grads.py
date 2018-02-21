@@ -9,8 +9,8 @@ with open(fn, 'r') as f:
     
 reinf_fs, reinf_cs, rep_cs, zlaxs = results
     
-min_val = -4#np.min(np.concatenate([reinf_fs, reinf_cs, rep_cs, zlaxs]))
-max_val = 4#np.max(np.concatenate([reinf_fs, reinf_cs, rep_cs, zlaxs]))
+min_val = -3#np.min(np.concatenate([reinf_fs, reinf_cs, rep_cs, zlaxs]))
+max_val = 3#np.max(np.concatenate([reinf_fs, reinf_cs, rep_cs, zlaxs]))
 print("++++++++++++++++++++++++++")
 print(np.min(reinf_fs), np.max(reinf_fs))
 print(np.min(reinf_cs), np.max(reinf_cs))
@@ -23,7 +23,7 @@ print("reparam_c  variance  = {}".format(np.log(rep_cs.var())))
 print("zlaxs variance       = {}".format(np.log(zlaxs.var())))
 print("++++++++++++++++++++++++++")
 
-matplotlib.rcParams.update({'font.size': 20})
+matplotlib.rcParams.update({'font.size': 30})
 matplotlib.rcParams['text.usetex'] = True
 matplotlib.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}']
 
