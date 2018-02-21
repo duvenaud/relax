@@ -237,21 +237,27 @@ Instead of differentiating through $f$, we build a surrogate of $f$ using a neur
 Since the score-function estimator and reparameterization estimator have the same expectation,
 we can simply subtract the score-function estimator for $c_\phi$ and add back its reparameterization estimator.
 This gives a gradient estimator which we call LAX:
-\begin{figure}[h!]
+%\begin{center}
+%\begin{tabular}{c|c|c|c}
+%a & b & c & d
+%\end{tabular}
+\begin{figure}[b]
 \includegraphics[width=\columnwidth]{figures/grad_hist.pdf}
-\caption{Histograms of samples from the 3 gradient estimators that create LAX. Samples generated from our 1 layer VAE experiments (Section \ref{vae section}).}
+\caption{Histograms of samples from the gradient estimators that create LAX. Samples generated from our 1 layer VAE experiments (Section \ref{vae section}).}
+\label{fig:grad hist}
 \end{figure}
+%\end{center}
 %
 \begin{align}
 \label{eq:cont_est}
 \hat g_\LAX &= 
-g_\textnormal{REINFORCE}[f] - g_\textnormal{REINFORCE}[c_\phi] + g_\textnormal{reparam}[c_\phi] \nonumber\\
+\hat{g}_\textnormal{REINFORCE}[f] - \hat{g}_\textnormal{REINFORCE}[c_\phi] + \hat{g}_\textnormal{reparam}[c_\phi] \nonumber\\
 &= \left[ f(b) -c_\phi(b) \right] \PT \log p(b|\theta) + \PT c_\phi(b) \qquad b = T(\theta, \epsilon), \epsilon \sim p(\epsilon).
 \end{align}
 %
 This estimator is unbiased for any choice of $c_\phi$.
 When $c_\phi = f$, then \LAX{} becomes the reparameterization estimator for $f$.
-Thus \LAX{} can have variance at least as low as the reparameterization estimator. 
+Thus \LAX{} can have variance at least as low as the reparameterization estimator. An example of the relative bias and variance of each term in this estimator can be seen in Figure \ref{fig:grad hist}.
 
 
 %\subsection{Optimizing the gradient control variate with gradients}
@@ -320,7 +326,9 @@ The discrete version of the \LAX{} estimator is given by:
 \end{align}
 %
 This estimator is simple to implement and general.
-However, when $f = c_\phi$ we do not recover the reparameterization estimator as we do with LAX. To achieve this, we must be able to replace the $\PT \log p(z|\theta)$ in the control variate with $\PT \log p(b|\theta)$. This is the motivation behind our next estimator, which we call RELAX.
+However, if we were able to replace the $\PT \log p(z|\theta)$ in the control variate with $\PT \log p(b|\theta)$ we should be able to achieve a more correlated control variate. This is the motivation behind our next estimator, which we call RELAX.
+
+%when $f = c_\phi$ we do not recover the reparameterization estimator as we do with LAX. To achieve this, we must be able to replace the $\PT \log p(z|\theta)$ in the control variate with $\PT \log p(b|\theta)$. This is the motivation behind our next estimator, which we call RELAX.
 
 To construct a more powerful gradient estimator, we incorporate a further refinement due to~\cite{tucker2017rebar}.
 Specifically, we evaluate our control variate both at a relaxed input $z \sim p(z|\theta)$, and also at a relaxed input \emph{conditioned on the discrete variable $b$}, denoted $\tilde z \sim p(z|b, \theta)$. 
@@ -442,12 +450,12 @@ They introduce a sampling distribution, and optimize an objective similar to our
 \citet{wierstra2014natural} also introduce a sampling distribution to build a gradient estimator, and consider optimizing the sampling distribution.
 In the context of general Monte Carlo integration, \citet{oates2017control} introduce a non-parametric control variate that also leverages gradient information to reduce the variance of an estimator.
 
-In parallel to our work, there has been a string of recent developments on action-dependent baselines for policy-gradient reinforcement learning such as \citet{gu2016q}, \citet{}, \citet{}. 
+In parallel to our work, there has been a string of recent developments on action-dependent baselines for policy-gradient methods in reinforcement learning.  Such works include \citet{gu2016q} and \citet{gu2017interpolated} which train an action-dependent baseline which incorporates off-policy data. \cite{liu2017sample} independently develop a method similar to LAX applied to continuous control. \citet{Wu2018Factorized} exploit per-dimension independence of the action distribution in continuous control tasks to produce an action-dependent unbiased baseline. 
 
-In the reinforcement learning setting, the work most similar to ours is $Q$-prop \citep{gu2016q}.
-Like our method, $Q$-prop reduces the variance of the policy gradient with a learned, action-dependent control variate whose expectation is approximated via a Monte Carlo sample from a Taylor series expansion of the control variate.
-Unlike our method, their control variate is trained off-policy.
-While our method is applicable in both the continuous and discrete action domain, $Q$-prop is only applicable to continuous actions.
+%In the reinforcement learning setting, the work most similar to ours is $Q$-prop \citep{gu2016q}.
+%Like our method, $Q$-prop reduces the variance of the policy gradient with a learned, action-dependent control variate whose expectation is approximated via a Monte Carlo sample from a Taylor series expansion of the control variate.
+%Unlike our method, their control variate is trained off-policy.
+%While our method is applicable in both the continuous and discrete action domain, $Q$-prop is only applicable to continuous actions.
 %We are interested in the potential of training our control variate off-policy, but we leave that for further work. 
 
 %\citet{asadi2017mean} reduce the variance of actor-critic gradient estimates by simply summing over all possible actions.
