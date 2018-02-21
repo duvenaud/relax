@@ -442,7 +442,9 @@ They introduce a sampling distribution, and optimize an objective similar to our
 \citet{wierstra2014natural} also introduce a sampling distribution to build a gradient estimator, and consider optimizing the sampling distribution.
 In the context of general Monte Carlo integration, \citet{oates2017control} introduce a non-parametric control variate that also leverages gradient information to reduce the variance of an estimator.
 
-In the reinforcement learning setting, the work most similar to ours is $Q$-prop \citep{haarnoja2017reinforcement}.
+In parallel to our work, there has been a string of recent developments on action-dependent baselines for policy-gradient reinforcement learning such as \citet{gu2016q}, \citet{}, \citet{}. 
+
+In the reinforcement learning setting, the work most similar to ours is $Q$-prop \citep{gu2016q}.
 Like our method, $Q$-prop reduces the variance of the policy gradient with a learned, action-dependent control variate whose expectation is approximated via a Monte Carlo sample from a Taylor series expansion of the control variate.
 Unlike our method, their control variate is trained off-policy.
 While our method is applicable in both the continuous and discrete action domain, $Q$-prop is only applicable to continuous actions.
