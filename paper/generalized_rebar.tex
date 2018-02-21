@@ -237,6 +237,10 @@ Instead of differentiating through $f$, we build a surrogate of $f$ using a neur
 Since the score-function estimator and reparameterization estimator have the same expectation,
 we can simply subtract the score-function estimator for $c_\phi$ and add back its reparameterization estimator.
 This gives a gradient estimator which we call LAX:
+\begin{figure}[h!]
+\includegraphics[width=\columnwidth]{figures/grad_hist.pdf}
+\caption{Histograms of samples from the 3 gradient estimators that create LAX. Samples generated from our VAE experiments.}
+\end{figure}
 %
 \begin{align}
 \label{eq:cont_est}

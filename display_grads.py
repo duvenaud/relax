@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
-import cPickle as pickle
+import pickle
 
 with open('10k_mnist_vae_grad_samples.pkl') as f: #10k_toy_grad_samples.pkl  10k_mnist_vae_grad_samples.pkl
     results = pickle.load(f)
