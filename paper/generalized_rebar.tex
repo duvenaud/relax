@@ -440,6 +440,7 @@ In contrast, our method is a single-sample estimator.
 \citet{staines2012variational} address the general problem of developing gradient estimators for deterministic black-box functions or discrete optimization.
 They introduce a sampling distribution, and optimize an objective similar to ours.
 \citet{wierstra2014natural} also introduce a sampling distribution to build a gradient estimator, and consider optimizing the sampling distribution.
+In the context of general Monte Carlo integration, \citet{oates2017control} introduce a non-parametric control variate that also leverages gradient information to reduce the variance of an estimator.
 
 In the reinforcement learning setting, the work most similar to ours is $Q$-prop \citep{haarnoja2017reinforcement}.
 Like our method, $Q$-prop reduces the variance of the policy gradient with a learned, action-dependent control variate whose expectation is approximated via a Monte Carlo sample from a Taylor series expansion of the control variate.
