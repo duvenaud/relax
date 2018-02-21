@@ -239,7 +239,7 @@ we can simply subtract the score-function estimator for $c_\phi$ and add back it
 This gives a gradient estimator which we call LAX:
 \begin{figure}[h!]
 \includegraphics[width=\columnwidth]{figures/grad_hist.pdf}
-\caption{Histograms of samples from the 3 gradient estimators that create LAX. Samples generated from our VAE experiments.}
+\caption{Histograms of samples from the 3 gradient estimators that create LAX. Samples generated from our 1 layer VAE experiments (Section \ref{vae section}).}
 \end{figure}
 %
 \begin{align}
@@ -497,6 +497,7 @@ Figures~\ref{first figure}a and \ref{first figure}b show the relative performanc
 Figure~\ref{learned-relaxations} plots the learned surrogate $c_\phi$ for a fixed value of $\theta$. We can see that $c_\phi$ is near $f$ for all $z$, keeping the variance of the REINFORCE part of the estimator small. Moreover the derivative of $c_\phi$ is positive for all $z$ meaning that the reparameterization part of the estimator will produce gradients pointing in the correct direction to optimize the expectation. Conversely, the concrete relaxation of REBAR is close to $f$ only near $0$ and $1$ and its gradient points in the correct direction only for values of $z > \log (\frac{1-t}{t})$. These factors together result in the RELAX estimator achieving the best performance. 
 
 \subsection{Discrete variational autoencoder}
+\label{vae section}
 Next, we evaluate the \RELAX{} estimator on the task of training a variational autoencoder~\citep{kingma2013autoencoding, rezende2014stochastic} with Bernoulli latent variables.
 We reproduced the variational autoencoder experiments from \citet{tucker2017rebar}, training models with 1 or 2 layers of 200 Bernoulli random variables with linear or nonlinear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
 Details of these models and our experimental procedure can be found in Appendix~\ref{app_disc_vae}.
