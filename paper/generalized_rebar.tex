@@ -610,17 +610,15 @@ In both discrete environments our estimator achieved great than a 2-times speedu
 \centering
 \hspace*{-.1in}
 \setlength{\tabcolsep}{0pt}
-\begin{tabular}{ccccc}%
+\begin{tabular}{cccc}%c}%
 %\renewcommand{\arraystretch}{0}
-& Cart-pole & Lunar lander & Inverted pendulum & Inverted double pendulum\\
+& Cart-pole & Lunar lander & Inverted pendulum \\%& Inverted double pendulum\\
 \rotatebox{90}{\qquad \qquad \small Reward} & \rlfig{figures/cp_paper} & 
 \rlfig{figures/ll_paper} &
-\rlfigg{figures/ip_paper_NEW} & 
-\rlfig{figures/idp_paper}\\
+\rlfigg{figures/ip_paper_NEW} \\%& \rlfig{figures/idp_paper}\\
 \rotatebox{90}{\qquad \qquad \small Log-Variance} & \rlfig{figures/cp_paper_var} & 
 \rlfig{figures/ll_paper_var} &
-\rlfig{figures/ip_paper_var_NEW} & 
-\rlfig{figures/idp_paper_var}
+\rlfigg{figures/ip_paper_var_NEW} \\%& \rlfig{figures/idp_paper_var}
 \end{tabular}
 \caption{\emph{Top row:} Reward curves.
 \emph{Bottom row:} Log-variance of policy gradients.
