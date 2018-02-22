@@ -243,7 +243,7 @@ This gives a gradient estimator which we call LAX:
 %\end{tabular}
 \begin{figure}[b]
 \includegraphics[width=\columnwidth]{figures/grad_hist.pdf}
-\caption{Histograms of samples from the gradient estimators that create LAX. Samples generated from our 1 layer VAE experiments (Section \ref{vae section}).}
+\caption{Histograms of samples from the gradient estimators that create LAX. Samples generated from our one-layer VAE experiments (Section \ref{vae section}).}
 \label{fig:grad hist}
 \end{figure}
 %\end{center}
@@ -509,7 +509,7 @@ Figure~\ref{learned-relaxations} plots the learned surrogate $c_\phi$ for a fixe
 \subsection{Discrete variational autoencoder}
 \label{vae section}
 Next, we evaluate the \RELAX{} estimator on the task of training a variational autoencoder~\citep{kingma2013autoencoding, rezende2014stochastic} with Bernoulli latent variables.
-We reproduced the variational autoencoder experiments from \citet{tucker2017rebar}, training models with 1 or 2 layers of 200 Bernoulli random variables with linear or nonlinear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
+We reproduced the variational autoencoder experiments from \citet{tucker2017rebar}, training models with one or two layers of 200 Bernoulli random variables with linear or nonlinear mappings between them, on both  the MNIST and Omniglot~\citep{lake2015human} datasets.
 Details of these models and our experimental procedure can be found in Appendix~\ref{app_disc_vae}.
 
 To take advantage of the available structure in the loss function, we choose the form of our control variate to be $c_\phi(z) = f(\sigma_\lambda(z))+  \hat{r}_\rho(z)$ where $\hat{r}_\rho$ is a neural network with parameters $\rho$ and $f(\sigma_\lambda(z))$ is the discrete loss function, the evidence lower-bound (ELBO), evaluated at continuously relaxed inputs as in REBAR.  
@@ -521,12 +521,12 @@ In all experiments, the learned control variate improved the training performanc
 \begin{tabular}{r l | c c c c c} 
 Dataset & Model & Concrete & NVIL & MuProp  & REBAR & RELAX\\\midrule 
                & Nonlinear & $-102.2$ & $-101.5$ & -101.1  &  -81.01 &  \textbf{-78.13} \\
-\textbf{MNIST} & linear 1 layer  &-111.3 & $-112.5$ & $-111.7$  & -111.6 & \textbf{-111.20} \\ 
-               & linear 2 layer  &-99.62 & $-99.6$ & $-99.07$   & -98.22 & \textbf{-98.00} \\
+\textbf{MNIST} & linear one-layer  &-111.3 & $-112.5$ & $-111.7$  & -111.6 & \textbf{-111.20} \\ 
+               & linear two-layer  &-99.62 & $-99.6$ & $-99.07$   & -98.22 & \textbf{-98.00} \\
 \midrule
                & Nonlinear  & $-110.4$  & $-109.58$ & -108.72  & -56.76 & \textbf{-56.12} \\
-\textbf{Omniglot} & linear 1 layer &-117.23 & $-117.44$ & $-117.09$   & -116.63 & \textbf{-116.57} \\ 
-                  & linear 2 layer &-109.95 & $-109.98$ & $-109.55$  & -108.71 & \textbf{-108.54}
+\textbf{Omniglot} & linear one-layer &-117.23 & $-117.44$ & $-117.09$   & -116.63 & \textbf{-116.57} \\ 
+                  & linear two-layer &-109.95 & $-109.98$ & $-109.55$  & -108.71 & \textbf{-108.54}
 \end{tabular}
 \caption{Highest training ELBO for discrete variational autoencoders.}
 \label{tab:vae tr}
@@ -566,8 +566,8 @@ In both linear models, RELAX provides an increase in rate of convergence.
 \includegraphics[width=.35\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/OMNIGLOT_L1}
 %\includegraphics[width=.31\textwidth, clip, trim=3mm 3mm 3mm 3mm]{figures/OMNIGLOT_L2}\\
 \end{tabular}
-\caption{Training curves for the VAE Experiments with the 1 layer linear model.
-%L1 represents the 1 layer linear model and L2 represents the 2 layer linear model.
+\caption{Training curves for the VAE Experiments with the one-layer linear model.
+%L1 represents the one-layer linear model and L2 represents the two-layer linear model.
 The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
 \label{fig:vae_curves}
 \end{figure}
@@ -882,11 +882,11 @@ Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:r
 \centering
 \begin{tabular}{r l | c c} 
   Dataset & Model & REBAR & RELAX \\\midrule
- & 1 layer linear  & -114.32 & \textbf{-113.62} \\ 
-\textbf{MNIST} & 2 layer linear  & -101.20 & \textbf{-100.85}\\
+ & one-layer linear  & -114.32 & \textbf{-113.62} \\ 
+\textbf{MNIST} & two-layer linear  & -101.20 & \textbf{-100.85}\\
 & Nonlinear & \textbf{-111.12} & 119.19 \\ \midrule
- & 1 layer linear & -122.44 & \textbf{-122.11} \\ 
-\textbf{Omniglot}& 2 layer linear & -115.83 & \textbf{-115.42}\\
+ & one-layer linear & -122.44 & \textbf{-122.11} \\ 
+\textbf{Omniglot}& two-layer linear & -115.83 & \textbf{-115.42}\\
 & Nonlinear& \textbf{-127.51} & 128.20
 \end{tabular}
 \caption{Highest obtained validation ELBO.}
@@ -898,12 +898,12 @@ Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:r
 \centering
 \begin{tabular}{r l | c c} 
  Dataset & Model  & REBAR & RELAX \\\midrule
- & 1 layer  & 857 & \textbf{531} \\ 
-\textbf{MNIST} & 2 layer  & 900 & \textbf{620} \\
+ & one-layer  & 857 & \textbf{531} \\ 
+\textbf{MNIST} & two-layer  & 900 & \textbf{620} \\
 & Nonlinear & \textbf{331} & - \\
 \midrule
-& 1 layer & 2086 & \textbf{566} \\ 
-\textbf{Omniglot}  & 2 layer & 1027 & \textbf{673}\\
+& one-layer & 2086 & \textbf{566} \\ 
+\textbf{Omniglot}  & two-layer & 1027 & \textbf{673}\\
 & Nonlinear & \textbf{368} & - 
 \end{tabular}
 \caption{Epochs needed to achieve REBAR's best validation score. ``-'' indicates that the nonlinear RELAX models achieved lower validation scores than REBAR.}
@@ -923,8 +923,8 @@ Since $p(z_t|s_t)$ is reparametrizable, we obtain the estimator in Eq.(\ref{eq:r
 %\includegraphics[width=.35\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/OMNIGLOT_L1}
 \includegraphics[width=.31\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/OMNIGLOT_L2}\\
 \end{tabular}
-\caption{Training curves for the VAE Experiments with the 2 layer linear model.
-%L1 represents the 1 layer linear model and L2 represents the 2 layer linear model.
+\caption{Training curves for the VAE Experiments with the two-layer linear model.
+%L1 represents the one-layer linear model and L2 represents the two-layer linear model.
 The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
 \label{fig:vae curves2}
 \end{figure}
@@ -940,7 +940,7 @@ The horizontal dashed line indicates the lowest validation error obtained by REB
 \includegraphics[width=.31\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/MNIST_NL1} &
 \includegraphics[width=.31\textwidth, clip, trim=3mm 3mm 3mm 2mm]{figures/OMNIGLOT_NL1}\\
 \end{tabular}
-\caption{Training curves for the VAE Experiments with the 1 layer nonlinear model.
+\caption{Training curves for the VAE Experiments with the one-layer nonlinear model.
 The horizontal dashed line indicates the lowest validation error obtained by REBAR.}
 \label{fig:vae curves3}
 \end{figure}
@@ -965,22 +965,22 @@ We believe further improvement could be achieved by tuning this parameter. It sh
 
 All presented results are from the models which achieve the highest ELBO on the validation data.
 \label{app_disc_vae}
-\subsubsection{One layer linear model}
-In the 1 layer linear models we optimize the evidence lower bound (ELBO): $$\log p(x) \geq \mathcal{L}(\theta) = \E_{q(b|x)}[\log p(x|b) + \log p(b) - \log q(b|x)]$$ where $q(b_1|x) = \sigma(x\cdot W_q + \beta_q)$ and $p(x| b_1) = \sigma(b_1\cdot W_p + \beta_p)$ with weight matrices $W_q,W_p$ and bias vectors $\beta_q,\beta_p$.
+\subsubsection{One-layer linear model}
+In the one-layer linear models we optimize the evidence lower bound (ELBO): $$\log p(x) \geq \mathcal{L}(\theta) = \E_{q(b|x)}[\log p(x|b) + \log p(b) - \log q(b|x)]$$ where $q(b_1|x) = \sigma(x\cdot W_q + \beta_q)$ and $p(x| b_1) = \sigma(b_1\cdot W_p + \beta_p)$ with weight matrices $W_q,W_p$ and bias vectors $\beta_q,\beta_p$.
 The parameters of the prior $p(b)$ are also learned.
 
 
 \subsubsection{Two layer linear model}
-In the two layer linear models we optimize the ELBO $$\mathcal{L}(\theta) = \E_{q(b_2|b_1)q(b_1|x)}[\log p(x|b_1) + \log p(b_1|b_2) + \log p(b_2) - \log q(b_1|x) - \log q(b_2|b_1)]$$ where $q(b_1|x) = \sigma(x\cdot W_{q_1} + \beta_{q_1})$, $q(b_2|b_1) = \sigma(b_1\cdot W_{q_2} + \beta_{q_2})$, $p(x| b_1) = \sigma(b_1\cdot W_{p_1} + \beta_{p_1})$, and $p(b_1| b_2) = \sigma(b_2\cdot W_{p_2} + \beta_{p_2})$ with weight matrices $W_{q_1},W_{q_2},W_{p_1},W_{p_2}$ and biases $\beta_{q_1},\beta_{q_2},\beta_{p_1},\beta_{p_2}$. As in the one layer model, the prior $p(b_2)$ is also learned.
+In the two layer linear models we optimize the ELBO $$\mathcal{L}(\theta) = \E_{q(b_2|b_1)q(b_1|x)}[\log p(x|b_1) + \log p(b_1|b_2) + \log p(b_2) - \log q(b_1|x) - \log q(b_2|b_1)]$$ where $q(b_1|x) = \sigma(x\cdot W_{q_1} + \beta_{q_1})$, $q(b_2|b_1) = \sigma(b_1\cdot W_{q_2} + \beta_{q_2})$, $p(x| b_1) = \sigma(b_1\cdot W_{p_1} + \beta_{p_1})$, and $p(b_1| b_2) = \sigma(b_2\cdot W_{p_2} + \beta_{p_2})$ with weight matrices $W_{q_1},W_{q_2},W_{p_1},W_{p_2}$ and biases $\beta_{q_1},\beta_{q_2},\beta_{p_1},\beta_{p_2}$. As in the one-layer model, the prior $p(b_2)$ is also learned.
 
 \subsubsection{Nonlinear model}
-In the one layer nonlinear model, the mappings between random variables consist of 2 deterministic layers with 200 units using the hyperbolic-tangent nonlinearity followed by a linear layer with 200 units. 
+In the one-layer nonlinear model, the mappings between random variables consist of 2 deterministic layers with 200 units using the hyperbolic-tangent nonlinearity followed by a linear layer with 200 units. 
 
 We run an identical hyperpameter search in all models. 
 
 
 \subsection{Discrete RL}
-In both the baseline A2C and RELAX models, the policy and control variate (value function in the baseline model) were 2 layer neural networks with 10 units per layer.
+In both the baseline A2C and RELAX models, the policy and control variate (value function in the baseline model) were two-layer neural networks with 10 units per layer.
 The ReLU non linearity was used on all layers except for the output layer which was linear.
 
 For these tasks we estimate the policy gradient with a single Monte Carlo sample.
@@ -1004,7 +1004,7 @@ The results presented for the CartPole and LunarLander environments were obtaine
 
 \subsection{Continuous RL}
 %The continuous tasks uses both the value function and the control variate to enable bootstrapping, which is needed due to the increased complexity of the problem.
-The three models- policy, value, and control variate, are 2 layer neural networks with 64 hidden units per layer.
+The three models- policy, value, and control variate, are two-layer neural networks with 64 hidden units per layer.
 The value and control variate networks are identical, with the ELU~\citep{Clevert2016ELUs} nonlinearity in each hidden layer.
 The policy network has \texttt{tanh} nonlinearity.
 The policy network, which parameterizes the Gaussian policy comprises of a network (with the architecture mentioned above) that outputs the mean, and a separate, trainable log standard deviation value that is not input dependent.
