@@ -298,14 +298,14 @@ Figure~\ref{learned-relaxations} shows the learned surrogate on a toy problem.
 
 \begin{algorithm}[h]
 \begin{algorithmic}
-\Require $f(\cdot)$, $\log p(b|\theta)$, reparameterized sampler $b = T(\theta, \epsilon)$, neural network $c_\phi(\cdot)$
+\Require $f(\cdot)$, $\log p(b|\theta)$, reparameterized sampler $b = T(\theta, \epsilon)$, neural network $c_\phi(\cdot)$, \\ \qquad \quad~step sizes $\alpha_1, \alpha_2$ 
 \While {not converged} 
 	\State $\epsilon \sim p(\epsilon)$ \Comment Sample noise
 	\State $b \leftarrow T(\epsilon, \theta)$ \Comment Compute input
 	\State  $\hat g_\theta \leftarrow \left[f(b) - c_{\phi}(b) \right] \nabla_\theta \log p(b|\theta) + \nabla_\theta c_\phi(b)$ \Comment Estimate gradient of objective
 	\State  $\hat g_\phi \leftarrow \partial \hat g_\theta^2 / \partial \phi$ \Comment Estimate gradient of variance of gradient
-	\State $\theta \leftarrow \theta + \alpha_1 g_\theta$ \Comment Update parameters
-	\State $\phi \leftarrow \phi + \alpha_2 g_\phi$ \Comment Update control variate
+	\State $\theta \leftarrow \theta - \alpha_1 \hat{g}_\theta$ \Comment Update parameters
+	\State $\phi \leftarrow \phi - \alpha_2 \hat{g}_\phi$ \Comment Update control variate
 \EndWhile
 \State \textbf{return} $\theta$ 
 \end{algorithmic}
@@ -733,15 +733,15 @@ One could also train our control variate off-policy, as in $Q$-prop~\citep{gu201
 \begin{algorithm}[h]
 	\begin{algorithmic}
 		\Require $f(\cdot)$, $\log p(b|\theta)$, reparameterized samplers $b = H(z)$, $z = S(\epsilon, \theta)$ and $\tilde{z} = S(\epsilon, \theta | b)$, \\ 
-		\hspace{3em} neural network $c_\phi(\cdot)$  \While {not converged} 
+		\hspace{3em} neural network $c_\phi(\cdot)$, step sizes $\alpha_1, \alpha_2$  \While {not converged} 
 		\State $\epsilon_{i}, \widetilde{\epsilon_i} \sim p(\epsilon)$ \Comment Sample noise
 		\State $z_i \leftarrow S(\epsilon_i, \theta)$ \Comment Compute unconditional relaxed input
 		\State $b_i \leftarrow H(z_i)$ \Comment Compute input
 		\State $\widetilde{z_i} \leftarrow S(\widetilde{\epsilon_i}, \theta | b_i)$ \Comment Compute conditional relaxed input
-		\State  $g_\theta \leftarrow \left[f(b_i) - c_{\phi}(\widetilde{z_i}) \right] \nabla_\theta \log p + \nabla_\theta c_\phi(z_i) - \nabla_\theta c_\phi(\widetilde{z_i})$ \Comment Estimate gradient
-		\State  $g_\phi \leftarrow 2 g_\theta \frac{\partial g_\theta}{\partial \phi}$ \Comment Estimate gradient of variance of gradient
-		\State $\theta \leftarrow \theta + \alpha_1 g_\theta$ \Comment Update parameters
-		\State $\phi \leftarrow \phi + \alpha_2 g_\phi$ \Comment Update control variate
+		\State  $\hat{g}_\theta \leftarrow \left[f(b_i) - c_{\phi}(\widetilde{z_i}) \right] \nabla_\theta \log p + \nabla_\theta c_\phi(z_i) - \nabla_\theta c_\phi(\widetilde{z_i})$ \Comment Estimate gradient
+		\State  $\hat{g}_\phi \leftarrow \partial \hat{g}_\theta^2 / \partial \phi$ \Comment Estimate gradient of variance of gradient
+		\State $\theta \leftarrow \theta - \alpha_1 \hat{g}_\theta$ \Comment Update parameters
+		\State $\phi \leftarrow \phi - \alpha_2 \hat{g}_\phi$ \Comment Update control variate
 		\EndWhile
 		\State \textbf{return} $\theta$ 
 	\end{algorithmic}
