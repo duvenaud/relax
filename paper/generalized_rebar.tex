@@ -241,11 +241,6 @@ This gives a gradient estimator which we call LAX:
 %\begin{tabular}{c|c|c|c}
 %a & b & c & d
 %\end{tabular}
-\begin{figure}[b]
-\includegraphics[width=\columnwidth]{figures/grad_hist.pdf}
-\caption{Histograms of samples from the gradient estimators that create LAX. Samples generated from our one-layer VAE experiments (Section \ref{vae section}).}
-\label{fig:grad hist}
-\end{figure}
 %\end{center}
 %
 \begin{align}
@@ -257,8 +252,12 @@ This gives a gradient estimator which we call LAX:
 %
 This estimator is unbiased for any choice of $c_\phi$.
 When $c_\phi = f$, then \LAX{} becomes the reparameterization estimator for $f$.
-Thus \LAX{} can have variance at least as low as the reparameterization estimator. An example of the relative bias and variance of each term in this estimator can be seen in Figure \ref{fig:grad hist}.
-
+Thus \LAX{} can have variance at least as low as the reparameterization estimator. An example of the relative bias and variance of each term in this estimator can be seen below.%in Figure \ref{fig:grad hist}.
+\begin{figure}[h!]
+\includegraphics[width=\columnwidth]{figures/grad_hist.pdf}
+\caption{Histograms of samples from the gradient estimators that create LAX. Samples generated from our one-layer VAE experiments (Section \ref{vae section}).}
+\label{fig:grad hist}
+\end{figure}
 
 %\subsection{Optimizing the gradient control variate with gradients}
 \subsection{Gradient-based optimization of the control variate}
@@ -408,7 +407,7 @@ Details of this derivation, as well as the discrete and conditionally reparamete
 
 \section{Scope and Limitations}
 \label{limitations}
-The work most related to ours is the recently-developed REBAR method~\citep{tucker2017rebar}, which inspired our work.
+The work most related to ours is the recently-developed REBAR method~\citep{tucker2017rebar}, which greatly inspired our work.
 The REBAR estimator is a special case of the \RELAX{} estimator, when the surrogate is set to ${c_\phi(z) = \eta \cdot f(\texttt{softmax}_\lambda(z))}$.
 The only free parameters of the REBAR estimator are the scaling factor $\eta$, and the temperature $\lambda$, which gives limited scope to optimize the surrogate.
 REBAR can only be applied when $f$ is known and differentiable.
@@ -597,7 +596,8 @@ As our control variate does not have the same interpretation as the value functi
 %We run the Cart-Pole and Lunar-Lander environments for 250 and 1000 episodes, respectively and plot reward and the log-variance of the policy gradients in figure~X.
 
 In the discrete action setting, we test our approach on the Cart Pole and Lunar Lander environments as provided by the OpenAI gym~\citep{1606.01540}.
-In the continuous action setting, we test on the MuJoCo-simulated~\citep{todorov2012mujoco} environments Inverted Pendulum and Inverted Double Pendulum also found in the OpenAI gym.
+In the continuous action setting, we test on the MuJoCo-simulated~\citep{todorov2012mujoco} environment Inverted Pendulum also found in the OpenAI gym.
+% and Inverted Double Pendulum also found in the OpenAI gym.
 In all tested environments we observe improved performance and sample efficiency using our method.
 The results of our experiments can be seen in Figure~\ref{fig:rl_results}, and Table~\ref{tab:rl_results}.
 
@@ -624,17 +624,17 @@ In both discrete environments our estimator achieved great than a 2-times speedu
 \emph{Bottom row:} Log-variance of policy gradients.
 In each curve, the center line indicates the mean reward over 5 random seeds.
 The opaque bars in the top row indicate the 25th and 75th percentiles.
-The opaque bars in the bottom row indicate 1 standard deviation.
-After every 10th training episode 100 episodes were run and the sample log-variance is reported averaged over all policy parameters.}
+The opaque bars in the bottom row indicate 1 standard deviation. Since the gradient estimator is defined at the end of each episode, we display log-variance per episode.
+After every 10th training episode 100 episodes were run and the sample log-variance is reported averaged over all policy parameters. }
 \label{fig:rl_results}
 \end{figure}
 
 \begin{table}%
 \centering
-\begin{tabular}{l | c c c c }%
-\textbf{Model} & Cart-pole & Lunar lander & Inverted pendulum & Inverted double pendulum \\\midrule
-A2C             & $1152 \pm 90$ & $162374 \pm 17241$                    & $6243 \pm 164$ & $60186 \pm 3488$  \\
-LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{2067 \pm 412}$ & $\bm{60967 \pm 1669}$
+\begin{tabular}{l | c c c }%c }%
+\textbf{Model} & Cart-pole & Lunar lander & Inverted pendulum \\\midrule%& Inverted double pendulum \\\midrule
+A2C             & $1152 \pm 90$ & $162374 \pm 17241$                    & $6243 \pm 164$ \\%& $60186 \pm 3488$  \\
+LAX/RELAX & $\bm{472 \pm 114}$ & $\bm{68712 \pm 20668}$ & $\bm{2067 \pm 412}$ \\%& $\bm{60967 \pm 1669}$
 \end{tabular}
 \caption{Mean episodes to solve tasks.
 Definitions of solving each task can be found in Appendix~\ref{experiment appendix}.}
@@ -1021,7 +1021,9 @@ We chose the hyperparameter setting that yielded the shortest episode-to-complet
 As with the discrete case, we used the definition of completion defined by OpenAI gym~\citep{1606.01540} for each task. 
 
 The Inverted Pendulum experiments were run for 1,000,000 frames.
-The Inverted Double Pendulum experiments were run for 5,000,000 frames.
+%The Inverted Double Pendulum experiments were run for 5,000,000 frames.
+
+For continuous RL tasks, it is convention to employ a batch of a fixed number of timesteps (here, 2500) in which the number of episodes vary. We follow this convention for the sake of providing a fair comparison to the baseline. However, this causes a complication when calculating the variance loss for the control variate because we must compute the variance averaged over rollouts, which is difficult to obtain when the number of episodes is not fixed. For this reason, in our implementation we compute the gradients for the control variate outside of Tensorflow. However, for practical reasons we recommend using a batch of fixed number of episodes when using our method.
 
 \citet{tucker2018mirage} pointed out a bug in our initially released code for the continuous RL experiments. This issue has been fixed in the publicly available code and the results presented in this paper were generated with the corrected code. 
 
