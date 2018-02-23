@@ -1018,13 +1018,14 @@ A grid search was done over the set: $\{0.03, 0.003, 0.0003\}$.
 \RELAX{} has 4 hyperparameters to tune: 3 learning rates for the optimizer per network, and the number of training iterations of the control variate per policy gradient update.
 Due to the large number of hyperparameters, we restricted the size of the grid search set to $\{0.003, 0.0003\}$ for the learning rates, and $\{10, 25, 50\}$ for the control variate training iteration number.
 We chose the hyperparameter setting that yielded the shortest episode-to-completion time averaged over 5 random seeds.
-As with the discrete case, we used the definition of completion defined by OpenAI gym~\citep{1606.01540} for each task. 
+As with the discrete case, we used the definition of completion provided by the OpenAI gym~\citep{1606.01540} for each task. 
 
 The Inverted Pendulum experiments were run for 1,000,000 frames.
 %The Inverted Double Pendulum experiments were run for 5,000,000 frames.
 
-For continuous RL tasks, it is convention to employ a batch of a fixed number of timesteps (here, 2500) in which the number of episodes vary. We follow this convention for the sake of providing a fair comparison to the baseline. However, this causes a complication when calculating the variance loss for the control variate because we must compute the variance averaged over rollouts, which is difficult to obtain when the number of episodes is not fixed. For this reason, in our implementation we compute the gradients for the control variate outside of Tensorflow. However, for practical reasons we recommend using a batch of fixed number of episodes when using our method.
-
 \citet{tucker2018mirage} pointed out a bug in our initially released code for the continuous RL experiments. This issue has been fixed in the publicly available code and the results presented in this paper were generated with the corrected code. 
 
+
+\subsubsection{Implementation Considerations}
+For continuous RL tasks, it is convention to employ a batch of a fixed number of timesteps (here, 2500) in which the number of episodes vary. We follow this convention for the sake of providing a fair comparison to the baseline. However, this causes a complication when calculating the variance loss for the control variate because we must compute the variance averaged over completed episodes, which is difficult to obtain when the number of episodes is not fixed. For this reason, in our implementation we compute the gradients for the control variate outside of the Tensorflow computation graph. However, for practical reasons we recommend using a batch of fixed number of episodes when using our method.
 \end{document}
