@@ -602,7 +602,7 @@ In all tested environments we observe improved performance and sample efficiency
 The results of our experiments can be seen in Figure~\ref{fig:rl_results}, and Table~\ref{tab:rl_results}.
 
 We found that our estimator produced policy gradients with drastically reduced variance (see Figure~\ref{fig:rl_results}) allowing for larger learning rates to be used while maintaining stable training.
-In both discrete environments our estimator achieved great than a 2-times speedup in convergence over the baseline.
+In both discrete environments our estimator achieved greater than a 2-times speedup in convergence over the baseline.
 
 \newcommand{\rlfig}[1]{{\includegraphics[height=0.24\linewidth, clip, trim=3mm 3mm 3mm 3mm]{#1}}}%
 \newcommand{\rlfigg}[1]{{\includegraphics[height=0.24\linewidth, clip, trim=2mm 2mm 2mm 2mm]{#1}}}%
@@ -1016,7 +1016,7 @@ All models were trained using ADAM~\citep{kingma2015adam}, with $\beta_1=0.9$, $
 The baseline A2C case has 2 hyperparameters to tune: the learning rate for the optimizer for the policy and value network.
 A grid search was done over the set: $\{0.03, 0.003, 0.0003\}$.
 \RELAX{} has 4 hyperparameters to tune: 3 learning rates for the optimizer per network, and the number of training iterations of the control variate per policy gradient update.
-Due to the large number of hyperparameters, we restricted the size of the grid search set to $\{0.003, 0.0003\}$ for the learning rates, and $\{10, 25, 50\}$ for the control variate training iteration number.
+Due to the large number of hyperparameters, we restricted the size of the grid search set to $\{0.003, 0.0003\}$ for the learning rates, and $\{1, 5, 25\}$ for the control variate training iteration number.
 We chose the hyperparameter setting that yielded the shortest episode-to-completion time averaged over 5 random seeds.
 As with the discrete case, we used the definition of completion provided by the OpenAI gym~\citep{1606.01540} for each task. 
 
