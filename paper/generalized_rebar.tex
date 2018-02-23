@@ -714,18 +714,18 @@ We also thank Christopher Prohm for pointing out an error in one of our derivati
 	\begin{align*}
 	\E_{p(b|\theta)} \! \left[\left[ f(b) - \E_{p(\tilde{z}|b, \theta)} \! \left[c_\phi(\tilde{z}) \right] \right]\PT \log p(b|\theta)  - \PT \E_{p(\tilde{z}|b, \theta)} \! \left[c_\phi(\tilde{z}) \right] \right] + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right]. \span & \nonumber \\
 	\end{align*}
-	Expanding the expectation for clarity of exposition, we account for each term separately:
+	Expanding the expectation for clarity of exposition, we account for each term in the estimator separately:
 	\begin{align}
 	& \E_{p(b|\theta)} \! \left[ f(b) \PT \log p(b|\theta)  \right] \label{one}\\ 
 	& - \E_{p(b|\theta)} \left[ \E_{p(\tilde{z}|b, \theta)} \! \left[c_\phi (\tilde{z}) \right] \PT \log p(b|\theta)  \right] \label{two}\\
 	& - \E_{p(b|\theta)}  \left[ \PT \E_{p(\tilde{z}|b, \theta)} \! \left[c_\phi(\tilde{z}) \right] \right] \label{three}\\
 	& + \PT\E_{p(z|\theta)} \! \left[ c_\phi(z) \right]. \label{four}
 	\end{align}
-	Component \eqref{one} is an unbiased score-function estimator of $\frac{\partial}{\partial \theta} \mathbb{E}_{p(b \vert \theta)} \left[ f(b) \right]$. It remains to show that the other three terms are zero in expectation. Following \cite{tucker2017rebar} (see the appendices of that paper for a derivation), we rewrite component \eqref{three} as follows:
+	Term \eqref{one} is an unbiased score-function estimator of $\frac{\partial}{\partial \theta} \mathbb{E}_{p(b \vert \theta)} \left[ f(b) \right]$. It remains to show that the other three terms are zero in expectation. Following \cite{tucker2017rebar} (see the appendices of that paper for a derivation), we rewrite term \eqref{three} as follows:
 	\begin{align}
-	-\mathbb{E}_{p(b \vert \theta)} \left[ \frac{\partial}{\partial \theta} \mathbb{E}_{p(\tilde{z} \vert b, \theta)} \left[ c_\phi (\tilde{z}) \right] \right] =~&\mathbb{E}_{p(b \vert \theta)} \left[ \mathbb{E}_{p(\tilde{z} \vert b, \theta)} \left[ c_\phi(\tilde{z}) \right] \frac{\partial}{\partial \theta} \log p(b \vert \theta) \right] \label{five} \\ & -  \mathbb{E}_{p(z \vert \theta)} \left[ c_\phi(z) \frac{\partial}{\partial \theta} \log p(z) \right] . \label{six}
+	-\mathbb{E}_{p(b \vert \theta)} \left[ \frac{\partial}{\partial \theta} \mathbb{E}_{p(\tilde{z} \vert b, \theta)} \left[ c_\phi (\tilde{z}) \right] \right] =~&\mathbb{E}_{p(b \vert \theta)} \left[ \mathbb{E}_{p(\tilde{z} \vert b, \theta)} \left[ c_\phi(\tilde{z}) \right] \frac{\partial}{\partial \theta} \log p(b \vert \theta) \right] \nonumber \\ & -  \mathbb{E}_{p(z \vert \theta)} \left[ c_\phi(z) \frac{\partial}{\partial \theta} \log p(z) \right] . \label{six}
 	\end{align}
-	Note that the right-hand side of equation \eqref{five} is equal to equation \eqref{two} with opposite sign. Equation \eqref{six} is the score-function estimator of equation \eqref{four}, opposite in sign. Their sum is zero in expectation.
+	Note that the first term on the right-hand side of equation \eqref{six} is equal to term \eqref{two} with opposite sign. The second term on the right-hand side of equation \eqref{six} is the score-function estimator of term \eqref{four}, opposite in sign. The sum of these terms is zero in expectation.
 	\\
 \end{proof}
 
