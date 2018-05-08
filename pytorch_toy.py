@@ -144,6 +144,8 @@ def run_toy_example(args=None):
         u = torch.rand(args.batch_size, args.num_latents)
         v = torch.rand(args.batch_size, args.num_latents)
         z = logits.detach() + torch.log(u) - torch.log1p(-u)
+        # we detach/reattach the gradient here b/c we don't want to
+        # propagate through 'logits'
         z.requires_grad_(True)
         b = z.gt(0.).type_as(z)
         f_b = loss_func(b, target)
