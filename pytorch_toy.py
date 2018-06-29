@@ -1,7 +1,11 @@
-from __future__ import print_function, absolute_import
+from __future__ import absolute_import
+from __future__ import print_function
+
+from itertools import product
+
+import argparse
 import numpy as np
 import torch
-import argparse
 
 
 class QFunc(torch.nn.Module):
@@ -47,7 +51,6 @@ def reinforce(f_b, b, logits, **kwargs):
     d_log_prob = torch.autograd.grad(
         [log_prob], [logits], grad_outputs=torch.ones_like(log_prob))[0]
     d_logits = f_b.unsqueeze(1) * d_log_prob
-    logits.backward(d_log_prob.mean(0))
     return d_logits
 
 
@@ -59,7 +62,9 @@ def _get_z_tilde(logits, b, v):
     return z_tilde
 
 
-def rebar(f_b, b, logits, z, v, eta, log_temp, target, **kwargs):
+def rebar(
+        f_b, b, logits, z, v, eta, log_temp, target, loss_func=loss_func,
+        **kwargs):
     z_tilde = _get_z_tilde(logits, b, v)
     temp = torch.exp(log_temp).unsqueeze(0)
     sig_z = torch.sigmoid(z / temp)
@@ -78,11 +83,9 @@ def rebar(f_b, b, logits, z, v, eta, log_temp, target, **kwargs):
         create_graph=True, retain_graph=True)[0]
     diff = f_b.unsqueeze(1) - eta * f_z_tilde.unsqueeze(1)
     d_logits = diff * d_log_prob + eta * (d_f_z - d_f_z_tilde)
-    d_logits = d_logits.mean(0)  # mean over batch axis
-    logits.backward(d_logits.detach())
     var_loss = (d_logits ** 2).mean()
     var_loss.backward()
-    return d_logits
+    return d_logits.detach()
 
 
 def relax(f_b, b, logits, z, v, log_temp, q_func, **kwargs):
@@ -104,11 +107,9 @@ def relax(f_b, b, logits, z, v, log_temp, q_func, **kwargs):
         create_graph=True, retain_graph=True)[0]
     diff = f_b.unsqueeze(1) - f_z_tilde.unsqueeze(1)
     d_logits = diff * d_log_prob + d_f_z - d_f_z_tilde
-    d_logits = d_logits.mean(0)  # mean over batch axis
-    logits.backward(d_logits.detach())
-    var_loss = (d_logits ** 2).mean()
+    var_loss = (d_logits.mean(0) ** 2).mean()
     var_loss.backward()
-    return d_logits
+    return d_logits.detach()
 
 
 def run_toy_example(args=None):
@@ -152,7 +153,9 @@ def run_toy_example(args=None):
         d_logits = estimator(
             f_b=f_b, b=b, u=u, v=v, z=z, target=target, logits=logits,
             log_temp=log_temp, eta=eta, q_func=q_func,
-        ).detach().numpy()
+        )
+        logits.backward(d_logits.mean(0))  # mean of batch
+        d_logits = d_logits.numpy()
         logit_optim.step()
         if tune_optim:
             tune_optim.step()
