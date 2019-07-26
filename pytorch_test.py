@@ -49,8 +49,7 @@ def test(args=None):
         # add extra samples to (new) batch index
         logits = logits.unsqueeze(0).expand(
             args.num_mc_samples, args.latent_dim)
-        z = logits.detach() + torch.log(u) - torch.log1p(-u)
-        z.requires_grad_(True)
+        z = logits + torch.log(u) - torch.log1p(-u)
         b = z.gt(0.).type_as(z)
         f_b = f(b)
         d_logits = estimator(f_b=f_b, b=b, logits=logits, z=z, v=v, **kwargs)

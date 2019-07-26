@@ -55,10 +55,9 @@ def reinforce(f_b, b, logits, **kwargs):
 
 
 def _get_z_tilde(logits, b, v):
-    theta = torch.sigmoid(logits.detach())
+    theta = torch.sigmoid(logits)
     v_prime = v * (b - 1.) * (theta - 1.) + b * (v * theta + 1. - theta)
-    z_tilde = logits.detach() + torch.log(v_prime) - torch.log1p(-v_prime)
-    z_tilde.requires_grad_(True)
+    z_tilde = logits + torch.log(v_prime) - torch.log1p(-v_prime)
     return z_tilde
 
 
@@ -74,12 +73,11 @@ def rebar(
     log_prob = torch.distributions.Bernoulli(logits=logits).log_prob(b)
     d_log_prob = torch.autograd.grad(
         [log_prob], [logits], grad_outputs=torch.ones_like(log_prob))[0]
-    # d z / d logits = 1, so d f_z / d logits = d f_z / d z
     d_f_z = torch.autograd.grad(
-        [f_z], [z], grad_outputs=torch.ones_like(f_z),
+        [f_z], [logits], grad_outputs=torch.ones_like(f_z),
         create_graph=True, retain_graph=True)[0]
     d_f_z_tilde = torch.autograd.grad(
-        [f_z_tilde], [z_tilde], grad_outputs=torch.ones_like(f_z_tilde),
+        [f_z_tilde], [logits], grad_outputs=torch.ones_like(f_z_tilde),
         create_graph=True, retain_graph=True)[0]
     diff = f_b.unsqueeze(1) - eta * f_z_tilde.unsqueeze(1)
     d_logits = diff * d_log_prob + eta * (d_f_z - d_f_z_tilde)
@@ -98,12 +96,11 @@ def relax(f_b, b, logits, z, v, log_temp, q_func, **kwargs):
     log_prob = torch.distributions.Bernoulli(logits=logits).log_prob(b)
     d_log_prob = torch.autograd.grad(
         [log_prob], [logits], grad_outputs=torch.ones_like(log_prob))[0]
-    # d z / d logits = 1, so d f_z / d logits = d f_z / d z
     d_f_z = torch.autograd.grad(
-        [f_z], [z], grad_outputs=torch.ones_like(f_z),
+        [f_z], [logits], grad_outputs=torch.ones_like(f_z),
         create_graph=True, retain_graph=True)[0]
     d_f_z_tilde = torch.autograd.grad(
-        [f_z_tilde], [z_tilde], grad_outputs=torch.ones_like(f_z_tilde),
+        [f_z_tilde], [logits], grad_outputs=torch.ones_like(f_z_tilde),
         create_graph=True, retain_graph=True)[0]
     diff = f_b.unsqueeze(1) - f_z_tilde.unsqueeze(1)
     d_logits = diff * d_log_prob + d_f_z - d_f_z_tilde
@@ -144,10 +141,7 @@ def run_toy_example(args=None):
             tune_optim.zero_grad()
         u = torch.rand(args.batch_size, args.num_latents)
         v = torch.rand(args.batch_size, args.num_latents)
-        z = logits.detach() + torch.log(u) - torch.log1p(-u)
-        # we detach/reattach the gradient here b/c we don't want to
-        # propagate through 'logits'
-        z.requires_grad_(True)
+        z = logits + torch.log(u) - torch.log1p(-u)
         b = z.gt(0.).type_as(z)
         f_b = loss_func(b, target)
         d_logits = estimator(
